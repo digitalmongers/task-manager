@@ -28,11 +28,11 @@ app.use(requestId);
 app.use(responseTime((req, res, time) => {
   Logger.logResponse(req, res, time.toFixed(2));
 }));
+  
 
-// Security middleware
 applySecurity(app);
 
-// Body parsing middleware
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
