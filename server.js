@@ -38,7 +38,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
  
 // Compression middleware
 app.use(compression());
-
+ 
 // HTTP request logging (express-winston)
 app.use(requestLogger);
 
