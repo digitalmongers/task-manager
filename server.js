@@ -1,9 +1,9 @@
+import "dotenv/config";
 import express from "express";
-import dotenv from "dotenv";
 import compression from "compression";
 import responseTime from "response-time";
 import { connectDB } from "./config/db.js";
-import Logger from "./utils/logger.js";
+import Logger from "./config/logger.js";
 import ApiResponse from "./utils/ApiResponse.js";
 import { applySecurity } from "./middleware/security.js";
 import requestLogger from "./middleware/requestLogger.js";
@@ -13,7 +13,7 @@ import errorHandler from "./middleware/errorHandler.js";
 import notFound from "./middleware/notFound.js";
 
 // Load environment variables
-dotenv.config();
+// dotenv.config(); // Loaded at the top
 
 
 const app = express();
@@ -30,11 +30,10 @@ app.use(responseTime((req, res, time) => {
 }));
   
 
-applySecurity(app);
-
- 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+applySecurity(app);
  
 // Compression middleware
 app.use(compression());
@@ -142,7 +141,9 @@ const startServer = async () => {
     // Start listening
     app.listen(PORT, () => {
       Logger.info(` Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-      Logger.info(` Health check available at http://localhost:${PORT}/health`);
+      Logger.info(` Health check: http://localhost:${PORT}/health`);
+      Logger.info(` API Docs: http://localhost:${PORT}/api-docs`);
+      Logger.info(` Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`); 
     });
   } catch (error) {
     Logger.error('Failed to start server:', { error: error.message });

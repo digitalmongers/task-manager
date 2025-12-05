@@ -42,7 +42,7 @@ export const SUCCESS_MESSAGES = {
   REGISTER_SUCCESS: 'Registration successful',
 };
 
-// Pagination
+
 export const PAGINATION = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 10,
@@ -55,13 +55,13 @@ export const RATE_LIMIT = {
   MAX_REQUESTS: 100, // limit each IP to 100 requests per windowMs
 };
 
-// Environment
+
 export const ENV = {
   DEVELOPMENT: 'development',
   PRODUCTION: 'production',
   TEST: 'test',
 };
-
+ 
 // Regex Patterns
 export const REGEX = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,

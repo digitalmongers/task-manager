@@ -1,5 +1,5 @@
 import ApiError from '../utils/ApiError.js';
-import Logger from '../utils/logger.js';
+import Logger from '../config/logger.js';
 import { HTTP_STATUS, ERROR_MESSAGES } from '../config/constants.js';
 
 

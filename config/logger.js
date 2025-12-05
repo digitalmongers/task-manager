@@ -3,17 +3,15 @@ import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const { combine, timestamp, errors, printf, colorize, json, metadata } = winston.format;
 
-// Custom format for development with colors and stack traces
+
 const devLogFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
   let log = `${timestamp} [${level}] : ${stack || message}`;
   
-  // Add metadata if present
   const metaKeys = Object.keys(meta).filter(key => key !== 'service');
   if (metaKeys.length > 0) {
     log += `\n${JSON.stringify(meta, null, 2)}`;
@@ -22,14 +20,12 @@ const devLogFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
   return log;
 });
 
-
 const prodLogFormat = combine(
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   errors({ stack: true }),
   metadata({ fillExcept: ['message', 'level', 'timestamp', 'label'] }),
   json()
 );
-
 
 const developmentFormat = combine(
   timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
@@ -38,71 +34,42 @@ const developmentFormat = combine(
   devLogFormat
 );
 
-// Combined logs - all levels
-const dailyRotateFileTransport = new DailyRotateFile({
-  filename: path.join(__dirname, '../logs/%DATE%-combined.log'),
-  datePattern: 'YYYY-MM-DD',
-  zippedArchive: true,
-  maxSize: '20m',
-  maxFiles: '14d',
-  format: prodLogFormat,
-});
+// File transports
+const transports = [];
 
-// Error logs - separate file with longer retention
-const errorRotateFile = new DailyRotateFile({
-  filename: path.join(__dirname, '../logs/%DATE%-error.log'),
-  level: 'error',
-  datePattern: 'YYYY-MM-DD',
-  zippedArchive: true,
-  maxSize: '10m',
-  maxFiles: '30d',
-  format: prodLogFormat,
-});
-
-// HTTP logs - separate file for API requests
-const httpRotateFile = new DailyRotateFile({
-  filename: path.join(__dirname, '../logs/%DATE%-http.log'),
-  level: 'http',
-  datePattern: 'YYYY-MM-DD',
-  zippedArchive: true,
-  maxSize: '20m',
-  maxFiles: '7d',
-  format: prodLogFormat,
-});
-
-// Debug logs - only in development
-const debugRotateFile = new DailyRotateFile({
-  filename: path.join(__dirname, '../logs/%DATE%-debug.log'),
-  level: 'debug',
-  datePattern: 'YYYY-MM-DD',
-  zippedArchive: true,
-  maxSize: '10m',
-  maxFiles: '3d',
-  format: prodLogFormat,
-});
-
-// Create transports array based on environment
-const transports = [
-  dailyRotateFileTransport,
-  errorRotateFile,
-  httpRotateFile,
-];
-
-// Add debug logs only in development
-if (process.env.NODE_ENV !== 'production') {
-  transports.push(debugRotateFile);
+// Only create file transports in non-ephemeral environments
+if (process.env.NODE_ENV !== 'production' || process.env.PERSISTENT_LOGS === 'true') {
+  transports.push(
+    new DailyRotateFile({
+      filename: path.join(__dirname, '../logs/%DATE%-combined.log'),
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d',
+      format: prodLogFormat,
+    }),
+    new DailyRotateFile({
+      filename: path.join(__dirname, '../logs/%DATE%-error.log'),
+      level: 'error',
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '10m',
+      maxFiles: '30d',
+      format: prodLogFormat,
+    })
+  );
 }
 
-// Console transport with appropriate format
-const consoleTransport = new winston.transports.Console({
-  handleExceptions: true,
-  handleRejections: true,
-  format: process.env.NODE_ENV === 'production' ? prodLogFormat : developmentFormat,
-});
+// Console transport (always enabled)
+transports.push(
+  new winston.transports.Console({
+    handleExceptions: true,
+    handleRejections: true,
+    format: process.env.NODE_ENV === 'production' ? prodLogFormat : developmentFormat,
+  })
+);
 
-transports.push(consoleTransport);
-
-// Create the logger
+// Create logger
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
   format: process.env.NODE_ENV === 'production' ? prodLogFormat : developmentFormat,
@@ -114,46 +81,177 @@ const logger = winston.createLogger({
   exitOnError: false,
 });
 
-// Exception handlers
-logger.exceptions.handle(
-  new DailyRotateFile({
-    filename: path.join(__dirname, '../logs/%DATE%-exceptions.log'),
-    datePattern: 'YYYY-MM-DD',
-    maxSize: '20m',
-    maxFiles: '30d',
-    format: prodLogFormat,
-  })
-);
+// Exception/rejection handlers (only if file logging enabled)
+if (process.env.NODE_ENV !== 'production' || process.env.PERSISTENT_LOGS === 'true') {
+  logger.exceptions.handle(
+    new DailyRotateFile({
+      filename: path.join(__dirname, '../logs/%DATE%-exceptions.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxSize: '20m',
+      maxFiles: '30d',
+      format: prodLogFormat,
+    })
+  );
 
-// Rejection handlers
-logger.rejections.handle(
-  new DailyRotateFile({
-    filename: path.join(__dirname, '../logs/%DATE%-rejections.log'),
-    datePattern: 'YYYY-MM-DD',
-    maxSize: '20m',
-    maxFiles: '30d',
-    format: prodLogFormat,
-  })
-);
+  logger.rejections.handle(
+    new DailyRotateFile({
+      filename: path.join(__dirname, '../logs/%DATE%-rejections.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxSize: '20m',
+      maxFiles: '30d',
+      format: prodLogFormat,
+    })
+  );
+}
 
-// Catch unhandled errors globally
-process.on('uncaughtException', (err) => {
-  logger.error('UNCAUGHT EXCEPTION - Application will terminate', {
-    error: err.message,
-    stack: err.stack,
-    type: 'uncaughtException',
-  });
-  process.exit(1);
-});
 
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('UNHANDLED REJECTION - Application will terminate', {
-    reason: reason instanceof Error ? reason.message : reason,
-    stack: reason instanceof Error ? reason.stack : undefined,
-    promise: promise.toString(),
-    type: 'unhandledRejection',
-  });
-  process.exit(1);
-});
+// Sensitive fields to sanitize
+const SENSITIVE_FIELDS = ['password', 'token', 'apiKey', 'secret', 'authorization', 'creditCard', 'ssn', 'pin'];
 
-export default logger;
+/**
+ * Sanitize data before logging
+ */
+function sanitize(data) {
+  if (!data || typeof data !== 'object') return data;
+  
+  const sanitized = Array.isArray(data) ? [...data] : { ...data };
+  
+  for (const key in sanitized) {
+    const lowerKey = key.toLowerCase();
+    
+    if (SENSITIVE_FIELDS.some(field => lowerKey.includes(field.toLowerCase()))) {
+      sanitized[key] = '***REDACTED***';
+    } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
+      sanitized[key] = sanitize(sanitized[key]);
+    }
+  }
+  
+  return sanitized;
+}
+
+class Logger {
+  static info(message, meta = {}) {
+    logger.info(message, sanitize(meta));
+  }
+
+  static error(message, meta = {}) {
+    logger.error(message, sanitize(meta));
+  }
+
+  static warn(message, meta = {}) {
+    logger.warn(message, sanitize(meta));
+  }
+
+  static debug(message, meta = {}) {
+    logger.debug(message, sanitize(meta));
+  }
+
+  static http(message, meta = {}) {
+    logger.http(message, sanitize(meta));
+  }
+
+  /**
+   * Log HTTP request with sanitized data
+   */
+  static logRequest(req) {
+    logger.http('HTTP Request', {
+      requestId: req.requestId || req.id,
+      method: req.method,
+      url: req.url,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+      query: sanitize(req.query),
+      body: sanitize(req.body),
+    });
+  }
+
+  /**
+   * Log HTTP response with performance metrics
+   */
+  static logResponse(req, res, responseTime) {
+    const level = res.statusCode >= 400 ? 'warn' : 'http';
+    
+    logger[level]('HTTP Response', {
+      requestId: req.requestId || req.id,
+      method: req.method,
+      url: req.url,
+      statusCode: res.statusCode,
+      responseTime: `${responseTime}ms`,
+      contentLength: res.get('content-length'),
+    });
+  }
+
+  /**
+   * Log database query with performance tracking
+   */
+  static logQuery(operation, collection, query = {}, duration = null) {
+    logger.debug('Database Query', {
+      operation,
+      collection,
+      query: sanitize(query),
+      duration: duration ? `${duration}ms` : undefined,
+    });
+  }
+
+  /**
+   * Log error with full context and sanitized request data
+   */
+  static logError(error, req = null) {
+    const errorLog = {
+      message: error.message,
+      stack: error.stack,
+      statusCode: error.statusCode,
+      errorType: error.name || 'Error',
+      isOperational: error.isOperational,
+    };
+
+    if (req) {
+      errorLog.request = {
+        requestId: req.requestId || req.id,
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.get('user-agent'),
+        body: sanitize(req.body),
+        params: req.params,
+        query: sanitize(req.query),
+      };
+    }
+
+    logger.error('Application Error', errorLog);
+  }
+
+  /**
+   * Log authentication events
+   */
+  static logAuth(event, userId, meta = {}) {
+    logger.info(`Auth: ${event}`, {
+      userId,
+      event,
+      ...sanitize(meta),
+    });
+  }
+
+  /**
+   * Log security events
+   */
+  static logSecurity(event, meta = {}) {
+    logger.warn(`Security: ${event}`, sanitize(meta));
+  }
+
+  /**
+   * Log performance metrics
+   */
+  static logPerformance(operation, duration, meta = {}) {
+    const level = duration > 1000 ? 'warn' : 'debug';
+    
+    logger[level](`Performance: ${operation}`, {
+      operation,
+      duration: `${duration}ms`,
+      ...sanitize(meta),
+    });
+  }
+}
+
+export { logger };
+export default Logger;

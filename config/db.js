@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
-import Logger from "../utils/logger.js";
+import Logger from "./logger.js";
 
 export const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI);
     Logger.info(`MongoDB Connected: ${conn.connection.host}`);
 
-    
+     
     mongoose.connection.on('connected', () => {
       Logger.info('Mongoose connected to MongoDB');
     });
