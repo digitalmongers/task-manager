@@ -287,30 +287,49 @@ class AuthService {
   async forgotPassword(email) {
     const user = await AuthRepository.findByEmail(email);
 
+    // Security: Always return the same message regardless of whether user exists
+    // This prevents email enumeration attacks
+    const genericMessage = 'If an account exists with this email, a password reset link has been sent.';
+
     if (!user) {
       // Don't reveal if email exists for security
+      Logger.logSecurity('PASSWORD_RESET_ATTEMPT_NONEXISTENT_EMAIL', {
+        email,
+      });
       return {
-        message: 'If an account exists with this email, a password reset link has been sent.',
+        message: genericMessage,
       };
     }
 
     if (!user.isEmailVerified) {
-      throw ApiError.forbidden('Please verify your email address first');
+      // Don't send email if not verified, but don't reveal this to the user
+      Logger.logSecurity('PASSWORD_RESET_ATTEMPT_UNVERIFIED_EMAIL', {
+        userId: user._id,
+        email: user.email,
+      });
+      return {
+        message: genericMessage,
+      };
     }
 
     // Generate reset token
     const resetToken = user.generatePasswordResetToken();
     await AuthRepository.saveUser(user);
 
-    // Send password reset email
-    await EmailService.sendPasswordResetEmail(user, resetToken);
+    // Send password reset email (don't await to improve response time)
+    EmailService.sendPasswordResetEmail(user, resetToken).catch((error) => {
+      Logger.error('Failed to send password reset email', { 
+        userId: user._id, 
+        error: error.message 
+      });
+    });
 
     Logger.logAuth('PASSWORD_RESET_REQUESTED', user._id, {
       email: user.email,
     });
 
     return {
-      message: 'If an account exists with this email, a password reset link has been sent.',
+      message: genericMessage,
     };
   }
 
