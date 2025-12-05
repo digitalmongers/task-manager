@@ -25,10 +25,11 @@ class AuthController {
     const result = await AuthService.login(req.body, req);
 
     // Set token in httpOnly cookie for security
+    // For cross-origin (Vercel frontend + Render backend), we need sameSite: 'none' with secure: true
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' allows cross-origin cookies
       maxAge: req.body.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000, // 30 days or 7 days
     };
 
@@ -178,11 +179,11 @@ class AuthController {
 
     const result = await AuthService.refreshToken(refreshToken);
 
-    // Update cookies
+    // Update cookies with cross-origin support
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     };
 
     res.cookie('token', result.token, {
