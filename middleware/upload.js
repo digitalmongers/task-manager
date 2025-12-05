@@ -10,7 +10,7 @@ const storage = new CloudinaryStorage({
     if (file.mimetype.startsWith("video/")) {
       resourceType = "video";
     }
-
+ 
     return {
       folder: "dobbyMall",
       resource_type: resourceType,
