@@ -61,7 +61,7 @@ export const ENV = {
   PRODUCTION: 'production',
   TEST: 'test',
 };
-
+ 
 // Regex Patterns
 export const REGEX = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
