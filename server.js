@@ -1,12 +1,13 @@
 import "dotenv/config";
 import express from "express";
+import cors from "cors";
 import compression from "compression";
 import responseTime from "response-time";
 import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.js";
 import Logger from "./config/logger.js";
 import ApiResponse from "./utils/ApiResponse.js";
-import { applySecurity } from "./middlewares/security.js";
+import { applySecurity, corsOptions } from "./middlewares/security.js";
 import requestLogger from "./middlewares/requestLogger.js";
 import requestId from "./middlewares/requestId.js";
 import safeLogger from "./middlewares/safeLogger.js";
@@ -29,6 +30,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
+// Apply CORS first - this handles all preflight requests
+app.use(cors(corsOptions));
+
+// Apply other security measures
 applySecurity(app);
 
 app.use(compression());
