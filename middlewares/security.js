@@ -6,23 +6,23 @@ import hpp from 'hpp';
 import { RATE_LIMIT } from '../config/constants.js';
 import Logger from '../config/logger.js';
 
-// Get allowed origins from environment
 const getAllowedOrigins = () => {
   const origins = [];
   
-  // Add frontend URL from environment
   if (process.env.FRONTEND_URL) {
-    origins.push(process.env.FRONTEND_URL);
+    process.env.FRONTEND_URL.split(',').forEach(url => {
+      origins.push(url.trim());
+    });
   }
   
-  // In development, also allow localhost variants
   if (process.env.NODE_ENV !== 'production') {
     origins.push('http://localhost:3000');
-    origins.push('http://localhost:3001'); // backup port
+    origins.push('http://localhost:3001');
+    origins.push('http://localhost:5173');
     origins.push('http://127.0.0.1:3000');
+    origins.push('http://127.0.0.1:5173');
   }
   
-  Logger.info('Allowed CORS origins:', { origins });
   return origins;
 };
 
@@ -30,22 +30,23 @@ export const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = getAllowedOrigins();
     
-    
+    // Allow requests with no origin (like mobile apps, Postman, server-to-server)
     if (!origin) {
       Logger.debug('CORS: No origin header, allowing request');
       return callback(null, true);
     }
     
-    // Normalize origin (remove trailing slashes)
-    const normalizedOrigin = origin.replace(/\/$/, '');
+    // Normalize origin (remove trailing slashes and convert to lowercase)
+    const normalizedOrigin = origin.replace(/\/$/, '').toLowerCase();
     
     // Check if origin is allowed
     const isAllowed = allowedOrigins.some(allowedOrigin => {
-      return normalizedOrigin === allowedOrigin.replace(/\/$/, '');
+      const normalizedAllowed = allowedOrigin.replace(/\/$/, '').toLowerCase();
+      return normalizedOrigin === normalizedAllowed;
     });
     
     if (isAllowed) {
-      Logger.debug('CORS Allowed:', { origin: normalizedOrigin });
+      Logger.debug('CORS Allowed:', { origin: normalizedOrigin, allowedOrigins });
       callback(null, true);
     } else {
       Logger.warn('CORS Blocked:', { 

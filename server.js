@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import compression from "compression";
 import responseTime from "response-time";
+import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.js";
 import Logger from "./config/logger.js";
 import ApiResponse from "./utils/ApiResponse.js";
@@ -26,6 +27,7 @@ app.use(responseTime((req, res, time) => {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 applySecurity(app);
 
