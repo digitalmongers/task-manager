@@ -1,5 +1,6 @@
 import ApiError from '../utils/ApiError.js';
 import { HTTP_STATUS } from '../config/constants.js';
+import Joi from 'joi';
 
 
 const validate = (schema) => {
@@ -21,8 +22,7 @@ const validate = (schema) => {
     if (schema.params) schemaToValidate.params = schema.params;
     if (schema.query) schemaToValidate.query = schema.query;
 
-    const { error, value } = require('joi')
-      .object(schemaToValidate)
+    const { error, value } = Joi.object(schemaToValidate)
       .validate(toValidate, validationOptions);
 
     if (error) {
