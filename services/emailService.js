@@ -58,7 +58,9 @@ class EmailService {
    * Send email verification
    */
   async sendVerificationEmail(user, verificationToken) {
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+     const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
+  const verificationUrl = `${frontendUrl}/verify-email/${verificationToken}`;
+
 
     const html = `
       <!DOCTYPE html>
@@ -224,7 +226,8 @@ class EmailService {
    * Send welcome email (after verification)
    */
   async sendWelcomeEmail(user) {
-    const loginUrl = `${process.env.FRONTEND_URL}/login`;
+    const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
+  const loginUrl = `${frontendUrl}/login`;
 
     const html = `
       <!DOCTYPE html>
@@ -371,7 +374,9 @@ class EmailService {
    * Send password reset email
    */
   async sendPasswordResetEmail(user, resetToken) {
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
+  const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
 
     const html = `
       <!DOCTYPE html>

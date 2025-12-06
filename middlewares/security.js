@@ -10,25 +10,27 @@ const getAllowedOrigins = () => {
   const origins = [];
   
   if (process.env.FRONTEND_URL) {
+    // Split by comma and clean each URL properly
     process.env.FRONTEND_URL.split(',').forEach(url => {
       const trimmed = url.trim();
-      origins.push(trimmed);
-      // Add both with and without trailing slash
-      origins.push(trimmed.replace(/\/$/, ''));
-      origins.push(trimmed + (trimmed.endsWith('/') ? '' : '/'));
+      if (trimmed) {  // Only add non-empty URLs
+        origins.push(trimmed);
+        // Also add version without trailing slash
+        origins.push(trimmed.replace(/\/$/, ''));
+      }
     });
   }
   
+  // Add development URLs only in non-production
   if (process.env.NODE_ENV !== 'production') {
     origins.push('http://localhost:3000');
-    origins.push('http://localhost:3001');
     origins.push('http://localhost:5173');
     origins.push('http://127.0.0.1:3000');
     origins.push('http://127.0.0.1:5173');
   }
   
-  // Remove duplicates
-  return [...new Set(origins)];
+  // Remove duplicates and filter out any empty strings
+  return [...new Set(origins.filter(Boolean))];
 };
 
 export const corsOptions = {
@@ -41,13 +43,13 @@ export const corsOptions = {
       env: process.env.NODE_ENV 
     });
     
-    // Allow requests with no origin (Postman, mobile apps, curl)
+    // Allow requests with no origin (Postman, mobile apps, curl, server-to-server)
     if (!origin) {
       Logger.debug('CORS: No origin header, allowing request');
       return callback(null, true);
     }
     
-    // Normalize origin
+    // Normalize origin - remove trailing slash and convert to lowercase
     const normalizedOrigin = origin.replace(/\/$/, '').toLowerCase();
     
     // Check if origin is allowed
@@ -65,11 +67,13 @@ export const corsOptions = {
         allowedOrigins,
         environment: process.env.NODE_ENV 
       });
-      // In production, be strict; in development, log but allow
+      
+      // In production, be strict about CORS
       if (process.env.NODE_ENV === 'production') {
         callback(new Error('Not allowed by CORS'));
       } else {
-        Logger.warn('Development mode: Allowing blocked origin');
+        // In development, log warning but allow (for easier testing)
+        Logger.warn('⚠️ Development mode: Allowing blocked origin');
         callback(null, true);
       }
     }
@@ -85,7 +89,7 @@ export const corsOptions = {
     'Accept',
     'Origin'
   ],
-  exposedHeaders: ['X-Request-ID'],
+  exposedHeaders: ['X-Request-ID', 'Set-Cookie'],
   maxAge: 86400, // 24 hours - cache preflight requests
   preflightContinue: false,
 };
@@ -103,9 +107,9 @@ export const limiter = rateLimit({
 });
 
 export const speedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000,
-  delayAfter: 50,
-  delayMs: (hits) => hits * 100,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  delayAfter: 50, // Allow 50 requests per window
+  delayMs: (hits) => hits * 100, // Add 100ms delay per request after limit
   skip: (req) => req.path === '/health' || req.path === '/api-docs',
 });
 
@@ -128,7 +132,7 @@ export const hppConfig = hpp({
 });
 
 export const applySecurity = (app) => {
-  // Note: CORS is applied separately in server.js before this function
+  // Note: CORS is applied separately in server.js BEFORE this function
   app.use(helmetConfig);
   app.use(limiter);
   app.use(speedLimiter);
