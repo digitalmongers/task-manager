@@ -118,16 +118,20 @@ async resetPassword(req, res) {
   );
 }
 
+  
   /**
    * Change password (authenticated)
-   * @route POST /api/v1/auth/change-password
+   * @route POST /api/auth/change-password
    */
   async changePassword(req, res) {
     const { currentPassword, newPassword } = req.body;
+    
+    // IMPORTANT: Pass req object for IP tracking and security logging
     const result = await AuthService.changePassword(
       req.user._id,
       currentPassword,
-      newPassword
+      newPassword,
+      req
     );
 
     return ApiResponse.success(

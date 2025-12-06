@@ -162,3 +162,34 @@ export const checkActive = (req, res, next) => {
 
   next();
 };
+
+
+/**
+ * Check if user must change password (for forced password changes)
+ */
+export const checkPasswordChangeRequired = (req, res, next) => {
+  if (!req.user) {
+    return next(ApiError.unauthorized('Please login to access this resource'));
+  }
+
+  // If admin has forced password change
+  if (req.user.mustChangePassword) {
+    // Allow access only to change-password and logout routes
+    const allowedRoutes = ['/api/auth/change-password', '/api/auth/logout', '/api/auth/me'];
+    
+    if (!allowedRoutes.includes(req.path)) {
+      Logger.logSecurity('FORCED_PASSWORD_CHANGE_REQUIRED', {
+        userId: req.user._id,
+        email: req.user.email,
+        attemptedRoute: req.path,
+        ip: req.ip,
+      });
+      
+      return next(
+        ApiError.forbidden('You must change your password before accessing other resources')
+      );
+    }
+  }
+
+  next();
+};

@@ -56,6 +56,24 @@ class AuthRepository {
     }
   }
 
+  
+  /**
+   * Find user by ID with password and password history (for password changes)
+   */
+  async findByIdWithPasswordHistory(userId) {
+    try {
+      const user = await User.findById(userId)
+        .select('+password +passwordHistory +passwordChangedAt');
+      return user;
+    } catch (error) {
+      Logger.error('Error finding user with password history', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
   /**
    * Update user
    */
@@ -93,7 +111,6 @@ class AuthRepository {
    */
   async findByVerificationToken(token) {
     try {
-      // Hash the token to match stored hash
       const hashedToken = crypto
         .createHash('sha256')
         .update(token)
@@ -111,12 +128,12 @@ class AuthRepository {
     }
   }
 
+  
   /**
    * Find user by reset token
    */
   async findByResetToken(token) {
     try {
-      // Hash the token to match stored hash
       const hashedToken = crypto
         .createHash('sha256')
         .update(token)
@@ -125,7 +142,7 @@ class AuthRepository {
       const user = await User.findOne({
         passwordResetToken: hashedToken,
         passwordResetExpires: { $gt: Date.now() },
-      }).select('+passwordResetToken +passwordResetExpires +password');
+      }).select('+passwordResetToken +passwordResetExpires +password +passwordHistory');
 
       return user;
     } catch (error) {
@@ -155,13 +172,27 @@ class AuthRepository {
     }
   }
 
+  
   /**
-   * Update password
+   * Update password with history tracking
    */
   async updatePassword(userId, newPassword) {
     try {
-      const user = await User.findById(userId).select('+password');
+      const user = await User.findById(userId)
+        .select('+password +passwordHistory +passwordChangedAt');
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Add current password to history before changing
+      await user.addToPasswordHistory();
+      
+      // Update password (will be hashed by pre-save hook)
       user.password = newPassword;
+      user.passwordChangedAt = new Date();
+      user.mustChangePassword = false;
+      
       await user.save();
       
       // Clear reset token if exists
@@ -169,7 +200,11 @@ class AuthRepository {
         $unset: { passwordResetToken: 1, passwordResetExpires: 1 },
       });
 
-      Logger.info('Password updated successfully', { userId });
+      Logger.info('Password updated successfully with history tracking', { 
+        userId,
+        passwordHistoryCount: user.passwordHistory?.length || 0 
+      });
+      
       return user;
     } catch (error) {
       Logger.error('Error updating password', { error: error.message, userId });
@@ -190,6 +225,61 @@ class AuthRepository {
     }
   }
 
+  
+  /**
+   * Force password change for user (admin feature)
+   */
+  async forcePasswordChange(userId) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { mustChangePassword: true },
+        { new: true }
+      );
+      
+      Logger.info('Forced password change flag set', { userId });
+      return user;
+    } catch (error) {
+      Logger.error('Error forcing password change', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
+  
+  /**
+   * Get user's password change history
+   */
+  async getPasswordHistory(userId, limit = 5) {
+    try {
+      const user = await User.findById(userId)
+        .select('+passwordHistory +passwordChangedAt');
+      
+      if (!user) {
+        return null;
+      }
+
+      const history = user.passwordHistory || [];
+      
+      return {
+        lastChanged: user.passwordChangedAt,
+        historyCount: history.length,
+        recentChanges: history.slice(-limit).map(h => ({
+          changedAt: h.changedAt,
+        })),
+      };
+    } catch (error) {
+      Logger.error('Error getting password history', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
+  
   /**
    * Get user statistics
    */
@@ -206,11 +296,19 @@ class AuthRepository {
             activeUsers: {
               $sum: { $cond: ['$isActive', 1, 0] },
             },
+            mustChangePasswordUsers: {
+              $sum: { $cond: ['$mustChangePassword', 1, 0] },
+            },
           },
         },
       ]);
 
-      return stats[0] || { totalUsers: 0, verifiedUsers: 0, activeUsers: 0 };
+      return stats[0] || { 
+        totalUsers: 0, 
+        verifiedUsers: 0, 
+        activeUsers: 0,
+        mustChangePasswordUsers: 0 
+      };
     } catch (error) {
       Logger.error('Error getting user stats', { error: error.message });
       throw error;
@@ -234,6 +332,32 @@ class AuthRepository {
       return result.deletedCount;
     } catch (error) {
       Logger.error('Error deleting unverified users', { error: error.message });
+      throw error;
+    }
+  }
+
+  
+  /**
+   * Clean up old password history entries (maintenance)
+   */
+  async cleanupPasswordHistory(maxHistoryCount = 10) {
+    try {
+      const result = await User.updateMany(
+        { 'passwordHistory.10': { $exists: true } },
+        {
+          $push: {
+            passwordHistory: {
+              $each: [],
+              $slice: -maxHistoryCount
+            }
+          }
+        }
+      );
+
+      Logger.info(`Cleaned up password history for ${result.modifiedCount} users`);
+      return result.modifiedCount;
+    } catch (error) {
+      Logger.error('Error cleaning up password history', { error: error.message });
       throw error;
     }
   }

@@ -460,40 +460,87 @@ async resetPassword(token, newPassword, req) {
   };
 }
 
+  
   /**
-   * Change password (for authenticated users)
+   * Change password (for authenticated users) - ENTERPRISE SECURED
    */
-  async changePassword(userId, currentPassword, newPassword) {
-    const user = await AuthRepository.findByEmailWithPassword(
-      (await AuthRepository.findById(userId)).email
-    );
+  async changePassword(userId, currentPassword, newPassword, req) {
+    const user = await AuthRepository.findByIdWithPasswordHistory(userId);
 
     if (!user) {
+      Logger.logSecurity('PASSWORD_CHANGE_USER_NOT_FOUND', {
+        userId,
+        ip: req?.ip,
+      });
       throw ApiError.notFound('User not found');
     }
 
-    // Verify current password
-    const isPasswordValid = await user.comparePassword(currentPassword);
+    if (!user.isActive) {
+      Logger.logSecurity('PASSWORD_CHANGE_INACTIVE_ACCOUNT', {
+        userId: user._id,
+        email: user.email,
+        ip: req?.ip,
+      });
+      throw ApiError.forbidden('Your account has been deactivated. Please contact support.');
+    }
 
+    const isPasswordValid = await user.comparePassword(currentPassword);
     if (!isPasswordValid) {
+      Logger.logSecurity('PASSWORD_CHANGE_WRONG_CURRENT_PASSWORD', {
+        userId: user._id,
+        email: user.email,
+        ip: req?.ip,
+        userAgent: req?.get('user-agent'),
+      });
+      
       throw ApiError.unauthorized('Current password is incorrect');
     }
 
-    // Check if new password is same as current
     const isSamePassword = await user.comparePassword(newPassword);
     if (isSamePassword) {
+      Logger.logSecurity('PASSWORD_CHANGE_SAME_AS_CURRENT', {
+        userId: user._id,
+        email: user.email,
+        ip: req?.ip,
+      });
       throw ApiError.badRequest('New password must be different from current password');
     }
 
-    // Update password
-    await AuthRepository.updatePassword(user._id, newPassword);
+    // ========== NEW: Check password history ==========
+    const wasUsedBefore = await user.wasPasswordUsedRecently(newPassword, 5);
+    if (wasUsedBefore) {
+      Logger.logSecurity('PASSWORD_CHANGE_REUSED_OLD_PASSWORD', {
+        userId: user._id,
+        email: user.email,
+        ip: req?.ip,
+      });
+      throw ApiError.badRequest('You cannot reuse any of your last 5 passwords. Please choose a different password.');
+    }
+
+    // ========== NEW: Add to history before changing ==========
+    await user.addToPasswordHistory();
+
+    user.password = newPassword;
+    user.passwordChangedAt = new Date();
+    user.mustChangePassword = false;
+    await user.save();
+
+    EmailService.sendPasswordChangedConfirmation(user, req?.ip, req?.get('user-agent')).catch((error) => {
+      Logger.error('Failed to send password change confirmation', { 
+        userId: user._id, 
+        error: error.message 
+      });
+    });
 
     Logger.logAuth('PASSWORD_CHANGED', user._id, {
       email: user.email,
+      ip: req?.ip,
+      userAgent: req?.get('user-agent'),
+      timestamp: new Date().toISOString(),
     });
 
     return {
-      message: 'Password changed successfully',
+      message: 'Password changed successfully. Please keep your new password secure.',
     };
   }
 

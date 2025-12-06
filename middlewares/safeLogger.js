@@ -27,6 +27,7 @@ function sanitizeObject(obj) {
 }
 
 /**
+ * 
  * Safe logger middleware - logs errors with sanitized data
  */
 function safeLogger(err, req, res, next) {

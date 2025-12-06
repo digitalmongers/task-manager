@@ -87,6 +87,29 @@ const userSchema = new mongoose.Schema(
     termsAcceptedAt: {
       type: Date,
     },
+    
+    passwordHistory: [{
+      password: {
+        type: String,
+        required: true,
+      },
+      changedAt: {
+        type: Date,
+        default: Date.now,
+      }
+    }],
+    
+    
+    passwordChangedAt: {
+      type: Date,
+    },
+    
+    
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
+  
   },
   {
     timestamps: true,
@@ -190,6 +213,43 @@ userSchema.methods.resetLoginAttempts = function () {
     $set: { loginAttempts: 0, lastLogin: new Date() },
     $unset: { lockUntil: 1 },
   });
+};
+
+// ADD THIS METHOD: Check if password was used in last N passwords
+userSchema.methods.wasPasswordUsedRecently = async function(password, historyCount = 5) {
+  if (!this.passwordHistory || this.passwordHistory.length === 0) {
+    return false;
+  }
+  
+  // Check last 5 passwords
+  const recentPasswords = this.passwordHistory.slice(-historyCount);
+  
+  for (const oldPass of recentPasswords) {
+    const isMatch = await bcrypt.compare(password, oldPass.password);
+    if (isMatch) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+// ADD THIS METHOD: Add current password to history before changing
+userSchema.methods.addToPasswordHistory = async function() {
+  if (!this.passwordHistory) {
+    this.passwordHistory = [];
+  }
+  
+  // Add current password to history
+  this.passwordHistory.push({
+    password: this.password,
+    changedAt: new Date(),
+  });
+  
+  // Keep only last 10 passwords in history
+  if (this.passwordHistory.length > 10) {
+    this.passwordHistory = this.passwordHistory.slice(-10);
+  }
 };
 
 // Static method to find by email with password

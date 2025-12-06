@@ -153,7 +153,7 @@ export const authValidation = {
     }),
   },
 
-  // Change password (for authenticated users)
+  // ========== UPDATED: Change password validation ==========
   changePassword: {
     body: Joi.object({
       currentPassword: Joi.string()
@@ -163,11 +163,15 @@ export const authValidation = {
         }),
       newPassword: Joi.string()
         .min(8)
+        .max(128)
         .pattern(passwordRegex)
         .required()
+        .invalid(Joi.ref('currentPassword'))
         .messages({
           'string.empty': 'New password is required',
           'string.min': 'New password must be at least 8 characters',
+          'string.max': 'New password cannot exceed 128 characters',
+          'any.invalid': 'New password must be different from current password',
           'string.pattern.base': 'New password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
         }),
       confirmPassword: Joi.string()
