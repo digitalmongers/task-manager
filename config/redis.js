@@ -2,12 +2,14 @@ import "dotenv/config";
 import Redis from "ioredis";
 import logger from "./logger.js";
 
+
 let redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 
-if (redisUrl.includes("red-") && process.env.NODE_ENV !== "production") {
-  logger.warn("Render Redis not accessible locally, switching to localhost Redis");
-  redisUrl = "redis://127.0.0.1:6379";
-}
+// if (process.env.NODE_ENV !== "production" && redisUrl.includes("red-")) {
+//   logger.warn("Development mode: Render Redis not accessible locally, switching to localhost");
+//   redisUrl = "redis://127.0.0.1:6379";
+// }
+
 
 // Base config for regular Redis operations
 const redisConfig = {
