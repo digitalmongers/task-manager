@@ -84,35 +84,39 @@ class AuthController {
   }
 
   /**
-   * Forgot password
-   * @route POST /api/v1/auth/forgot-password
-   */
-  async forgotPassword(req, res) {
-    const { email } = req.body;
-    const result = await AuthService.forgotPassword(email);
+ * Forgot password
+ * @route POST /api/auth/forgot-password
+ */
+async forgotPassword(req, res) {
+  const { email } = req.body;
+  
+  // Pass req for IP tracking
+  const result = await AuthService.forgotPassword(email, req);
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message
-    );
-  }
+  return ApiResponse.success(
+    res,
+    HTTP_STATUS.OK,
+    result.message
+  );
+}
 
-  /**
-   * Reset password
-   * @route POST /api/v1/auth/reset-password/:token
-   */
-  async resetPassword(req, res) {
-    const { token } = req.params;
-    const { password } = req.body;
-    const result = await AuthService.resetPassword(token, password);
+/**
+ * Reset password
+ * @route POST /api/auth/reset-password/:token
+ */
+async resetPassword(req, res) {
+  const { token } = req.params;
+  const { password } = req.body;
+  
+  // Pass req for IP tracking
+  const result = await AuthService.resetPassword(token, password, req);
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message
-    );
-  }
+  return ApiResponse.success(
+    res,
+    HTTP_STATUS.OK,
+    result.message
+  );
+}
 
   /**
    * Change password (authenticated)

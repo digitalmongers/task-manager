@@ -520,6 +520,183 @@ class EmailService {
   }
 
   /**
+ * Send password changed confirmation email
+ */
+async sendPasswordChangedConfirmation(user, ip, userAgent) {
+  const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
+  const loginUrl = `${frontendUrl}/login`;
+  const supportUrl = `${frontendUrl}/support`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Changed Successfully</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .content h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+          }
+          .content p {
+            margin-bottom: 15px;
+            color: #555;
+          }
+          .info-box { 
+            background: #f8f9fa; 
+            padding: 20px; 
+            margin: 20px 0; 
+            border-radius: 5px; 
+            border: 1px solid #dee2e6; 
+          }
+          .info-box p {
+            margin: 8px 0;
+            color: #555;
+          }
+          .warning { 
+            background: #fee2e2; 
+            border-left: 4px solid #ef4444; 
+            padding: 15px; 
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .warning strong {
+            color: #991b1b;
+          }
+          .button-container {
+            text-align: center;
+            margin: 30px 0;
+          }
+          .button { 
+            display: inline-block; 
+            padding: 15px 40px; 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            color: white !important; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            font-weight: 600;
+            font-size: 16px;
+            margin: 5px;
+          }
+          .button-secondary { 
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 13px; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Password Changed Successfully</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${user.firstName},</h2>
+            <p>Your password has been changed successfully.</p>
+            
+            <div class="info-box">
+              <p><strong>📅 Change Details:</strong></p>
+              <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+              <p><strong>🌐 IP Address:</strong> ${ip}</p>
+              <p><strong>💻 Device:</strong> ${userAgent}</p>
+            </div>
+            
+            <div class="warning">
+              <strong>⚠️ Important Security Notice:</strong><br>
+              If you did NOT make this change, your account may be compromised. Please contact our support team immediately and we'll help secure your account.
+            </div>
+            
+            <div class="button-container">
+              <a href="${loginUrl}" class="button">Login Now</a>
+              <a href="${supportUrl}" class="button button-secondary">Contact Support</a>
+            </div>
+            
+            <p><strong>Security Tips:</strong></p>
+            <ul>
+              <li>Never share your password with anyone</li>
+              <li>Use a unique password for your Task Manager account</li>
+              <li>Enable two-factor authentication if available</li>
+              <li>Regularly update your password</li>
+            </ul>
+            
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Task Manager Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p>This is an automated security notification.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Password Changed Successfully
+    
+    Hello ${user.firstName},
+    
+    Your password has been changed successfully.
+    
+    Change Details:
+    Time: ${new Date().toLocaleString()}
+    IP Address: ${ip}
+    Device: ${userAgent}
+    
+    ⚠️ IMPORTANT: If you did NOT make this change, contact support immediately.
+    
+    Login: ${loginUrl}
+    Support: ${supportUrl}
+    
+    Best regards,
+    The Task Manager Team
+  `;
+
+  return await this.sendEmail({
+    to: user.email,
+    subject: 'Password Changed Successfully - Task Manager',
+    html,
+    text,
+  });
+}
+
+  /**
    * Send login alert email
    */
   async sendLoginAlert(user, ip, userAgent) {

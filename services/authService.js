@@ -282,78 +282,183 @@ class AuthService {
   }
 
   /**
-   * Forgot password
-   */
-  async forgotPassword(email) {
-    const user = await AuthRepository.findByEmail(email);
+ * Forgot password - SECURED VERSION
+ */
+async forgotPassword(email, req) {
+  // Security: Always return the same message regardless of whether user exists
+  // This prevents email enumeration attacks
+  const genericMessage = 'If an account exists with this email, a password reset link has been sent.';
 
-    // Security: Always return the same message regardless of whether user exists
-    // This prevents email enumeration attacks
-    const genericMessage = 'If an account exists with this email, a password reset link has been sent.';
+  // Check rate limiting per email (prevent spam)
+  // This should ideally be handled by middleware, but adding extra layer here
+  
+  const user = await AuthRepository.findByEmail(email);
 
-    if (!user) {
-      // Don't reveal if email exists for security
-      Logger.logSecurity('PASSWORD_RESET_ATTEMPT_NONEXISTENT_EMAIL', {
-        email,
-      });
-      return {
-        message: genericMessage,
-      };
-    }
-
-    if (!user.isEmailVerified) {
-      // Don't send email if not verified, but don't reveal this to the user
-      Logger.logSecurity('PASSWORD_RESET_ATTEMPT_UNVERIFIED_EMAIL', {
-        userId: user._id,
-        email: user.email,
-      });
-      return {
-        message: genericMessage,
-      };
-    }
-
-    // Generate reset token
-    const resetToken = user.generatePasswordResetToken();
-    await AuthRepository.saveUser(user);
-
-    // Send password reset email (don't await to improve response time)
-    EmailService.sendPasswordResetEmail(user, resetToken).catch((error) => {
-      Logger.error('Failed to send password reset email', { 
-        userId: user._id, 
-        error: error.message 
-      });
+  if (!user) {
+    // Don't reveal if email exists for security
+    Logger.logSecurity('PASSWORD_RESET_ATTEMPT_NONEXISTENT_EMAIL', {
+      email,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
     });
-
-    Logger.logAuth('PASSWORD_RESET_REQUESTED', user._id, {
-      email: user.email,
-    });
-
+    
+    // Add small delay to prevent timing attacks (makes response time similar)
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+    
     return {
       message: genericMessage,
     };
   }
 
-  /**
-   * Reset password
-   */
-  async resetPassword(token, newPassword) {
-    const user = await AuthRepository.findByResetToken(token);
-
-    if (!user) {
-      throw ApiError.badRequest('Invalid or expired reset token');
-    }
-
-    // Update password
-    await AuthRepository.updatePassword(user._id, newPassword);
-
-    Logger.logAuth('PASSWORD_RESET_COMPLETED', user._id, {
+  // Check if email is verified
+  if (!user.isEmailVerified) {
+    // Don't send email if not verified, but don't reveal this to the user
+    Logger.logSecurity('PASSWORD_RESET_ATTEMPT_UNVERIFIED_EMAIL', {
+      userId: user._id,
       email: user.email,
+      ip: req.ip,
     });
-
+    
+    // Same delay for timing attack prevention
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+    
     return {
-      message: 'Password reset successfully. You can now login with your new password.',
+      message: genericMessage,
     };
   }
+
+  // Check if account is locked
+  if (user.isLocked()) {
+    Logger.logSecurity('PASSWORD_RESET_ATTEMPT_LOCKED_ACCOUNT', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip,
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+    
+    return {
+      message: genericMessage,
+    };
+  }
+
+  // Check if account is inactive
+  if (!user.isActive) {
+    Logger.logSecurity('PASSWORD_RESET_ATTEMPT_INACTIVE_ACCOUNT', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip,
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
+    
+    return {
+      message: genericMessage,
+    };
+  }
+
+  // Check if reset token was recently sent (rate limiting - 1 request per 5 minutes)
+  if (user.passwordResetExpires && user.passwordResetExpires > Date.now() + 55 * 60 * 1000) {
+    Logger.logSecurity('PASSWORD_RESET_RATE_LIMIT_HIT', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip,
+    });
+    
+    return {
+      message: genericMessage, // Don't reveal rate limiting
+    };
+  }
+
+  // Generate reset token
+  const resetToken = user.generatePasswordResetToken();
+  await AuthRepository.saveUser(user);
+
+  // Send password reset email (don't await to improve response time)
+  EmailService.sendPasswordResetEmail(user, resetToken).catch((error) => {
+    Logger.error('Failed to send password reset email', { 
+      userId: user._id, 
+      error: error.message 
+    });
+  });
+
+  Logger.logAuth('PASSWORD_RESET_REQUESTED', user._id, {
+    email: user.email,
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+  });
+
+  return {
+    message: genericMessage,
+  };
+}
+
+/**
+ * Reset password - SECURED VERSION
+ */
+async resetPassword(token, newPassword, req) {
+  const user = await AuthRepository.findByResetToken(token);
+
+  if (!user) {
+    Logger.logSecurity('PASSWORD_RESET_INVALID_TOKEN', {
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+    
+    throw ApiError.badRequest('Invalid or expired reset token');
+  }
+
+  // Check if account is still active and verified
+  if (!user.isActive) {
+    Logger.logSecurity('PASSWORD_RESET_INACTIVE_ACCOUNT', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip,
+    });
+    
+    throw ApiError.forbidden('Your account has been deactivated. Please contact support.');
+  }
+
+  if (!user.isEmailVerified) {
+    Logger.logSecurity('PASSWORD_RESET_UNVERIFIED_ACCOUNT', {
+      userId: user._id,
+      email: user.email,
+      ip: req.ip,
+    });
+    
+    throw ApiError.forbidden('Please verify your email first.');
+  }
+
+  // Check if new password is same as current password
+  const isSamePassword = await user.comparePassword(newPassword);
+  if (isSamePassword) {
+    throw ApiError.badRequest('New password must be different from your current password');
+  }
+
+  // Update password
+  await AuthRepository.updatePassword(user._id, newPassword);
+
+  // Reset login attempts (in case account was locked)
+  await user.resetLoginAttempts();
+
+  // Send confirmation email (optional)
+  EmailService.sendPasswordChangedConfirmation(user, req.ip, req.get('user-agent')).catch((error) => {
+    Logger.error('Failed to send password change confirmation', { 
+      userId: user._id, 
+      error: error.message 
+    });
+  });
+
+  Logger.logAuth('PASSWORD_RESET_COMPLETED', user._id, {
+    email: user.email,
+    ip: req.ip,
+    userAgent: req.get('user-agent'),
+  });
+
+  return {
+    message: 'Password reset successfully. You can now login with your new password.',
+  };
+}
 
   /**
    * Change password (for authenticated users)
