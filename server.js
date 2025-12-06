@@ -5,6 +5,8 @@ import compression from "compression";
 import responseTime from "response-time";
 import cookieParser from "cookie-parser";
 import { connectDB } from "./config/db.js";
+import redisClient from "./config/redis.js";
+import cacheService from "./services/cacheService.js";
 import Logger from "./config/logger.js";
 import ApiResponse from "./utils/ApiResponse.js";
 import { applySecurity, corsOptions } from "./middlewares/security.js";
@@ -40,12 +42,31 @@ app.use(compression());
 
 app.use(requestLogger);
 
-app.get("/health", (req, res) => {
-  ApiResponse.success(res, 200, "Server is healthy", {
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-  });
+app.get("/health", async (req, res) => {
+  try {
+    const redisStatus = redisClient.status === 'ready' ? 'connected' : redisClient.status;
+    const cacheStats = redisStatus === 'connected' ? await cacheService.getStats() : null;
+
+    ApiResponse.success(res, 200, "Server is healthy", {
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      redis: {
+        status: redisStatus,
+        dbSize: cacheStats?.dbSize || 0,
+      },
+    });
+  } catch (error) {
+    ApiResponse.success(res, 200, "Server is healthy (Redis unavailable)", {
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      redis: {
+        status: 'error',
+        error: error.message,
+      },
+    });
+  }
 });
 
 app.get("/", (req, res) => {
@@ -77,6 +98,8 @@ const startServer = async () => {
       Logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
       Logger.info(`Health check: http://localhost:${PORT}/health`);
       Logger.info(`Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
+      Logger.info(`Redis Status: ${redisClient.status}`);
+      Logger.info(`Cache Prefix: ${cacheService.prefix}`);
     });
   } catch (error) {
     Logger.error('Failed to start server:', { error: error.message });

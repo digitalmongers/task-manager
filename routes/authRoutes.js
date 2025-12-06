@@ -4,6 +4,7 @@ import { authValidation } from '../validators/authValidation.js';
 import validate from '../middlewares/validate.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { cacheByUser, invalidateCache } from '../middlewares/cacheMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -58,6 +59,7 @@ router.post(
   '/login',
   authLimiter,
   validate(authValidation.login),
+  invalidateCache((req) => req.body.email ? `user:*${req.body.email}*` : 'user:*'),
   asyncHandler(AuthController.login.bind(AuthController))
 );
 
@@ -97,6 +99,7 @@ router.post(
   '/change-password',
   protect,
   validate(authValidation.changePassword),
+  invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.changePassword.bind(AuthController))
 );
 
@@ -104,6 +107,7 @@ router.post(
 router.get(
   '/me',
   protect,
+  cacheByUser(300), // Cache for 5 minutes per user
   asyncHandler(AuthController.getCurrentUser.bind(AuthController))
 );
 
@@ -111,6 +115,7 @@ router.get(
 router.post(
   '/logout',
   protect,
+  invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.logout.bind(AuthController))
 );
 
