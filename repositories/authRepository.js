@@ -56,7 +56,7 @@ class AuthRepository {
     }
   }
 
-  
+  // ========== NEW METHOD ==========
   /**
    * Find user by ID with password and password history (for password changes)
    */
@@ -128,7 +128,7 @@ class AuthRepository {
     }
   }
 
-  
+  // ========== UPDATED: Now includes passwordHistory ==========
   /**
    * Find user by reset token
    */
@@ -172,7 +172,7 @@ class AuthRepository {
     }
   }
 
-  
+  // ========== UPDATED: Now tracks password history ==========
   /**
    * Update password with history tracking
    */
@@ -225,7 +225,7 @@ class AuthRepository {
     }
   }
 
-  
+  // ========== NEW METHOD ==========
   /**
    * Force password change for user (admin feature)
    */
@@ -248,7 +248,7 @@ class AuthRepository {
     }
   }
 
-  
+  // ========== NEW METHOD ==========
   /**
    * Get user's password change history
    */
@@ -279,7 +279,98 @@ class AuthRepository {
     }
   }
 
-  
+  // ========== UPDATED: Added mustChangePasswordUsers stat ==========
+  // ========== NEW METHOD ==========
+  /**
+   * Update user profile (firstName, lastName, phoneNumber)
+   */
+  async updateProfile(userId, updateData) {
+    try {
+      const allowedUpdates = ['firstName', 'lastName', 'phoneNumber'];
+      const filteredData = {};
+      
+      Object.keys(updateData).forEach(key => {
+        if (allowedUpdates.includes(key)) {
+          filteredData[key] = updateData[key];
+        }
+      });
+
+      const user = await User.findByIdAndUpdate(
+        userId,
+        filteredData,
+        { new: true, runValidators: true }
+      );
+      
+      Logger.info('User profile updated successfully', { 
+        userId,
+        updatedFields: Object.keys(filteredData) 
+      });
+      
+      return user;
+    } catch (error) {
+      Logger.error('Error updating user profile', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
+  // ========== NEW METHOD ==========
+  /**
+   * Update user avatar
+   */
+  async updateAvatar(userId, avatarData) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { avatar: avatarData },
+        { new: true, runValidators: true }
+      );
+      
+      Logger.info('User avatar updated successfully', { 
+        userId,
+        avatarUrl: avatarData.url 
+      });
+      
+      return user;
+    } catch (error) {
+      Logger.error('Error updating user avatar', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
+  // ========== NEW METHOD ==========
+  /**
+   * Delete user avatar
+   */
+  async deleteAvatar(userId) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { 
+          avatar: {
+            url: null,
+            publicId: null,
+          }
+        },
+        { new: true }
+      );
+      
+      Logger.info('User avatar deleted successfully', { userId });
+      return user;
+    } catch (error) {
+      Logger.error('Error deleting user avatar', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
   /**
    * Get user statistics
    */
@@ -337,6 +428,98 @@ class AuthRepository {
   }
 
   
+  
+  /**
+   * Update user profile (firstName, lastName, phoneNumber)
+   */
+  async updateProfile(userId, updateData) {
+    try {
+      // Only allow specific fields to be updated
+      const allowedUpdates = ['firstName', 'lastName', 'phoneNumber'];
+      const filteredData = {};
+      
+      Object.keys(updateData).forEach(key => {
+        if (allowedUpdates.includes(key)) {
+          filteredData[key] = updateData[key];
+        }
+      });
+
+      const user = await User.findByIdAndUpdate(
+        userId,
+        filteredData,
+        { new: true, runValidators: true }
+      );
+      
+      Logger.info('User profile updated successfully', { 
+        userId,
+        updatedFields: Object.keys(filteredData) 
+      });
+      
+      return user;
+    } catch (error) {
+      Logger.error('Error updating user profile', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
+  // ========== NEW METHOD ==========
+  /**
+   * Update user avatar
+   */
+  async updateAvatar(userId, avatarData) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { avatar: avatarData },
+        { new: true, runValidators: true }
+      );
+      
+      Logger.info('User avatar updated successfully', { 
+        userId,
+        avatarUrl: avatarData.url 
+      });
+      
+      return user;
+    } catch (error) {
+      Logger.error('Error updating user avatar', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
+  // ========== NEW METHOD ==========
+  /**
+   * Delete user avatar
+   */
+  async deleteAvatar(userId) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        userId,
+        { 
+          avatar: {
+            url: null,
+            publicId: null,
+          }
+        },
+        { new: true }
+      );
+      
+      Logger.info('User avatar deleted successfully', { userId });
+      return user;
+    } catch (error) {
+      Logger.error('Error deleting user avatar', { 
+        error: error.message, 
+        userId 
+      });
+      throw error;
+    }
+  }
+
   /**
    * Clean up old password history entries (maintenance)
    */

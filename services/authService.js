@@ -554,7 +554,225 @@ async resetPassword(token, newPassword, req) {
       throw ApiError.notFound('User not found');
     }
 
-    return user;
+    // Remove sensitive fields
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.passwordHistory;
+    delete userResponse.emailVerificationToken;
+    delete userResponse.emailVerificationExpires;
+    delete userResponse.passwordResetToken;
+    delete userResponse.passwordResetExpires;
+
+    return userResponse;
+  }
+
+  // ========== NEW: Update profile method ==========
+  /**
+   * Update user profile (firstName, lastName, phoneNumber)
+   */
+  async updateProfile(userId, updateData, req) {
+    const user = await AuthRepository.findById(userId);
+
+    if (!user) {
+      throw ApiError.notFound('User not found');
+    }
+
+    if (!user.isActive) {
+      throw ApiError.forbidden('Your account has been deactivated');
+    }
+
+    const updatedUser = await AuthRepository.updateProfile(userId, updateData);
+
+    Logger.logAuth('PROFILE_UPDATED', userId, {
+      email: user.email,
+      updatedFields: Object.keys(updateData),
+      ip: req?.ip,
+      userAgent: req?.get('user-agent'),
+    });
+
+    const userResponse = updatedUser.toObject();
+    delete userResponse.password;
+    delete userResponse.passwordHistory;
+
+    return {
+      user: userResponse,
+      message: 'Profile updated successfully',
+    };
+  }
+
+  // ========== NEW: Update avatar method ==========
+  /**
+   * Update user avatar (profile photo)
+   */
+  async updateAvatar(userId, file, req) {
+    const cloudinary = (await import('../config/cloudinary.js')).default;
+    const streamifier = (await import('streamifier')).default;
+
+    const user = await AuthRepository.findById(userId);
+
+    if (!user) {
+      throw ApiError.notFound('User not found');
+    }
+
+    if (!user.isActive) {
+      throw ApiError.forbidden('Your account has been deactivated');
+    }
+
+    try {
+      // Delete old avatar if exists
+      if (user.avatar?.publicId) {
+        await cloudinary.uploader.destroy(user.avatar.publicId).catch((error) => {
+          Logger.warn('Failed to delete old avatar', {
+            userId,
+            publicId: user.avatar.publicId,
+            error: error.message,
+          });
+        });
+      }
+
+      // Upload new avatar
+      const uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'task-manager/avatars',
+            resource_type: 'image',
+            transformation: [
+              { width: 400, height: 400, crop: 'fill', gravity: 'face' },
+              { quality: 'auto', fetch_format: 'auto' },
+            ],
+          },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+
+        streamifier.createReadStream(file.buffer).pipe(stream);
+      });
+
+      const updatedUser = await AuthRepository.updateAvatar(userId, {
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+      });
+
+      Logger.logAuth('AVATAR_UPDATED', userId, {
+        email: user.email,
+        avatarUrl: uploadResult.secure_url,
+        ip: req?.ip,
+      });
+
+      const userResponse = updatedUser.toObject();
+      delete userResponse.password;
+      delete userResponse.passwordHistory;
+
+      return {
+        user: userResponse,
+        message: 'Profile photo updated successfully',
+      };
+    } catch (error) {
+      Logger.error('Failed to update avatar', {
+        userId,
+        error: error.message,
+      });
+      throw ApiError.internal('Failed to upload profile photo. Please try again.');
+    }
+  }
+
+  // ========== NEW: Delete avatar method ==========
+  /**
+   * Delete user avatar
+   */
+  async deleteAvatar(userId, req) {
+    const cloudinary = (await import('../config/cloudinary.js')).default;
+
+    const user = await AuthRepository.findById(userId);
+
+    if (!user) {
+      throw ApiError.notFound('User not found');
+    }
+
+    if (!user.avatar?.publicId) {
+      throw ApiError.badRequest('No profile photo to delete');
+    }
+
+    try {
+      await cloudinary.uploader.destroy(user.avatar.publicId);
+
+      const updatedUser = await AuthRepository.deleteAvatar(userId);
+
+      Logger.logAuth('AVATAR_DELETED', userId, {
+        email: user.email,
+        ip: req?.ip,
+      });
+
+      const userResponse = updatedUser.toObject();
+      delete userResponse.password;
+      delete userResponse.passwordHistory;
+
+      return {
+        user: userResponse,
+        message: 'Profile photo deleted successfully',
+      };
+    } catch (error) {
+      Logger.error('Failed to delete avatar', {
+        userId,
+        error: error.message,
+      });
+      throw ApiError.internal('Failed to delete profile photo. Please try again.');
+    }
+  }
+
+  // ========== NEW: Delete account method ==========
+  /**
+   * Delete user account (soft delete)
+   */
+  async deleteAccount(userId, password, req) {
+    const cloudinary = (await import('../config/cloudinary.js')).default;
+
+    const user = await AuthRepository.findById(userId).select('+password');
+
+    if (!user) {
+      throw ApiError.notFound('User not found');
+    }
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      Logger.logSecurity('ACCOUNT_DELETE_WRONG_PASSWORD', {
+        userId,
+        email: user.email,
+        ip: req?.ip,
+      });
+      throw ApiError.unauthorized('Incorrect password');
+    }
+
+    // Delete avatar if exists
+    if (user.avatar?.publicId) {
+      await cloudinary.uploader.destroy(user.avatar.publicId).catch((error) => {
+        Logger.warn('Failed to delete avatar during account deletion', {
+          userId,
+          error: error.message,
+        });
+      });
+    }
+
+    // Soft delete
+    await AuthRepository.updateUser(userId, {
+      isActive: false,
+      avatar: {
+        url: null,
+        publicId: null,
+      },
+    });
+
+    Logger.logAuth('ACCOUNT_DELETED', userId, {
+      email: user.email,
+      ip: req?.ip,
+      userAgent: req?.get('user-agent'),
+    });
+
+    return {
+      message: 'Your account has been deleted successfully',
+    };
   }
 
   /**

@@ -6,6 +6,7 @@ import asyncHandler from '../middlewares/asyncHandler.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import { cacheByUser, invalidateCache } from '../middlewares/cacheMiddleware.js';
 import rateLimit from 'express-rate-limit';
+import upload from '../middlewares/upload.js';
 
 const router = express.Router();
 
@@ -19,10 +20,10 @@ const authLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false, // Count all requests
+  skipSuccessfulRequests: false,
 });
 
-// Stricter rate limiter for email operations (verification, forgot password)
+// Stricter rate limiter for email operations
 const emailLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 3, // Only 3 attempts per hour
@@ -34,7 +35,7 @@ const emailLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Extra strict rate limiter for password reset (prevent brute force on tokens)
+// Extra strict rate limiter for password reset
 const resetPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 3, // Only 3 reset attempts
@@ -45,6 +46,10 @@ const resetPasswordLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// ============================================================
+// PUBLIC ROUTES (No Authentication Required)
+// ============================================================
 
 // Registration
 router.post(
@@ -78,20 +83,64 @@ router.post(
   asyncHandler(AuthController.resendVerification.bind(AuthController))
 );
 
-// Forgot password - SECURED
+// Forgot password
 router.post(
   '/forgot-password',
-  emailLimiter, // Strict rate limiting
+  emailLimiter,
   validate(authValidation.forgotPassword),
   asyncHandler(AuthController.forgotPassword.bind(AuthController))
 );
 
-// Reset password - SECURED
+// Reset password
 router.post(
   '/reset-password/:token',
-  resetPasswordLimiter, // Extra strict rate limiting
+  resetPasswordLimiter,
   validate(authValidation.resetPassword),
   asyncHandler(AuthController.resetPassword.bind(AuthController))
+);
+
+// Refresh token
+router.post(
+  '/refresh-token',
+  asyncHandler(AuthController.refreshToken.bind(AuthController))
+);
+
+// ============================================================
+// PROTECTED ROUTES (Authentication Required)
+// ============================================================
+
+// Get current user profile
+router.get(
+  '/me',
+  protect,
+  cacheByUser(300), // Cache for 5 minutes
+  asyncHandler(AuthController.getCurrentUser.bind(AuthController))
+);
+
+// Update user profile (firstName, lastName, phoneNumber)
+router.patch(
+  '/profile',
+  protect,
+  validate(authValidation.updateProfile),
+  invalidateCache((req) => `user:${req.user._id}:*`),
+  asyncHandler(AuthController.updateProfile.bind(AuthController))
+);
+
+// Update profile photo (avatar)
+router.put(
+  '/avatar',
+  protect,
+  upload.single('avatar'),
+  invalidateCache((req) => `user:${req.user._id}:*`),
+  asyncHandler(AuthController.updateAvatar.bind(AuthController))
+);
+
+// Delete profile photo
+router.delete(
+  '/avatar',
+  protect,
+  invalidateCache((req) => `user:${req.user._id}:*`),
+  asyncHandler(AuthController.deleteAvatar.bind(AuthController))
 );
 
 // Change password (authenticated users)
@@ -103,12 +152,13 @@ router.post(
   asyncHandler(AuthController.changePassword.bind(AuthController))
 );
 
-// Get current user
-router.get(
-  '/me',
+// Delete account (soft delete)
+router.delete(
+  '/account',
   protect,
-  cacheByUser(300), // Cache for 5 minutes per user
-  asyncHandler(AuthController.getCurrentUser.bind(AuthController))
+  validate(authValidation.deleteAccount),
+  invalidateCache((req) => `user:${req.user._id}:*`),
+  asyncHandler(AuthController.deleteAccount.bind(AuthController))
 );
 
 // Logout
@@ -117,12 +167,6 @@ router.post(
   protect,
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.logout.bind(AuthController))
-);
-
-// Refresh token
-router.post(
-  '/refresh-token',
-  asyncHandler(AuthController.refreshToken.bind(AuthController))
 );
 
 export default router;

@@ -143,7 +143,7 @@ async resetPassword(req, res) {
 
   /**
    * Get current user
-   * @route GET /api/v1/auth/me
+   * @route GET /api/auth/me
    */
   async getCurrentUser(req, res) {
     const user = await AuthService.getCurrentUser(req.user._id);
@@ -153,6 +153,107 @@ async resetPassword(req, res) {
       HTTP_STATUS.OK,
       'User profile fetched successfully',
       { user }
+    );
+  }
+
+  // ========== NEW: Update profile ==========
+  /**
+   * Update user profile
+   * @route PATCH /api/auth/profile
+   */
+  async updateProfile(req, res) {
+    const result = await AuthService.updateProfile(
+      req.user._id,
+      req.body,
+      req
+    );
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      result.message,
+      { user: result.user }
+    );
+  }
+
+  // ========== NEW: Update avatar ==========
+  /**
+   * Update profile photo
+   * @route PUT /api/auth/avatar
+   */
+  async updateAvatar(req, res) {
+    if (!req.file) {
+      throw ApiError.badRequest('Profile photo is required');
+    }
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(req.file.mimetype)) {
+      throw ApiError.badRequest('Only JPEG, PNG, and WebP images are allowed');
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024;
+    if (req.file.size > maxSize) {
+      throw ApiError.badRequest('Profile photo must be less than 5MB');
+    }
+
+    const result = await AuthService.updateAvatar(
+      req.user._id,
+      req.file,
+      req
+    );
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      result.message,
+      { user: result.user }
+    );
+  }
+
+  // ========== NEW: Delete avatar ==========
+  /**
+   * Delete profile photo
+   * @route DELETE /api/auth/avatar
+   */
+  async deleteAvatar(req, res) {
+    const result = await AuthService.deleteAvatar(req.user._id, req);
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      result.message,
+      { user: result.user }
+    );
+  }
+
+  // ========== NEW: Delete account ==========
+  /**
+   * Delete user account
+   * @route DELETE /api/auth/account
+   */
+  async deleteAccount(req, res) {
+    const { password } = req.body;
+
+    if (!password) {
+      throw ApiError.badRequest('Password is required to delete account');
+    }
+
+    const result = await AuthService.deleteAccount(
+      req.user._id,
+      password,
+      req
+    );
+
+    // Clear cookies
+    res.clearCookie('token');
+    res.clearCookie('refreshToken');
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      result.message
     );
   }
 

@@ -183,4 +183,47 @@ export const authValidation = {
         }),
     }),
   },
+
+  // ========== NEW: Profile update validation ==========
+  updateProfile: {
+    body: Joi.object({
+      firstName: Joi.string()
+        .min(2)
+        .max(50)
+        .trim()
+        .messages({
+          'string.min': 'First name must be at least 2 characters',
+          'string.max': 'First name cannot exceed 50 characters',
+        }),
+      lastName: Joi.string()
+        .min(2)
+        .max(50)
+        .trim()
+        .messages({
+          'string.min': 'Last name must be at least 2 characters',
+          'string.max': 'Last name cannot exceed 50 characters',
+        }),
+      phoneNumber: Joi.string()
+        .pattern(/^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/)
+        .allow(null, '')
+        .messages({
+          'string.pattern.base': 'Please provide a valid phone number',
+        }),
+    })
+    .min(1)
+    .messages({
+      'object.min': 'At least one field is required to update',
+    }),
+  },
+
+  // ========== NEW: Delete account validation ==========
+  deleteAccount: {
+    body: Joi.object({
+      password: Joi.string()
+        .required()
+        .messages({
+          'string.empty': 'Password is required to delete account',
+        }),
+    }),
+  },
 };

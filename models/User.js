@@ -41,8 +41,23 @@ const userSchema = new mongoose.Schema(
       default: 'user',
     },
     avatar: {
+      url: {
+        type: String,
+        default: null,
+      },
+      publicId: {
+        type: String,
+        default: null,
+      },
+    },
+    phoneNumber: {
       type: String,
       default: null,
+      trim: true,
+      match: [
+        /^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/,
+        'Please provide a valid phone number',
+      ],
     },
     isEmailVerified: {
       type: Boolean,
