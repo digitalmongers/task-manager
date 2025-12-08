@@ -21,9 +21,7 @@ export const authValidation = {
         .min(2)
         .max(50)
         .trim()
-        .required()
         .messages({
-          'string.empty': 'Last name is required',
           'string.min': 'Last name must be at least 2 characters',
           'string.max': 'Last name cannot exceed 50 characters',
         }),
