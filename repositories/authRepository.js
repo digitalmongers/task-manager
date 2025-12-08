@@ -97,6 +97,22 @@ class AuthRepository {
   }
 
   /**
+   * Find user by ID with Google OAuth fields (for unlinking)
+   */
+  async findByIdWithGoogle(userId) {
+    try {
+      const user = await User.findById(userId).select("+googleId +authProvider");
+      return user;
+    } catch (error) {
+      Logger.error("Error finding user with Google fields", {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Update user
    */
   async updateUser(userId, updateData) {

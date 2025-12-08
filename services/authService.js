@@ -924,9 +924,7 @@ class AuthService {
    */
   async unlinkGoogleAndSetPassword(userId, newPassword, req) {
     try {
-      const user = await AuthRepository.findById(userId).select(
-        "+googleId +authProvider"
-      );
+      const user = await AuthRepository.findByIdWithGoogle(userId);
 
       if (!user) {
         throw ApiError.notFound("User not found");

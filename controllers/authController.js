@@ -2,6 +2,8 @@ import AuthService from "../services/authService.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import ApiError from "../utils/ApiError.js";
 import { HTTP_STATUS } from "../config/constants.js";
+import passport from "../config/passport.js";
+import Logger from "../config/logger.js";
 
 class AuthController {
   /**
