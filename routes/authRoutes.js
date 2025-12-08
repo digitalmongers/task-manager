@@ -186,22 +186,14 @@ router.get(
 router.post(
   "/google/unlink",
   protect,
+  validate(authValidation.unlinkGoogle),
   asyncHandler(AuthController.unlinkGoogle.bind(AuthController))
 );
 
 // Check email availability (for Google OAuth)
 router.post(
   "/check-email",
-  validate(
-    Joi.object({
-      body: Joi.object({
-        email: Joi.string().email().lowercase().trim().required().messages({
-          "string.empty": "Email is required",
-          "string.email": "Please provide a valid email address",
-        }),
-      }),
-    })
-  ),
+  validate(authValidation.checkEmail),
   asyncHandler(AuthController.checkEmail.bind(AuthController))
 );
 
