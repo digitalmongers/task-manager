@@ -1,7 +1,7 @@
-import AuthService from '../services/authService.js';
-import ApiResponse from '../utils/ApiResponse.js';
-import ApiError from '../utils/ApiError.js';
-import { HTTP_STATUS } from '../config/constants.js';
+import AuthService from "../services/authService.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import ApiError from "../utils/ApiError.js";
+import { HTTP_STATUS } from "../config/constants.js";
 
 class AuthController {
   /**
@@ -11,11 +11,7 @@ class AuthController {
   async register(req, res) {
     const result = await AuthService.register(req.body);
 
-    return ApiResponse.created(
-      res,
-      result.message,
-      { user: result.user }
-    );
+    return ApiResponse.created(res, result.message, { user: result.user });
   }
 
   /**
@@ -29,28 +25,25 @@ class AuthController {
     // For cross-origin (Vercel frontend + Render backend), we need sameSite: 'none' with secure: true
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' allows cross-origin cookies
-      maxAge: req.body.rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000, // 30 days or 7 days
+      secure: process.env.NODE_ENV === "production", // HTTPS only in production
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' allows cross-origin cookies
+      maxAge: req.body.rememberMe
+        ? 30 * 24 * 60 * 60 * 1000
+        : 7 * 24 * 60 * 60 * 1000, // 30 days or 7 days
     };
 
-    res.cookie('token', result.token, cookieOptions);
-    res.cookie('refreshToken', result.refreshToken, {
+    res.cookie("token", result.token, cookieOptions);
+    res.cookie("refreshToken", result.refreshToken, {
       ...cookieOptions,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      'Login successful',
-      {
-        user: result.user,
-        token: result.token,
-        refreshToken: result.refreshToken,
-        expiresIn: result.expiresIn,
-      }
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, "Login successful", {
+      user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken,
+      expiresIn: result.expiresIn,
+    });
   }
 
   /**
@@ -61,12 +54,9 @@ class AuthController {
     const { token } = req.params;
     const result = await AuthService.verifyEmail(token);
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message,
-      { user: result.user }
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message, {
+      user: result.user,
+    });
   }
 
   /**
@@ -77,56 +67,43 @@ class AuthController {
     const { email } = req.body;
     const result = await AuthService.resendVerification(email);
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
   /**
- * Forgot password
- * @route POST /api/auth/forgot-password
- */
-async forgotPassword(req, res) {
-  const { email } = req.body;
-  
-  // Pass req for IP tracking
-  const result = await AuthService.forgotPassword(email, req);
+   * Forgot password
+   * @route POST /api/auth/forgot-password
+   */
+  async forgotPassword(req, res) {
+    const { email } = req.body;
 
-  return ApiResponse.success(
-    res,
-    HTTP_STATUS.OK,
-    result.message
-  );
-}
+    // Pass req for IP tracking
+    const result = await AuthService.forgotPassword(email, req);
 
-/**
- * Reset password
- * @route POST /api/auth/reset-password/:token
- */
-async resetPassword(req, res) {
-  const { token } = req.params;
-  const { password } = req.body;
-  
-  // Pass req for IP tracking
-  const result = await AuthService.resetPassword(token, password, req);
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
+  }
 
-  return ApiResponse.success(
-    res,
-    HTTP_STATUS.OK,
-    result.message
-  );
-}
+  /**
+   * Reset password
+   * @route POST /api/auth/reset-password/:token
+   */
+  async resetPassword(req, res) {
+    const { token } = req.params;
+    const { password } = req.body;
 
-  
+    // Pass req for IP tracking
+    const result = await AuthService.resetPassword(token, password, req);
+
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
+  }
+
   /**
    * Change password (authenticated)
    * @route POST /api/auth/change-password
    */
   async changePassword(req, res) {
     const { currentPassword, newPassword } = req.body;
-    
+
     // IMPORTANT: Pass req object for IP tracking and security logging
     const result = await AuthService.changePassword(
       req.user._id,
@@ -135,11 +112,7 @@ async resetPassword(req, res) {
       req
     );
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
   /**
@@ -152,7 +125,7 @@ async resetPassword(req, res) {
     return ApiResponse.success(
       res,
       HTTP_STATUS.OK,
-      'User profile fetched successfully',
+      "User profile fetched successfully",
       { user }
     );
   }
@@ -163,18 +136,11 @@ async resetPassword(req, res) {
    * @route PATCH /api/auth/profile
    */
   async updateProfile(req, res) {
-    const result = await AuthService.updateProfile(
-      req.user._id,
-      req.body,
-      req
-    );
+    const result = await AuthService.updateProfile(req.user._id, req.body, req);
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message,
-      { user: result.user }
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message, {
+      user: result.user,
+    });
   }
 
   // ========== NEW: Update avatar ==========
@@ -184,33 +150,26 @@ async resetPassword(req, res) {
    */
   async updateAvatar(req, res) {
     if (!req.file) {
-      throw ApiError.badRequest('Profile photo is required');
+      throw ApiError.badRequest("Profile photo is required");
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!allowedTypes.includes(req.file.mimetype)) {
-      throw ApiError.badRequest('Only JPEG, PNG, and WebP images are allowed');
+      throw ApiError.badRequest("Only JPEG, PNG, and WebP images are allowed");
     }
 
     // Validate file size (5MB)
     const maxSize = 5 * 1024 * 1024;
     if (req.file.size > maxSize) {
-      throw ApiError.badRequest('Profile photo must be less than 5MB');
+      throw ApiError.badRequest("Profile photo must be less than 5MB");
     }
 
-    const result = await AuthService.updateAvatar(
-      req.user._id,
-      req.file,
-      req
-    );
+    const result = await AuthService.updateAvatar(req.user._id, req.file, req);
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message,
-      { user: result.user }
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message, {
+      user: result.user,
+    });
   }
 
   // ========== NEW: Delete avatar ==========
@@ -221,12 +180,9 @@ async resetPassword(req, res) {
   async deleteAvatar(req, res) {
     const result = await AuthService.deleteAvatar(req.user._id, req);
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message,
-      { user: result.user }
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message, {
+      user: result.user,
+    });
   }
 
   // ========== NEW: Delete account ==========
@@ -238,24 +194,16 @@ async resetPassword(req, res) {
     const { password } = req.body;
 
     if (!password) {
-      throw ApiError.badRequest('Password is required to delete account');
+      throw ApiError.badRequest("Password is required to delete account");
     }
 
-    const result = await AuthService.deleteAccount(
-      req.user._id,
-      password,
-      req
-    );
+    const result = await AuthService.deleteAccount(req.user._id, password, req);
 
     // Clear cookies
-    res.clearCookie('token');
-    res.clearCookie('refreshToken');
+    res.clearCookie("token");
+    res.clearCookie("refreshToken");
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
   /**
@@ -266,14 +214,10 @@ async resetPassword(req, res) {
     const result = await AuthService.logout(req.user._id, req);
 
     // Clear cookies
-    res.clearCookie('token');
-    res.clearCookie('refreshToken');
+    res.clearCookie("token");
+    res.clearCookie("refreshToken");
 
-    return ApiResponse.success(
-      res,
-      HTTP_STATUS.OK,
-      result.message
-    );
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
   /**
@@ -284,7 +228,7 @@ async resetPassword(req, res) {
     const { refreshToken } = req.body || req.cookies;
 
     if (!refreshToken) {
-      throw ApiError.unauthorized('Refresh token is required');
+      throw ApiError.unauthorized("Refresh token is required");
     }
 
     const result = await AuthService.refreshToken(refreshToken);
@@ -292,16 +236,16 @@ async resetPassword(req, res) {
     // Update cookies with cross-origin support
     const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     };
 
-    res.cookie('token', result.token, {
+    res.cookie("token", result.token, {
       ...cookieOptions,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    res.cookie('refreshToken', result.refreshToken, {
+    res.cookie("refreshToken", result.refreshToken, {
       ...cookieOptions,
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
@@ -309,7 +253,121 @@ async resetPassword(req, res) {
     return ApiResponse.success(
       res,
       HTTP_STATUS.OK,
-      'Token refreshed successfully',
+      "Token refreshed successfully",
+      result
+    );
+  }
+
+  // Add these methods to your existing AuthController class:
+
+  /**
+   * Initiate Google OAuth
+   * @route GET /api/auth/google
+   */
+  googleAuth(req, res, next) {
+    passport.authenticate("google", {
+      scope: ["profile", "email"],
+      accessType: "offline",
+      prompt: "consent",
+    })(req, res, next);
+  }
+
+  /**
+   * Google OAuth callback
+   * @route GET /api/auth/google/callback
+   */
+  async googleCallback(req, res, next) {
+    passport.authenticate(
+      "google",
+      { session: false },
+      async (err, user, info) => {
+        try {
+          if (err) {
+            Logger.error("Google OAuth authentication error", {
+              error: err.message,
+              stack: err.stack,
+            });
+
+            // Redirect to frontend with error
+            const errorUrl = `${process.env.FRONTEND_URL}/auth/google/error?error=${encodeURIComponent(err.message)}`;
+            return res.redirect(errorUrl);
+          }
+
+          if (!user) {
+            Logger.warn("Google OAuth: No user returned", { info });
+            const errorUrl = `${process.env.FRONTEND_URL}/auth/google/error?error=authentication_failed`;
+            return res.redirect(errorUrl);
+          }
+
+          // Generate tokens
+          const result = await AuthService.handleGoogleCallback(user, true);
+
+          // Set cookies
+          const cookieOptions = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+          };
+
+          res.cookie("token", result.token, cookieOptions);
+          res.cookie("refreshToken", result.refreshToken, cookieOptions);
+
+          // Redirect to frontend with success
+          const successUrl = `${process.env.FRONTEND_URL}/auth/google/success?token=${result.token}`;
+          return res.redirect(successUrl);
+        } catch (error) {
+          Logger.error("Error in Google callback handler", {
+            error: error.message,
+            stack: error.stack,
+          });
+
+          const errorUrl = `${process.env.FRONTEND_URL}/auth/google/error?error=server_error`;
+          return res.redirect(errorUrl);
+        }
+      }
+    )(req, res, next);
+  }
+
+  /**
+   * Unlink Google account
+   * @route POST /api/auth/google/unlink
+   */
+  async unlinkGoogle(req, res) {
+    const { password } = req.body;
+
+    if (!password) {
+      throw ApiError.badRequest(
+        "Password is required to unlink Google account"
+      );
+    }
+
+    const result = await AuthService.unlinkGoogleAndSetPassword(
+      req.user._id,
+      password,
+      req
+    );
+
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
+  }
+
+  /**
+   * Check email availability
+   * @route POST /api/auth/check-email
+   */
+  async checkEmail(req, res) {
+    const { email } = req.body;
+
+    if (!email) {
+      throw ApiError.badRequest("Email is required");
+    }
+
+    const result = await AuthService.checkEmailAvailability(email);
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      "Email availability checked",
       result
     );
   }

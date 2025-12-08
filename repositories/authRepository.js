@@ -1,6 +1,6 @@
-import User from '../models/User.js';
-import Logger from '../config/logger.js';
-import crypto from 'crypto';
+import User from "../models/User.js";
+import Logger from "../config/logger.js";
+import crypto from "crypto";
 
 class AuthRepository {
   /**
@@ -9,10 +9,13 @@ class AuthRepository {
   async createUser(userData) {
     try {
       const user = await User.create(userData);
-      Logger.info('User created successfully', { userId: user._id, email: user.email });
+      Logger.info("User created successfully", {
+        userId: user._id,
+        email: user.email,
+      });
       return user;
     } catch (error) {
-      Logger.error('Error creating user', { error: error.message });
+      Logger.error("Error creating user", { error: error.message });
       throw error;
     }
   }
@@ -25,7 +28,7 @@ class AuthRepository {
       const user = await User.findOne({ email });
       return user;
     } catch (error) {
-      Logger.error('Error finding user by email', { error: error.message });
+      Logger.error("Error finding user by email", { error: error.message });
       throw error;
     }
   }
@@ -38,7 +41,9 @@ class AuthRepository {
       const user = await User.findByEmailWithPassword(email);
       return user;
     } catch (error) {
-      Logger.error('Error finding user with password', { error: error.message });
+      Logger.error("Error finding user with password", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -51,7 +56,7 @@ class AuthRepository {
       const user = await User.findById(userId);
       return user;
     } catch (error) {
-      Logger.error('Error finding user by ID', { error: error.message });
+      Logger.error("Error finding user by ID", { error: error.message });
       throw error;
     }
   }
@@ -62,13 +67,30 @@ class AuthRepository {
    */
   async findByIdWithPasswordHistory(userId) {
     try {
-      const user = await User.findById(userId)
-        .select('+password +passwordHistory +passwordChangedAt');
+      const user = await User.findById(userId).select(
+        "+password +passwordHistory +passwordChangedAt"
+      );
       return user;
     } catch (error) {
-      Logger.error('Error finding user with password history', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error finding user with password history", {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by ID with password (for account deletion and authentication)
+   */
+  async findByIdWithPassword(userId) {
+    try {
+      const user = await User.findById(userId).select("+password");
+      return user;
+    } catch (error) {
+      Logger.error("Error finding user with password", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -79,15 +101,14 @@ class AuthRepository {
    */
   async updateUser(userId, updateData) {
     try {
-      const user = await User.findByIdAndUpdate(
-        userId,
-        updateData,
-        { new: true, runValidators: true }
-      );
-      Logger.info('User updated successfully', { userId });
+      const user = await User.findByIdAndUpdate(userId, updateData, {
+        new: true,
+        runValidators: true,
+      });
+      Logger.info("User updated successfully", { userId });
       return user;
     } catch (error) {
-      Logger.error('Error updating user', { error: error.message, userId });
+      Logger.error("Error updating user", { error: error.message, userId });
       throw error;
     }
   }
@@ -98,10 +119,10 @@ class AuthRepository {
   async saveUser(user) {
     try {
       await user.save();
-      Logger.info('User saved successfully', { userId: user._id });
+      Logger.info("User saved successfully", { userId: user._id });
       return user;
     } catch (error) {
-      Logger.error('Error saving user', { error: error.message });
+      Logger.error("Error saving user", { error: error.message });
       throw error;
     }
   }
@@ -112,18 +133,20 @@ class AuthRepository {
   async findByVerificationToken(token) {
     try {
       const hashedToken = crypto
-        .createHash('sha256')
+        .createHash("sha256")
         .update(token)
-        .digest('hex');
+        .digest("hex");
 
       const user = await User.findOne({
         emailVerificationToken: hashedToken,
         emailVerificationExpires: { $gt: Date.now() },
-      }).select('+emailVerificationToken +emailVerificationExpires');
+      }).select("+emailVerificationToken +emailVerificationExpires");
 
       return user;
     } catch (error) {
-      Logger.error('Error finding user by verification token', { error: error.message });
+      Logger.error("Error finding user by verification token", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -135,18 +158,22 @@ class AuthRepository {
   async findByResetToken(token) {
     try {
       const hashedToken = crypto
-        .createHash('sha256')
+        .createHash("sha256")
         .update(token)
-        .digest('hex');
+        .digest("hex");
 
       const user = await User.findOne({
         passwordResetToken: hashedToken,
         passwordResetExpires: { $gt: Date.now() },
-      }).select('+passwordResetToken +passwordResetExpires +password +passwordHistory');
+      }).select(
+        "+passwordResetToken +passwordResetExpires +password +passwordHistory"
+      );
 
       return user;
     } catch (error) {
-      Logger.error('Error finding user by reset token', { error: error.message });
+      Logger.error("Error finding user by reset token", {
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -164,10 +191,10 @@ class AuthRepository {
         },
         { new: true }
       );
-      Logger.info('Email verified successfully', { userId });
+      Logger.info("Email verified successfully", { userId });
       return user;
     } catch (error) {
-      Logger.error('Error verifying email', { error: error.message, userId });
+      Logger.error("Error verifying email", { error: error.message, userId });
       throw error;
     }
   }
@@ -178,36 +205,37 @@ class AuthRepository {
    */
   async updatePassword(userId, newPassword) {
     try {
-      const user = await User.findById(userId)
-        .select('+password +passwordHistory +passwordChangedAt');
-      
+      const user = await User.findById(userId).select(
+        "+password +passwordHistory +passwordChangedAt"
+      );
+
       if (!user) {
-        throw new Error('User not found');
+        throw new Error("User not found");
       }
 
       // Add current password to history before changing
       await user.addToPasswordHistory();
-      
+
       // Update password (will be hashed by pre-save hook)
       user.password = newPassword;
       user.passwordChangedAt = new Date();
       user.mustChangePassword = false;
-      
+
       await user.save();
-      
+
       // Clear reset token if exists
       await User.findByIdAndUpdate(userId, {
         $unset: { passwordResetToken: 1, passwordResetExpires: 1 },
       });
 
-      Logger.info('Password updated successfully with history tracking', { 
+      Logger.info("Password updated successfully with history tracking", {
         userId,
-        passwordHistoryCount: user.passwordHistory?.length || 0 
+        passwordHistoryCount: user.passwordHistory?.length || 0,
       });
-      
+
       return user;
     } catch (error) {
-      Logger.error('Error updating password', { error: error.message, userId });
+      Logger.error("Error updating password", { error: error.message, userId });
       throw error;
     }
   }
@@ -220,7 +248,7 @@ class AuthRepository {
       const count = await User.countDocuments({ email });
       return count > 0;
     } catch (error) {
-      Logger.error('Error checking email existence', { error: error.message });
+      Logger.error("Error checking email existence", { error: error.message });
       throw error;
     }
   }
@@ -236,13 +264,13 @@ class AuthRepository {
         { mustChangePassword: true },
         { new: true }
       );
-      
-      Logger.info('Forced password change flag set', { userId });
+
+      Logger.info("Forced password change flag set", { userId });
       return user;
     } catch (error) {
-      Logger.error('Error forcing password change', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error forcing password change", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -254,26 +282,27 @@ class AuthRepository {
    */
   async getPasswordHistory(userId, limit = 5) {
     try {
-      const user = await User.findById(userId)
-        .select('+passwordHistory +passwordChangedAt');
-      
+      const user = await User.findById(userId).select(
+        "+passwordHistory +passwordChangedAt"
+      );
+
       if (!user) {
         return null;
       }
 
       const history = user.passwordHistory || [];
-      
+
       return {
         lastChanged: user.passwordChangedAt,
         historyCount: history.length,
-        recentChanges: history.slice(-limit).map(h => ({
+        recentChanges: history.slice(-limit).map((h) => ({
           changedAt: h.changedAt,
         })),
       };
     } catch (error) {
-      Logger.error('Error getting password history', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error getting password history", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -286,31 +315,30 @@ class AuthRepository {
    */
   async updateProfile(userId, updateData) {
     try {
-      const allowedUpdates = ['firstName', 'lastName', 'phoneNumber'];
+      const allowedUpdates = ["firstName", "lastName", "phoneNumber"];
       const filteredData = {};
-      
-      Object.keys(updateData).forEach(key => {
+
+      Object.keys(updateData).forEach((key) => {
         if (allowedUpdates.includes(key)) {
           filteredData[key] = updateData[key];
         }
       });
 
-      const user = await User.findByIdAndUpdate(
-        userId,
-        filteredData,
-        { new: true, runValidators: true }
-      );
-      
-      Logger.info('User profile updated successfully', { 
-        userId,
-        updatedFields: Object.keys(filteredData) 
+      const user = await User.findByIdAndUpdate(userId, filteredData, {
+        new: true,
+        runValidators: true,
       });
-      
+
+      Logger.info("User profile updated successfully", {
+        userId,
+        updatedFields: Object.keys(filteredData),
+      });
+
       return user;
     } catch (error) {
-      Logger.error('Error updating user profile', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error updating user profile", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -327,17 +355,17 @@ class AuthRepository {
         { avatar: avatarData },
         { new: true, runValidators: true }
       );
-      
-      Logger.info('User avatar updated successfully', { 
+
+      Logger.info("User avatar updated successfully", {
         userId,
-        avatarUrl: avatarData.url 
+        avatarUrl: avatarData.url,
       });
-      
+
       return user;
     } catch (error) {
-      Logger.error('Error updating user avatar', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error updating user avatar", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -351,21 +379,21 @@ class AuthRepository {
     try {
       const user = await User.findByIdAndUpdate(
         userId,
-        { 
+        {
           avatar: {
             url: null,
             publicId: null,
-          }
+          },
         },
         { new: true }
       );
-      
-      Logger.info('User avatar deleted successfully', { userId });
+
+      Logger.info("User avatar deleted successfully", { userId });
       return user;
     } catch (error) {
-      Logger.error('Error deleting user avatar', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error deleting user avatar", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -382,26 +410,28 @@ class AuthRepository {
             _id: null,
             totalUsers: { $sum: 1 },
             verifiedUsers: {
-              $sum: { $cond: ['$isEmailVerified', 1, 0] },
+              $sum: { $cond: ["$isEmailVerified", 1, 0] },
             },
             activeUsers: {
-              $sum: { $cond: ['$isActive', 1, 0] },
+              $sum: { $cond: ["$isActive", 1, 0] },
             },
             mustChangePasswordUsers: {
-              $sum: { $cond: ['$mustChangePassword', 1, 0] },
+              $sum: { $cond: ["$mustChangePassword", 1, 0] },
             },
           },
         },
       ]);
 
-      return stats[0] || { 
-        totalUsers: 0, 
-        verifiedUsers: 0, 
-        activeUsers: 0,
-        mustChangePasswordUsers: 0 
-      };
+      return (
+        stats[0] || {
+          totalUsers: 0,
+          verifiedUsers: 0,
+          activeUsers: 0,
+          mustChangePasswordUsers: 0,
+        }
+      );
     } catch (error) {
-      Logger.error('Error getting user stats', { error: error.message });
+      Logger.error("Error getting user stats", { error: error.message });
       throw error;
     }
   }
@@ -419,47 +449,46 @@ class AuthRepository {
         createdAt: { $lt: cutoffDate },
       });
 
-      Logger.info(`Deleted ${result.deletedCount} unverified users older than ${days} days`);
+      Logger.info(
+        `Deleted ${result.deletedCount} unverified users older than ${days} days`
+      );
       return result.deletedCount;
     } catch (error) {
-      Logger.error('Error deleting unverified users', { error: error.message });
+      Logger.error("Error deleting unverified users", { error: error.message });
       throw error;
     }
   }
 
-  
-  
   /**
    * Update user profile (firstName, lastName, phoneNumber)
    */
   async updateProfile(userId, updateData) {
     try {
       // Only allow specific fields to be updated
-      const allowedUpdates = ['firstName', 'lastName', 'phoneNumber'];
+      const allowedUpdates = ["firstName", "lastName", "phoneNumber"];
       const filteredData = {};
-      
-      Object.keys(updateData).forEach(key => {
+
+      Object.keys(updateData).forEach((key) => {
         if (allowedUpdates.includes(key)) {
           filteredData[key] = updateData[key];
         }
       });
 
-      const user = await User.findByIdAndUpdate(
-        userId,
-        filteredData,
-        { new: true, runValidators: true }
-      );
-      
-      Logger.info('User profile updated successfully', { 
-        userId,
-        updatedFields: Object.keys(filteredData) 
+      const user = await User.findByIdAndUpdate(userId, filteredData, {
+        new: true,
+        runValidators: true,
       });
-      
+
+      Logger.info("User profile updated successfully", {
+        userId,
+        updatedFields: Object.keys(filteredData),
+      });
+
       return user;
     } catch (error) {
-      Logger.error('Error updating user profile', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error updating user profile", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -476,17 +505,17 @@ class AuthRepository {
         { avatar: avatarData },
         { new: true, runValidators: true }
       );
-      
-      Logger.info('User avatar updated successfully', { 
+
+      Logger.info("User avatar updated successfully", {
         userId,
-        avatarUrl: avatarData.url 
+        avatarUrl: avatarData.url,
       });
-      
+
       return user;
     } catch (error) {
-      Logger.error('Error updating user avatar', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error updating user avatar", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -500,21 +529,21 @@ class AuthRepository {
     try {
       const user = await User.findByIdAndUpdate(
         userId,
-        { 
+        {
           avatar: {
             url: null,
             publicId: null,
-          }
+          },
         },
         { new: true }
       );
-      
-      Logger.info('User avatar deleted successfully', { userId });
+
+      Logger.info("User avatar deleted successfully", { userId });
       return user;
     } catch (error) {
-      Logger.error('Error deleting user avatar', { 
-        error: error.message, 
-        userId 
+      Logger.error("Error deleting user avatar", {
+        error: error.message,
+        userId,
       });
       throw error;
     }
@@ -526,21 +555,174 @@ class AuthRepository {
   async cleanupPasswordHistory(maxHistoryCount = 10) {
     try {
       const result = await User.updateMany(
-        { 'passwordHistory.10': { $exists: true } },
+        { "passwordHistory.10": { $exists: true } },
         {
           $push: {
             passwordHistory: {
               $each: [],
-              $slice: -maxHistoryCount
-            }
-          }
+              $slice: -maxHistoryCount,
+            },
+          },
         }
       );
 
-      Logger.info(`Cleaned up password history for ${result.modifiedCount} users`);
+      Logger.info(
+        `Cleaned up password history for ${result.modifiedCount} users`
+      );
       return result.modifiedCount;
     } catch (error) {
-      Logger.error('Error cleaning up password history', { error: error.message });
+      Logger.error("Error cleaning up password history", {
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  // Add these methods to your existing AuthRepository class:
+
+  /**
+   * Create user via Google OAuth
+   */
+  async createGoogleUser(userData) {
+    try {
+      const { googlePhoto, ...restData } = userData;
+
+      let avatarData = {
+        url: null,
+        publicId: null,
+      };
+
+      // If Google photo exists, save it
+      if (googlePhoto) {
+        avatarData.url = googlePhoto;
+        // Google photos don't need publicId as they're hosted by Google
+      }
+
+      const user = await User.create({
+        ...restData,
+        authProvider: "google",
+        isEmailVerified: true, // Google emails are pre-verified
+        isActive: true,
+        avatar: avatarData,
+        lastLogin: new Date(),
+      });
+
+      Logger.info("Google user created successfully", {
+        userId: user._id,
+        email: user.email,
+        hasPhoto: !!googlePhoto,
+      });
+
+      return user;
+    } catch (error) {
+      Logger.error("Error creating Google user", {
+        error: error.message,
+        email: userData.email,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by Google ID
+   */
+  async findByGoogleId(googleId) {
+    try {
+      const user = await User.findOne({ googleId }).select("+googleId");
+      return user;
+    } catch (error) {
+      Logger.error("Error finding user by Google ID", {
+        error: error.message,
+        googleId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Link Google account to existing user
+   */
+  async linkGoogleAccount(userId, googleData) {
+    try {
+      const { googleId, googlePhoto } = googleData;
+
+      const updateData = {
+        googleId,
+        authProvider: "google",
+      };
+
+      // If user doesn't have avatar and Google provides one, use it
+      const user = await User.findById(userId);
+      if (!user.avatar?.url && googlePhoto) {
+        updateData.avatar = {
+          url: googlePhoto,
+          publicId: null,
+        };
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+        new: true,
+        runValidators: true,
+      });
+
+      Logger.info("Google account linked successfully", {
+        userId,
+        googleId,
+        photoAdded: !!googlePhoto && !user.avatar?.url,
+      });
+
+      return updatedUser;
+    } catch (error) {
+      Logger.error("Error linking Google account", {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Update last login timestamp
+   */
+  async updateLastLogin(userId) {
+    try {
+      await User.findByIdAndUpdate(
+        userId,
+        { lastLogin: new Date() },
+        { new: false } // Don't need the updated document
+      );
+
+      Logger.debug("Last login updated", { userId });
+    } catch (error) {
+      Logger.error("Error updating last login", {
+        error: error.message,
+        userId,
+      });
+      // Don't throw - this is not critical
+    }
+  }
+
+  /**
+   * Unlink Google account (for users who want to switch to local auth)
+   */
+  async unlinkGoogleAccount(userId) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        userId,
+        {
+          $unset: { googleId: 1, googlePhoto: 1 },
+          authProvider: "local",
+        },
+        { new: true }
+      );
+
+      Logger.info("Google account unlinked", { userId });
+      return user;
+    } catch (error) {
+      Logger.error("Error unlinking Google account", {
+        error: error.message,
+        userId,
+      });
       throw error;
     }
   }

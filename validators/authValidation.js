@@ -226,4 +226,38 @@ export const authValidation = {
         }),
     }),
   },
+
+  // Add these validations to your existing authValidation object:
+
+// ========== NEW: Google unlink validation ==========
+unlinkGoogle: {
+  body: Joi.object({
+    password: Joi.string()
+      .min(8)
+      .max(128)
+      .pattern(passwordRegex)
+      .required()
+      .messages({
+        'string.empty': 'Password is required to unlink Google account',
+        'string.min': 'Password must be at least 8 characters',
+        'string.max': 'Password cannot exceed 128 characters',
+        'string.pattern.base': 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+      }),
+  }),
+},
+
+// ========== NEW: Check email validation ==========
+checkEmail: {
+  body: Joi.object({
+    email: Joi.string()
+      .email()
+      .lowercase()
+      .trim()
+      .required()
+      .messages({
+        'string.empty': 'Email is required',
+        'string.email': 'Please provide a valid email address',
+      }),
+  }),
+},
 };

@@ -1,12 +1,15 @@
-import express from 'express';
-import AuthController from '../controllers/authController.js';
-import { authValidation } from '../validators/authValidation.js';
-import validate from '../middlewares/validate.js';
-import asyncHandler from '../middlewares/asyncHandler.js';
-import { protect } from '../middlewares/authMiddleware.js';
-import { cacheByUser, invalidateCache } from '../middlewares/cacheMiddleware.js';
-import rateLimit from 'express-rate-limit';
-import upload from '../middlewares/upload.js';
+import express from "express";
+import AuthController from "../controllers/authController.js";
+import { authValidation } from "../validators/authValidation.js";
+import validate from "../middlewares/validate.js";
+import asyncHandler from "../middlewares/asyncHandler.js";
+import { protect } from "../middlewares/authMiddleware.js";
+import {
+  cacheByUser,
+  invalidateCache,
+} from "../middlewares/cacheMiddleware.js";
+import rateLimit from "express-rate-limit";
+import upload from "../middlewares/upload.js";
 
 const router = express.Router();
 
@@ -16,7 +19,7 @@ const authLimiter = rateLimit({
   max: 5, // 5 attempts
   message: {
     success: false,
-    message: 'Too many authentication attempts, please try again later',
+    message: "Too many authentication attempts, please try again later",
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -29,7 +32,7 @@ const emailLimiter = rateLimit({
   max: 3, // Only 3 attempts per hour
   message: {
     success: false,
-    message: 'Too many email requests, please try again later',
+    message: "Too many email requests, please try again later",
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -41,16 +44,15 @@ const resetPasswordLimiter = rateLimit({
   max: 3, // Only 3 reset attempts
   message: {
     success: false,
-    message: 'Too many password reset attempts, please try again later',
+    message: "Too many password reset attempts, please try again later",
   },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-
 // Registration
 router.post(
-  '/register',
+  "/register",
   authLimiter,
   validate(authValidation.register),
   asyncHandler(AuthController.register.bind(AuthController))
@@ -58,23 +60,25 @@ router.post(
 
 // Login
 router.post(
-  '/login',
+  "/login",
   authLimiter,
   validate(authValidation.login),
-  invalidateCache((req) => req.body.email ? `user:*${req.body.email}*` : 'user:*'),
+  invalidateCache((req) =>
+    req.body.email ? `user:*${req.body.email}*` : "user:*"
+  ),
   asyncHandler(AuthController.login.bind(AuthController))
 );
 
 // Email verification
 router.get(
-  '/verify-email/:token',
+  "/verify-email/:token",
   validate(authValidation.verifyEmail),
   asyncHandler(AuthController.verifyEmail.bind(AuthController))
 );
 
 // Resend verification email
 router.post(
-  '/resend-verification',
+  "/resend-verification",
   emailLimiter,
   validate(authValidation.resendVerification),
   asyncHandler(AuthController.resendVerification.bind(AuthController))
@@ -82,7 +86,7 @@ router.post(
 
 // Forgot password
 router.post(
-  '/forgot-password',
+  "/forgot-password",
   emailLimiter,
   validate(authValidation.forgotPassword),
   asyncHandler(AuthController.forgotPassword.bind(AuthController))
@@ -90,7 +94,7 @@ router.post(
 
 // Reset password
 router.post(
-  '/reset-password/:token',
+  "/reset-password/:token",
   resetPasswordLimiter,
   validate(authValidation.resetPassword),
   asyncHandler(AuthController.resetPassword.bind(AuthController))
@@ -98,14 +102,13 @@ router.post(
 
 // Refresh token
 router.post(
-  '/refresh-token',
+  "/refresh-token",
   asyncHandler(AuthController.refreshToken.bind(AuthController))
 );
 
-
 // Get current user profile
 router.get(
-  '/me',
+  "/me",
   protect,
   cacheByUser(300), // Cache for 5 minutes
   asyncHandler(AuthController.getCurrentUser.bind(AuthController))
@@ -113,7 +116,7 @@ router.get(
 
 // Update user profile (firstName, lastName, phoneNumber)
 router.patch(
-  '/profile',
+  "/profile",
   protect,
   validate(authValidation.updateProfile),
   invalidateCache((req) => `user:${req.user._id}:*`),
@@ -122,16 +125,16 @@ router.patch(
 
 // Update profile photo (avatar)
 router.put(
-  '/avatar',
+  "/avatar",
   protect,
-  upload.single('avatar'),
+  upload.single("avatar"),
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.updateAvatar.bind(AuthController))
 );
 
 // Delete profile photo
 router.delete(
-  '/avatar',
+  "/avatar",
   protect,
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.deleteAvatar.bind(AuthController))
@@ -139,7 +142,7 @@ router.delete(
 
 // Change password (authenticated users)
 router.post(
-  '/change-password',
+  "/change-password",
   protect,
   validate(authValidation.changePassword),
   invalidateCache((req) => `user:${req.user._id}:*`),
@@ -148,7 +151,7 @@ router.post(
 
 // Delete account (soft delete)
 router.delete(
-  '/account',
+  "/account",
   protect,
   validate(authValidation.deleteAccount),
   invalidateCache((req) => `user:${req.user._id}:*`),
@@ -157,10 +160,49 @@ router.delete(
 
 // Logout
 router.post(
-  '/logout',
+  "/logout",
   protect,
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.logout.bind(AuthController))
+);
+
+// Add these routes to your existing authRoutes.js
+
+// ========== GOOGLE OAUTH ROUTES ==========
+
+// Initiate Google OAuth
+router.get(
+  "/google",
+  asyncHandler(AuthController.googleAuth.bind(AuthController))
+);
+
+// Google OAuth callback
+router.get(
+  "/google/callback",
+  AuthController.googleCallback.bind(AuthController)
+);
+
+// Unlink Google account (requires authentication)
+router.post(
+  "/google/unlink",
+  protect,
+  asyncHandler(AuthController.unlinkGoogle.bind(AuthController))
+);
+
+// Check email availability (for Google OAuth)
+router.post(
+  "/check-email",
+  validate(
+    Joi.object({
+      body: Joi.object({
+        email: Joi.string().email().lowercase().trim().required().messages({
+          "string.empty": "Email is required",
+          "string.email": "Please provide a valid email address",
+        }),
+      }),
+    })
+  ),
+  asyncHandler(AuthController.checkEmail.bind(AuthController))
 );
 
 export default router;
