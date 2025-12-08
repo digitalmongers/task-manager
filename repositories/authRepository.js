@@ -101,10 +101,28 @@ class AuthRepository {
    */
   async findByIdWithGoogle(userId) {
     try {
-      const user = await User.findById(userId).select("+googleId +authProvider");
+      const user = await User.findById(userId).select(
+        "+googleId +authProvider"
+      );
       return user;
     } catch (error) {
       Logger.error("Error finding user with Google fields", {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by ID with Facebook OAuth fields (for unlinking)
+   */
+  async findByIdWithFacebook(userId) {
+    try {
+      const user = await User.findById(userId).select("+facebookId +authProvider");
+      return user;
+    } catch (error) {
+      Logger.error("Error finding user with Facebook fields", {
         error: error.message,
         userId,
       });
@@ -736,6 +754,131 @@ class AuthRepository {
       return user;
     } catch (error) {
       Logger.error("Error unlinking Google account", {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  
+
+  /**
+   * Create user via Facebook OAuth
+   */
+  async createFacebookUser(userData) {
+    try {
+      const { facebookPhoto, ...restData } = userData;
+
+      let avatarData = {
+        url: null,
+        publicId: null,
+      };
+
+      if (facebookPhoto) {
+        avatarData.url = facebookPhoto;
+      }
+
+      const user = await User.create({
+        ...restData,
+        authProvider: "facebook",
+        isEmailVerified: true,
+        isActive: true,
+        avatar: avatarData,
+        lastLogin: new Date(),
+      });
+
+      Logger.info("Facebook user created successfully", {
+        userId: user._id,
+        email: user.email,
+        hasPhoto: !!facebookPhoto,
+      });
+
+      return user;
+    } catch (error) {
+      Logger.error("Error creating Facebook user", {
+        error: error.message,
+        email: userData.email,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Find user by Facebook ID
+   */
+  async findByFacebookId(facebookId) {
+    try {
+      const user = await User.findOne({ facebookId }).select("+facebookId");
+      return user;
+    } catch (error) {
+      Logger.error("Error finding user by Facebook ID", {
+        error: error.message,
+        facebookId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Link Facebook account to existing user
+   */
+  async linkFacebookAccount(userId, facebookData) {
+    try {
+      const { facebookId, facebookPhoto } = facebookData;
+
+      const updateData = {
+        facebookId,
+        authProvider: "facebook",
+      };
+
+      const user = await User.findById(userId);
+      if (!user.avatar?.url && facebookPhoto) {
+        updateData.avatar = {
+          url: facebookPhoto,
+          publicId: null,
+        };
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
+        new: true,
+        runValidators: true,
+      });
+
+      Logger.info("Facebook account linked successfully", {
+        userId,
+        facebookId,
+        photoAdded: !!facebookPhoto && !user.avatar?.url,
+      });
+
+      return updatedUser;
+    } catch (error) {
+      Logger.error("Error linking Facebook account", {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Unlink Facebook account
+   */
+  async unlinkFacebookAccount(userId) {
+    try {
+      const user = await User.findByIdAndUpdate(
+        userId,
+        {
+          $unset: { facebookId: 1 },
+          authProvider: "local",
+        },
+        { new: true }
+      );
+
+      Logger.info("Facebook account unlinked", { userId });
+      return user;
+    } catch (error) {
+      Logger.error("Error unlinking Facebook account", {
         error: error.message,
         userId,
       });

@@ -37,6 +37,22 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    // ========== NEW: Facebook OAuth Fields ==========
+  facebookId: {
+    type: String,
+    unique: true,
+    sparse: true,
+    select: false,
+  },
+  
+  // Auth provider tracking
+  authProvider: {
+    type: String,
+    enum: ['local', 'google', 'facebook'],
+    default: 'local',
+  },
+  
+
     googlePhoto: {
       type: String,
       default: null,
@@ -54,7 +70,10 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: function() {
+        // Password is only required for local auth, not for OAuth providers
+        return this.authProvider === 'local';
+      },
       minlength: [8, "Password must be at least 8 characters"],
       select: false, // Don't include password by default in queries
     },
@@ -166,7 +185,8 @@ userSchema.index({ createdAt: -1 });
 
 // Pre-save middleware to hash password
 userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
+  // Only hash password if it exists and has been modified
+  if (!this.password || !this.isModified("password")) return;
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
 });

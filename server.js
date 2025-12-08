@@ -60,6 +60,7 @@ app.get("/health", async (req, res) => {
       },
       oauth: {
         google: !!process.env.GOOGLE_CLIENT_ID,
+        facebook: !!process.env.FACEBOOK_APP_ID,
       },
     });
   } catch (error) {
@@ -73,6 +74,7 @@ app.get("/health", async (req, res) => {
       },
       oauth: {
         google: !!process.env.GOOGLE_CLIENT_ID,
+        facebook: !!process.env.FACEBOOK_APP_ID,
       },
     });
   }
@@ -109,6 +111,7 @@ const startServer = async () => {
       Logger.info(`Redis Status: ${redisClient.status}`);
       Logger.info(`Cache Prefix: ${cacheService.prefix}`);
       Logger.info(`Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'Enabled' : 'Disabled'}`);
+      Logger.info(`Facebook OAuth: ${process.env.FACEBOOK_APP_ID ? 'Enabled' : 'Disabled'}`);
     });
   } catch (error) {
     Logger.error('Failed to start server:', { error: error.message });

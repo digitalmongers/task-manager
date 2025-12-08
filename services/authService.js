@@ -989,6 +989,91 @@ class AuthService {
       throw error;
     }
   }
+
+  
+
+  /**
+   * Handle Facebook OAuth callback success
+   */
+  async handleFacebookCallback(user, rememberMe = true) {
+    try {
+      const token = this.generateToken(user._id, rememberMe);
+      const refreshToken = this.generateRefreshToken(user._id);
+
+      const userResponse = user.toObject();
+      delete userResponse.password;
+      delete userResponse.passwordHistory;
+      delete userResponse.facebookId;
+      delete userResponse.googleId;
+      delete userResponse.emailVerificationToken;
+      delete userResponse.emailVerificationExpires;
+      delete userResponse.passwordResetToken;
+      delete userResponse.passwordResetExpires;
+
+      return {
+        user: userResponse,
+        token,
+        refreshToken,
+        expiresIn: rememberMe ? "30d" : "7d",
+        authProvider: "facebook",
+      };
+    } catch (error) {
+      Logger.error("Error handling Facebook callback", {
+        error: error.message,
+        userId: user._id,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Unlink Facebook account and set password for local auth
+   */
+  async unlinkFacebookAndSetPassword(userId, newPassword, req) {
+    try {
+      const user = await AuthRepository.findByIdWithFacebook(userId);
+
+      if (!user) {
+        throw ApiError.notFound("User not found");
+      }
+
+      if (!user.isActive) {
+        throw ApiError.forbidden("Your account has been deactivated");
+      }
+
+      if (user.authProvider !== "facebook") {
+        throw ApiError.badRequest("This account is not linked with Facebook");
+      }
+
+      if (!user.facebookId) {
+        throw ApiError.badRequest("No Facebook account to unlink");
+      }
+
+      await AuthRepository.unlinkFacebookAccount(userId);
+
+      user.password = newPassword;
+      user.authProvider = "local";
+      user.passwordChangedAt = new Date();
+      await user.save();
+
+      Logger.logAuth("FACEBOOK_ACCOUNT_UNLINKED", userId, {
+        email: user.email,
+        ip: req?.ip,
+        newAuthProvider: "local",
+      });
+
+      return {
+        message:
+          "Facebook account unlinked successfully. You can now login with email and password.",
+      };
+    } catch (error) {
+      Logger.error("Error unlinking Facebook account", {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
 }
 
 export default new AuthService();

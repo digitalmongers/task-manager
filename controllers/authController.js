@@ -373,6 +373,93 @@ class AuthController {
       result
     );
   }
+
+  
+
+  /**
+   * Initiate Facebook OAuth
+   * @route GET /api/auth/facebook
+   */
+  facebookAuth(req, res, next) {
+    passport.authenticate("facebook", {
+      scope: ["email", "public_profile"],
+    })(req, res, next);
+  }
+
+  /**
+   * Facebook OAuth callback
+   * @route GET /api/auth/facebook/callback
+   */
+  async facebookCallback(req, res, next) {
+    passport.authenticate(
+      "facebook",
+      { session: false },
+      async (err, user, info) => {
+        try {
+          if (err) {
+            Logger.error("Facebook OAuth authentication error", {
+              error: err.message,
+              stack: err.stack,
+            });
+
+            const errorUrl = `${process.env.FRONTEND_URL}/auth/facebook/error?error=${encodeURIComponent(err.message)}`;
+            return res.redirect(errorUrl);
+          }
+
+          if (!user) {
+            Logger.warn("Facebook OAuth: No user returned", { info });
+            const errorUrl = `${process.env.FRONTEND_URL}/auth/facebook/error?error=authentication_failed`;
+            return res.redirect(errorUrl);
+          }
+
+          const result = await AuthService.handleFacebookCallback(user, true);
+
+          const cookieOptions = {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+          };
+
+          res.cookie("token", result.token, cookieOptions);
+          res.cookie("refreshToken", result.refreshToken, cookieOptions);
+
+          const successUrl = `${process.env.FRONTEND_URL}/auth/facebook/success?token=${result.token}`;
+          return res.redirect(successUrl);
+        } catch (error) {
+          Logger.error("Error in Facebook callback handler", {
+            error: error.message,
+            stack: error.stack,
+          });
+
+          const errorUrl = `${process.env.FRONTEND_URL}/auth/facebook/error?error=server_error`;
+          return res.redirect(errorUrl);
+        }
+      }
+    )(req, res, next);
+  }
+
+  /**
+   * Unlink Facebook account
+   * @route POST /api/auth/facebook/unlink
+   */
+  async unlinkFacebook(req, res) {
+    const { password } = req.body;
+
+    if (!password) {
+      throw ApiError.badRequest(
+        "Password is required to unlink Facebook account"
+      );
+    }
+
+    const result = await AuthService.unlinkFacebookAndSetPassword(
+      req.user._id,
+      password,
+      req
+    );
+
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
+  }
 }
 
 export default new AuthController();

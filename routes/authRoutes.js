@@ -197,4 +197,29 @@ router.post(
   asyncHandler(AuthController.checkEmail.bind(AuthController))
 );
 
+// Add these routes to your existing authRoutes.js file
+// Place them after the Google OAuth routes
+
+// ========== FACEBOOK OAUTH ROUTES ==========
+
+// Initiate Facebook OAuth
+router.get(
+  "/facebook",
+  asyncHandler(AuthController.facebookAuth.bind(AuthController))
+);
+
+// Facebook OAuth callback
+router.get(
+  "/facebook/callback",
+  AuthController.facebookCallback.bind(AuthController)
+);
+
+// Unlink Facebook account (requires authentication)
+router.post(
+  "/facebook/unlink",
+  protect,
+  validate(authValidation.unlinkFacebook),
+  asyncHandler(AuthController.unlinkFacebook.bind(AuthController))
+);
+
 export default router;
