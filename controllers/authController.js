@@ -335,7 +335,8 @@ class AuthController {
           res.cookie("token", result.token, cookieOptions);
           res.cookie("refreshToken", result.refreshToken, cookieOptions);
 
-          const successUrl = `${redirectBase}/auth/google/success?token=${result.token}`;
+          // Pass both tokens in URL so frontend can store them
+          const successUrl = `${redirectBase}/auth/google/success?token=${result.token}&refreshToken=${result.refreshToken}`;
           return res.redirect(successUrl);
         } catch (error) {
           Logger.error("Error in Google callback handler", {
@@ -445,7 +446,8 @@ class AuthController {
           res.cookie("token", result.token, cookieOptions);
           res.cookie("refreshToken", result.refreshToken, cookieOptions);
 
-          const successUrl = `${redirectBase}/auth/facebook/success?token=${result.token}`;
+          // Pass both tokens in URL so frontend can store them
+          const successUrl = `${redirectBase}/auth/facebook/success?token=${result.token}&refreshToken=${result.refreshToken}`;
           return res.redirect(successUrl);
         } catch (error) {
           Logger.error("Error in Facebook callback handler", {
