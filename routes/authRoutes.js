@@ -47,9 +47,6 @@ const resetPasswordLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// ============================================================
-// PUBLIC ROUTES (No Authentication Required)
-// ============================================================
 
 // Registration
 router.post(
@@ -105,9 +102,6 @@ router.post(
   asyncHandler(AuthController.refreshToken.bind(AuthController))
 );
 
-// ============================================================
-// PROTECTED ROUTES (Authentication Required)
-// ============================================================
 
 // Get current user profile
 router.get(
