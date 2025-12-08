@@ -4,6 +4,7 @@ import cors from "cors";
 import compression from "compression";
 import responseTime from "response-time";
 import cookieParser from "cookie-parser";
+import passport from './config/passport.js';
 import { connectDB } from "./config/db.js";
 import redisClient from "./config/redis.js";
 import cacheService from "./services/cacheService.js";
@@ -35,6 +36,8 @@ app.use(cookieParser());
 // Apply CORS first - this handles all preflight requests
 app.use(cors(corsOptions));
 
+app.use(passport.initialize());
+
 // Apply other security measures
 applySecurity(app);
 
@@ -55,6 +58,9 @@ app.get("/health", async (req, res) => {
         status: redisStatus,
         dbSize: cacheStats?.dbSize || 0,
       },
+      oauth: {
+        google: !!process.env.GOOGLE_CLIENT_ID,
+      },
     });
   } catch (error) {
     ApiResponse.success(res, 200, "Server is healthy (Redis unavailable)", {
@@ -65,10 +71,12 @@ app.get("/health", async (req, res) => {
         status: 'error',
         error: error.message,
       },
+      oauth: {
+        google: !!process.env.GOOGLE_CLIENT_ID,
+      },
     });
   }
 });
-
 app.get("/", (req, res) => {
   ApiResponse.success(res, 200, "Task Manager API is running", {
     version: "1.0.0",
@@ -100,6 +108,7 @@ const startServer = async () => {
       Logger.info(`Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
       Logger.info(`Redis Status: ${redisClient.status}`);
       Logger.info(`Cache Prefix: ${cacheService.prefix}`);
+      Logger.info(`Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'Enabled' : 'Disabled'}`);
     });
   } catch (error) {
     Logger.error('Failed to start server:', { error: error.message });

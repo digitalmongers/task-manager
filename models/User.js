@@ -1,44 +1,67 @@
-import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const userSchema = new mongoose.Schema(
   {
     firstName: {
       type: String,
-      required: [true, 'First name is required'],
+      required: [true, "First name is required"],
       trim: true,
-      minlength: [2, 'First name must be at least 2 characters'],
-      maxlength: [50, 'First name cannot exceed 50 characters'],
+      minlength: [2, "First name must be at least 2 characters"],
+      maxlength: [50, "First name cannot exceed 50 characters"],
     },
     lastName: {
       type: String,
-      required: [true, 'Last name is required'],
+      required: [true, "Last name is required"],
       trim: true,
-      minlength: [2, 'Last name must be at least 2 characters'],
-      maxlength: [50, 'Last name cannot exceed 50 characters'],
+      minlength: [2, "Last name must be at least 2 characters"],
+      maxlength: [50, "Last name cannot exceed 50 characters"],
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
       match: [
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        'Please provide a valid email address',
-      ]
+        "Please provide a valid email address",
+      ],
+    },
+    // ========== GOOGLE OAUTH FIELDS ==========
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values while maintaining uniqueness
+      select: false,
+    },
+
+    googlePhoto: {
+      type: String,
+      default: null,
+    },
+
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+
+    lastLogin: {
+      type: Date,
+      default: null,
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
-      minlength: [8, 'Password must be at least 8 characters'],
+      required: [true, "Password is required"],
+      minlength: [8, "Password must be at least 8 characters"],
       select: false, // Don't include password by default in queries
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
+      enum: ["user", "admin"],
+      default: "user",
     },
     avatar: {
       url: {
@@ -56,7 +79,7 @@ const userSchema = new mongoose.Schema(
       trim: true,
       match: [
         /^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/,
-        'Please provide a valid phone number',
+        "Please provide a valid phone number",
       ],
     },
     isEmailVerified: {
@@ -96,35 +119,34 @@ const userSchema = new mongoose.Schema(
     },
     termsAccepted: {
       type: Boolean,
-      required: [true, 'You must accept the terms and conditions'],
+      required: [true, "You must accept the terms and conditions"],
       default: false,
     },
     termsAcceptedAt: {
       type: Date,
     },
-    
-    passwordHistory: [{
-      password: {
-        type: String,
-        required: true,
+
+    passwordHistory: [
+      {
+        password: {
+          type: String,
+          required: true,
+        },
+        changedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
-      changedAt: {
-        type: Date,
-        default: Date.now,
-      }
-    }],
-    
-    
+    ],
+
     passwordChangedAt: {
       type: Date,
     },
-    
-    
+
     mustChangePassword: {
       type: Boolean,
       default: false,
     },
-  
   },
   {
     timestamps: true,
@@ -134,7 +156,7 @@ const userSchema = new mongoose.Schema(
 );
 
 // Virtual for full name
-userSchema.virtual('fullName').get(function () {
+userSchema.virtual("fullName").get(function () {
   return `${this.firstName} ${this.lastName}`;
 });
 
@@ -143,14 +165,14 @@ userSchema.index({ isEmailVerified: 1 });
 userSchema.index({ createdAt: -1 });
 
 // Pre-save middleware to hash password
-userSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
 });
 
-userSchema.pre('save', function () {
-  if (this.isModified('termsAccepted') && this.termsAccepted) {
+userSchema.pre("save", function () {
+  if (this.isModified("termsAccepted") && this.termsAccepted) {
     this.termsAcceptedAt = new Date();
   }
 });
@@ -163,13 +185,13 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 // Instance method to generate email verification token
 userSchema.methods.generateEmailVerificationToken = function () {
   // Generate random token
-  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationToken = crypto.randomBytes(32).toString("hex");
 
   // Hash token and set to emailVerificationToken field
   this.emailVerificationToken = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(verificationToken)
-    .digest('hex');
+    .digest("hex");
 
   // Set expiry time (24 hours)
   this.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
@@ -180,13 +202,13 @@ userSchema.methods.generateEmailVerificationToken = function () {
 // Instance method to generate password reset token
 userSchema.methods.generatePasswordResetToken = function () {
   // Generate random token
-  const resetToken = crypto.randomBytes(32).toString('hex');
+  const resetToken = crypto.randomBytes(32).toString("hex");
 
   // Hash token and set to passwordResetToken field
   this.passwordResetToken = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(resetToken)
-    .digest('hex');
+    .digest("hex");
 
   // Set expiry time (1 hour)
   this.passwordResetExpires = Date.now() + 60 * 60 * 1000;
@@ -231,36 +253,39 @@ userSchema.methods.resetLoginAttempts = function () {
 };
 
 // ADD THIS METHOD: Check if password was used in last N passwords
-userSchema.methods.wasPasswordUsedRecently = async function(password, historyCount = 5) {
+userSchema.methods.wasPasswordUsedRecently = async function (
+  password,
+  historyCount = 5
+) {
   if (!this.passwordHistory || this.passwordHistory.length === 0) {
     return false;
   }
-  
+
   // Check last 5 passwords
   const recentPasswords = this.passwordHistory.slice(-historyCount);
-  
+
   for (const oldPass of recentPasswords) {
     const isMatch = await bcrypt.compare(password, oldPass.password);
     if (isMatch) {
       return true;
     }
   }
-  
+
   return false;
 };
 
 // ADD THIS METHOD: Add current password to history before changing
-userSchema.methods.addToPasswordHistory = async function() {
+userSchema.methods.addToPasswordHistory = async function () {
   if (!this.passwordHistory) {
     this.passwordHistory = [];
   }
-  
+
   // Add current password to history
   this.passwordHistory.push({
     password: this.password,
     changedAt: new Date(),
   });
-  
+
   // Keep only last 10 passwords in history
   if (this.passwordHistory.length > 10) {
     this.passwordHistory = this.passwordHistory.slice(-10);
@@ -269,9 +294,11 @@ userSchema.methods.addToPasswordHistory = async function() {
 
 // Static method to find by email with password
 userSchema.statics.findByEmailWithPassword = function (email) {
-  return this.findOne({ email }).select('+password +emailVerificationToken +emailVerificationExpires');
+  return this.findOne({ email }).select(
+    "+password +emailVerificationToken +emailVerificationExpires"
+  );
 };
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 
 export default User;
