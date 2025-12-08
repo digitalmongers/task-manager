@@ -6,6 +6,26 @@ import passport from "../config/passport.js";
 import Logger from "../config/logger.js";
 
 class AuthController {
+
+  /**
+   * Get the primary frontend URL for redirects
+   * Takes the first URL from FRONTEND_URL or uses REDIRECT_URL if set
+   */
+  getRedirectUrl() {
+    // Use dedicated REDIRECT_URL if available
+    if (process.env.REDIRECT_URL) {
+      return process.env.REDIRECT_URL.trim();
+    }
+    
+    // Otherwise use first URL from FRONTEND_URL
+    if (process.env.FRONTEND_URL) {
+      const urls = process.env.FRONTEND_URL.split(',');
+      return urls[0].trim();
+    }
+    
+    // Fallback
+    return 'http://localhost:3000';
+  }
   /**
    * Register new user
    * @route POST /api/v1/auth/register
@@ -284,39 +304,38 @@ class AuthController {
       { session: false },
       async (err, user, info) => {
         try {
+          // Get the correct redirect URL
+          const redirectBase = this.getRedirectUrl();
+
           if (err) {
             Logger.error("Google OAuth authentication error", {
               error: err.message,
               stack: err.stack,
             });
 
-            // Redirect to frontend with error
-            const errorUrl = `${process.env.FRONTEND_URL}/auth/google/error?error=${encodeURIComponent(err.message)}`;
+            const errorUrl = `${redirectBase}/auth/google/error?error=${encodeURIComponent(err.message)}`;
             return res.redirect(errorUrl);
           }
 
           if (!user) {
             Logger.warn("Google OAuth: No user returned", { info });
-            const errorUrl = `${process.env.FRONTEND_URL}/auth/google/error?error=authentication_failed`;
+            const errorUrl = `${redirectBase}/auth/google/error?error=authentication_failed`;
             return res.redirect(errorUrl);
           }
 
-          // Generate tokens
           const result = await AuthService.handleGoogleCallback(user, true);
 
-          // Set cookies
           const cookieOptions = {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-            maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+            maxAge: 30 * 24 * 60 * 60 * 1000,
           };
 
           res.cookie("token", result.token, cookieOptions);
           res.cookie("refreshToken", result.refreshToken, cookieOptions);
 
-          // Redirect to frontend with success
-          const successUrl = `${process.env.FRONTEND_URL}/auth/google/success?token=${result.token}`;
+          const successUrl = `${redirectBase}/auth/google/success?token=${result.token}`;
           return res.redirect(successUrl);
         } catch (error) {
           Logger.error("Error in Google callback handler", {
@@ -324,7 +343,8 @@ class AuthController {
             stack: error.stack,
           });
 
-          const errorUrl = `${process.env.FRONTEND_URL}/auth/google/error?error=server_error`;
+          const redirectBase = this.getRedirectUrl();
+          const errorUrl = `${redirectBase}/auth/google/error?error=server_error`;
           return res.redirect(errorUrl);
         }
       }
@@ -374,8 +394,6 @@ class AuthController {
     );
   }
 
-  
-
   /**
    * Initiate Facebook OAuth
    * @route GET /api/auth/facebook
@@ -396,19 +414,22 @@ class AuthController {
       { session: false },
       async (err, user, info) => {
         try {
+          // Get the correct redirect URL
+          const redirectBase = this.getRedirectUrl();
+
           if (err) {
             Logger.error("Facebook OAuth authentication error", {
               error: err.message,
               stack: err.stack,
             });
 
-            const errorUrl = `${process.env.FRONTEND_URL}/auth/facebook/error?error=${encodeURIComponent(err.message)}`;
+            const errorUrl = `${redirectBase}/auth/facebook/error?error=${encodeURIComponent(err.message)}`;
             return res.redirect(errorUrl);
           }
 
           if (!user) {
             Logger.warn("Facebook OAuth: No user returned", { info });
-            const errorUrl = `${process.env.FRONTEND_URL}/auth/facebook/error?error=authentication_failed`;
+            const errorUrl = `${redirectBase}/auth/facebook/error?error=authentication_failed`;
             return res.redirect(errorUrl);
           }
 
@@ -424,7 +445,7 @@ class AuthController {
           res.cookie("token", result.token, cookieOptions);
           res.cookie("refreshToken", result.refreshToken, cookieOptions);
 
-          const successUrl = `${process.env.FRONTEND_URL}/auth/facebook/success?token=${result.token}`;
+          const successUrl = `${redirectBase}/auth/facebook/success?token=${result.token}`;
           return res.redirect(successUrl);
         } catch (error) {
           Logger.error("Error in Facebook callback handler", {
@@ -432,7 +453,8 @@ class AuthController {
             stack: error.stack,
           });
 
-          const errorUrl = `${process.env.FRONTEND_URL}/auth/facebook/error?error=server_error`;
+          const redirectBase = this.getRedirectUrl();
+          const errorUrl = `${redirectBase}/auth/facebook/error?error=server_error`;
           return res.redirect(errorUrl);
         }
       }
