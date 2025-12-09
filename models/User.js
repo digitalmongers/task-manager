@@ -192,6 +192,10 @@ userSchema.pre("save", function () {
 
 // Instance method to compare passwords
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  // If password doesn't exist (OAuth users), return false
+  if (!this.password) {
+    return false;
+  }
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

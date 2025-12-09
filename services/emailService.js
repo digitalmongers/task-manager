@@ -1283,6 +1283,447 @@ async sendContactConfirmation(contactData) {
   });
 }
 
+/**
+ * Send suggestion email to support
+ */
+async sendSuggestionEmail(suggestionData) {
+  const { userName, userEmail, title, description, message, submittedAt, ipAddress, suggestionId } = suggestionData;
+
+  // Support email address
+  const supportEmail = process.env.SUPPORT_EMAIL || 'noreply@digitalmongers.com';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New User Suggestion</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 700px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); 
+            color: white; 
+            padding: 30px; 
+            text-align: center; 
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 600;
+          }
+          .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.95;
+            font-size: 14px;
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .info-section {
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+          }
+          .info-section h2 {
+            margin: 0 0 15px 0;
+            color: #d97706;
+            font-size: 18px;
+            font-weight: 600;
+          }
+          .info-row {
+            display: flex;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #fef3c7;
+          }
+          .info-row:last-child {
+            border-bottom: none;
+          }
+          .info-label {
+            font-weight: 600;
+            color: #92400e;
+            min-width: 120px;
+          }
+          .info-value {
+            color: #78350f;
+            word-break: break-word;
+          }
+          .suggestion-box {
+            background: #ffffff;
+            border: 2px solid #fbbf24;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+          }
+          .suggestion-box h3 {
+            margin: 0 0 10px 0;
+            color: #92400e;
+            font-size: 20px;
+            font-weight: 600;
+          }
+          .suggestion-title {
+            background: #fef3c7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #78350f;
+          }
+          .suggestion-description {
+            background: #fef9f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            color: #78350f;
+            line-height: 1.8;
+          }
+          .suggestion-message {
+            background: #ffffff;
+            border: 1px solid #fbbf24;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 15px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.8;
+            color: #78350f;
+          }
+          .metadata {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 13px;
+          }
+          .metadata p {
+            margin: 5px 0;
+            color: #1e40af;
+          }
+          .reply-button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 15px;
+            margin: 20px 5px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 12px; 
+            border-top: 1px solid #dee2e6;
+          }
+          .footer p {
+            margin: 5px 0;
+          }
+          .badge {
+            display: inline-block;
+            background: #fbbf24;
+            color: #78350f;
+            padding: 5px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💡 New User Suggestion</h1>
+            <p>Task Manager - User Feedback System</p>
+          </div>
+          
+          <div class="content">
+            <div class="info-section">
+              <h2>👤 User Information</h2>
+              <div class="info-row">
+                <div class="info-label">Name:</div>
+                <div class="info-value"><strong>${userName}</strong></div>
+              </div>
+              <div class="info-row">
+                <div class="info-label">Email:</div>
+                <div class="info-value">
+                  <a href="mailto:${userEmail}" style="color: #d97706; text-decoration: none;">
+                    ${userEmail}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="suggestion-box">
+              <h3>📋 Suggestion Details</h3>
+              
+              <div class="suggestion-title">
+                <strong>Title:</strong> ${title}
+              </div>
+
+              <div class="suggestion-description">
+                <strong>Description:</strong><br>
+                ${description}
+              </div>
+
+              <div class="suggestion-message">
+                <strong>💬 Detailed Message:</strong><br><br>
+                ${message}
+              </div>
+            </div>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="mailto:${userEmail}?subject=Re: ${encodeURIComponent(title)}" class="reply-button">
+                📧 Reply to User
+              </a>
+            </div>
+
+            <div class="metadata">
+              <p><strong>📅 Submitted:</strong> ${new Date(submittedAt).toLocaleString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZoneName: 'short'
+              })}</p>
+              <p><strong>🌐 IP Address:</strong> ${ipAddress || 'N/A'}</p>
+              <p><strong>🆔 Suggestion ID:</strong> ${suggestionId}</p>
+            </div>
+
+            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; margin: 20px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #166534;">
+                <strong>✅ Action:</strong> Please review this suggestion and consider implementing it in future updates.
+              </p>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p><strong>Task Manager Support Team</strong></p>
+            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p>This is an automated notification from the user suggestion system.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    NEW USER SUGGESTION
+    Task Manager - User Feedback System
+    
+    ========================================
+    USER INFORMATION
+    ========================================
+    Name: ${userName}
+    Email: ${userEmail}
+    
+    ========================================
+    SUGGESTION DETAILS
+    ========================================
+    
+    TITLE:
+    ${title}
+    
+    DESCRIPTION:
+    ${description}
+    
+    DETAILED MESSAGE:
+    ${message}
+    
+    ========================================
+    METADATA
+    ========================================
+    Submitted: ${new Date(submittedAt).toLocaleString()}
+    IP Address: ${ipAddress || 'N/A'}
+    Suggestion ID: ${suggestionId}
+    
+    ========================================
+    
+    Reply to user: ${userEmail}
+    
+    ---
+    Task Manager Support Team
+    © ${new Date().getFullYear()} Task Manager
+  `;
+
+  return await this.sendEmail({
+    to: supportEmail,
+    subject: `💡 New Suggestion: ${title}`,
+    html,
+    text,
+    replyTo: userEmail,
+  });
+}
+
+/**
+ * Send confirmation email to user after submitting suggestion
+ */
+async sendSuggestionConfirmation(suggestionData) {
+  const { userName, userEmail, title, submittedAt } = suggestionData;
+  
+  const frontendUrl = process.env.FRONTEND_URL?.split(',')[0].trim() || 'http://localhost:3000';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Suggestion Received</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .content h2 {
+            color: #333;
+            font-size: 22px;
+            margin-bottom: 20px;
+          }
+          .content p {
+            margin-bottom: 15px;
+            color: #555;
+            line-height: 1.8;
+          }
+          .info-box {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 5px;
+          }
+          .info-box p {
+            margin: 8px 0;
+            color: #065f46;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 13px; 
+          }
+          .footer p {
+            margin: 5px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>💡 Suggestion Received!</h1>
+          </div>
+          
+          <div class="content">
+            <h2>Hello ${userName},</h2>
+            <p>Thank you for taking the time to share your suggestion with us! We truly value your feedback and ideas for improving Task Manager.</p>
+            
+            <div class="info-box">
+              <p><strong>📋 Your Suggestion:</strong></p>
+              <p><strong>Title:</strong> ${title}</p>
+              <p><strong>Submitted:</strong> ${new Date(submittedAt).toLocaleString()}</p>
+            </div>
+
+            <p>Our team will carefully review your suggestion and consider it for future updates. We're committed to making Task Manager better based on user feedback like yours.</p>
+
+            <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin: 25px 0; border-radius: 4px;">
+              <p style="margin: 0; color: #0c4a6e;">
+                <strong>📧 Note:</strong> If we need any clarification or have questions about your suggestion, we'll reach out to you at this email address.
+              </p>
+            </div>
+
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Task Manager Team</strong></p>
+          </div>
+          
+          <div class="footer">
+            <p><strong>Task Manager</strong></p>
+            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p>Continue improving with us! Visit <a href="${frontendUrl}" style="color: #667eea;">Task Manager</a></p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Suggestion Received!
+
+    Hello ${userName},
+
+    Thank you for sharing your suggestion with us!
+
+    Your Suggestion:
+    - Title: ${title}
+    - Submitted: ${new Date(submittedAt).toLocaleString()}
+
+    Our team will review your suggestion and consider it for future updates.
+
+    Best regards,
+    The Task Manager Team
+
+    ---
+    © ${new Date().getFullYear()} Task Manager
+  `;
+
+  return await this.sendEmail({
+    to: userEmail,
+    subject: `✅ We Received Your Suggestion: ${title}`,
+    html,
+    text,
+  });
+}
+
 }
 
 export default new EmailService();

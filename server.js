@@ -19,6 +19,7 @@ import notFound from "./middlewares/notFound.js";
 import uploadRoutes from './routes/upload.routes.js';
 import authRoutes from './routes/authRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
+import suggestionRoutes from './routes/suggestionRoutes.js';
 
 
 const app = express();
@@ -91,6 +92,7 @@ app.get("/", (req, res) => {
 app.use('/api/v1/upload', uploadRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contact",contactRoutes)
+app.use("/api/suggestion", suggestionRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFound);
