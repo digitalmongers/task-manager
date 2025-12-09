@@ -194,6 +194,7 @@ class TaskStatusRepository {
       const query = {
         user: userId,
         name: { $regex: new RegExp(`^${name}$`, 'i') }, // Case-insensitive
+        isDeleted: false, // Only check active statuses
       };
 
       // Exclude current status when updating

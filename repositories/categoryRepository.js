@@ -194,6 +194,7 @@ class CategoryRepository {
       const query = {
         user: userId,
         title: { $regex: new RegExp(`^${title}$`, 'i') }, // Case-insensitive
+        isDeleted: false, // Only check active categories
       };
 
       // Exclude current category when updating

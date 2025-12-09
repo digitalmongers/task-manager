@@ -27,16 +27,26 @@ const validate = (schema) => {
 
     if (error) {
       const errorMessage = error.details
-        .map((detail) => detail.message.replace(/['"]/g, ''))
+        .map((detail) => detail.message.replace(/['\"]/g, ''))
         .join(', ');
       
       return next(ApiError.unprocessableEntity(errorMessage));
     }
 
     
+    // Update req with validated values
     if (value.body) req.body = value.body;
     if (value.params) req.params = value.params;
-    if (value.query) req.query = value.query;
+    
+    // For query, use Object.defineProperty to avoid readonly issue
+    if (value.query) {
+      Object.defineProperty(req, 'query', {
+        value: value.query,
+        writable: true,
+        enumerable: true,
+        configurable: true
+      });
+    }
 
     next();
   };

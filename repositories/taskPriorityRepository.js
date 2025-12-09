@@ -194,6 +194,7 @@ class TaskPriorityRepository {
       const query = {
         user: userId,
         name: { $regex: new RegExp(`^${name}$`, 'i') }, // Case-insensitive
+        isDeleted: false, // Only check active priorities
       };
 
       // Exclude current priority when updating
