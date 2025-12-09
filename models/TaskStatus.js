@@ -81,12 +81,11 @@ taskStatusSchema.pre('save', function () {
 });
 
 // Pre-find: Soft deleted statuses ko automatically exclude karo
-taskStatusSchema.pre(/^find/, function (next) {
+taskStatusSchema.pre(/^find/, function () {
   // Agar explicitly deleted statuses chahiye toh this method use karo
   if (!this.getOptions().includeDeleted) {
     this.find({ isDeleted: { $ne: true } });
   }
-  next();
 });
 
 // ========== METHODS ==========

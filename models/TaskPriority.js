@@ -81,12 +81,11 @@ taskPrioritySchema.pre('save', function () {
 });
 
 // Pre-find: Soft deleted priorities ko automatically exclude karo
-taskPrioritySchema.pre(/^find/, function (next) {
+taskPrioritySchema.pre(/^find/, function () {
   // Agar explicitly deleted priorities chahiye toh this method use karo
   if (!this.getOptions().includeDeleted) {
     this.find({ isDeleted: { $ne: true } });
   }
-  next();
 });
 
 // ========== METHODS ==========
