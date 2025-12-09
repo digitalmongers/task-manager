@@ -81,12 +81,11 @@ categorySchema.pre('save', function () {
 });
 
 // Pre-find: Soft deleted categories ko automatically exclude karo
-categorySchema.pre(/^find/, function (next) {
+categorySchema.pre(/^find/, function () {
   // Agar explicitly deleted categories chahiye toh this method use karo
   if (!this.getOptions().includeDeleted) {
     this.find({ isDeleted: { $ne: true } });
   }
-  next();
 });
 
 // ========== METHODS ==========
