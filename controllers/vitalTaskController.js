@@ -156,6 +156,21 @@ class VitalTaskController {
       vitalTask: result.vitalTask,
     });
   }
+
+  /**
+   * Convert vital task to regular task
+   * POST /api/vital-tasks/:id/convert-to-regular
+   */
+  async convertToRegularTask(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await VitalTaskService.convertToRegularTask(userId, taskId);
+
+    ApiResponse.success(res, 200, result.message, {
+      task: result.task,
+    });
+  }
 }
 
 export default new VitalTaskController();

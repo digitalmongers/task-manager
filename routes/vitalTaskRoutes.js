@@ -96,4 +96,11 @@ router.delete('/:id/image', asyncHandler(VitalTaskController.deleteVitalTaskImag
  */
 router.post('/:id/restore', asyncHandler(VitalTaskController.restoreVitalTask));
 
+/**
+ * @route   POST /api/vital-tasks/:id/convert-to-regular
+ * @desc    Convert vital task to regular task
+ * @access  Private
+ */
+router.post('/:id/convert-to-regular', asyncHandler(VitalTaskController.convertToRegularTask));
+
 export default router;

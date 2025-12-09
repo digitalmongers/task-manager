@@ -446,6 +446,59 @@ class TaskService {
       throw error;
     }
   }
+
+  /**
+   * Convert regular task to vital task
+   */
+  async convertToVitalTask(userId, taskId) {
+    try {
+      // Get the regular task
+      const task = await TaskRepository.findByIdAndUser(taskId, userId);
+
+      if (!task) {
+        throw ApiError.notFound('Task not found');
+      }
+
+      // Import VitalTaskRepository dynamically to avoid circular dependency
+      const VitalTaskRepository = (await import('../repositories/vitalTaskRepository.js')).default;
+
+      // Create vital task with same data
+      const vitalTask = await VitalTaskRepository.createVitalTask(
+        {
+          title: task.title,
+          description: task.description,
+          dueDate: task.dueDate,
+          priority: task.priority,
+          status: task.status,
+          category: task.category,
+          isCompleted: task.isCompleted,
+          image: task.image,
+        },
+        userId
+      );
+
+      // Soft delete the original task
+      await TaskRepository.deleteTask(taskId, userId);
+
+      Logger.logAuth('TASK_CONVERTED_TO_VITAL', userId, {
+        originalTaskId: taskId,
+        vitalTaskId: vitalTask._id,
+        title: task.title,
+      });
+
+      return {
+        vitalTask,
+        message: 'Task converted to vital task successfully',
+      };
+    } catch (error) {
+      Logger.error('Error in convertToVitalTask service', {
+        error: error.message,
+        userId,
+        taskId,
+      });
+      throw error;
+    }
+  }
 }
 
 export default new TaskService();

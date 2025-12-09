@@ -140,4 +140,13 @@ router.post(
   asyncHandler(TaskController.restoreTask.bind(TaskController))
 );
 
+// ========== CONVERT TO VITAL TASK ==========
+router.post(
+  '/:id/convert-to-vital',
+  taskLimiter,
+  validate(taskValidation.getTask),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.convertToVitalTask.bind(TaskController))
+);
+
 export default router;
