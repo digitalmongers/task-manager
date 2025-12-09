@@ -8,10 +8,24 @@ import upload from '../middlewares/upload.js';
 import {
   cacheByUser,
   invalidateCache,
+  cacheMiddleware,
 } from '../middlewares/cacheMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Custom cache key generators for tasks
+const taskCacheKey = (req) => {
+  const userId = req.user._id;
+  const query = JSON.stringify(req.query);
+  return `user:${userId}:tasks:list:${query}`;
+};
+
+const taskSingleCacheKey = (req) => {
+  const userId = req.user._id;
+  const taskId = req.params.id;
+  return `user:${userId}:tasks:single:${taskId}`;
+};
 
 // Rate limiter for task operations
 const taskLimiter = rateLimit({
@@ -72,7 +86,11 @@ router.get(
   '/',
   taskLimiter,
   validate(taskValidation.getAllTasks),
-  cacheByUser(60), // Cache for 1 minute (tasks change frequently)
+  // Use custom cache key for list
+  cacheMiddleware({
+    ttl: 60, // 1 minute (tasks change frequently)
+    keyGenerator: taskCacheKey,
+  }),
   asyncHandler(TaskController.getAllTasks.bind(TaskController))
 );
 
@@ -81,7 +99,11 @@ router.get(
   '/:id',
   taskLimiter,
   validate(taskValidation.getTask),
-  cacheByUser(300), // Cache for 5 minutes
+  // Use custom cache key for single item
+  cacheMiddleware({
+    ttl: 300, // 5 minutes
+    keyGenerator: taskSingleCacheKey,
+  }),
   asyncHandler(TaskController.getTaskById.bind(TaskController))
 );
 

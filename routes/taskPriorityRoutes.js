@@ -7,10 +7,24 @@ import { protect } from '../middlewares/authMiddleware.js';
 import {
   cacheByUser,
   invalidateCache,
+  cacheMiddleware,
 } from '../middlewares/cacheMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Custom cache key generators for task priorities
+const taskPriorityCacheKey = (req) => {
+  const userId = req.user._id;
+  const query = JSON.stringify(req.query);
+  return `user:${userId}:task-priorities:list:${query}`;
+};
+
+const taskPrioritySingleCacheKey = (req) => {
+  const userId = req.user._id;
+  const priorityId = req.params.id;
+  return `user:${userId}:task-priorities:single:${priorityId}`;
+};
 
 // Rate limiter for task priority operations
 const taskPriorityLimiter = rateLimit({
@@ -25,11 +39,9 @@ const taskPriorityLimiter = rateLimit({
 });
 
 // ========== ALL ROUTES REQUIRE AUTHENTICATION ==========
-// Apply protect middleware to all routes
 router.use(protect);
 
 // ========== TASK PRIORITY STATISTICS ==========
-// Get task priority stats (must come before /:id route)
 router.get(
   '/stats/me',
   taskPriorityLimiter,
@@ -42,6 +54,7 @@ router.post(
   '/',
   taskPriorityLimiter,
   validate(taskPriorityValidation.createTaskPriority),
+  // Invalidate all task priority caches for this user
   invalidateCache((req) => `user:${req.user._id}:task-priorities:*`),
   asyncHandler(TaskPriorityController.createTaskPriority.bind(TaskPriorityController))
 );
@@ -50,7 +63,11 @@ router.post(
 router.get(
   '/',
   taskPriorityLimiter,
-  cacheByUser(300), // Cache for 5 minutes
+  // Use custom cache key for list
+  cacheMiddleware({
+    ttl: 300, // 5 minutes
+    keyGenerator: taskPriorityCacheKey,
+  }),
   asyncHandler(TaskPriorityController.getAllTaskPriorities.bind(TaskPriorityController))
 );
 
@@ -59,7 +76,11 @@ router.get(
   '/:id',
   taskPriorityLimiter,
   validate(taskPriorityValidation.getTaskPriority),
-  cacheByUser(300), // Cache for 5 minutes
+  // Use custom cache key for single item
+  cacheMiddleware({
+    ttl: 300,
+    keyGenerator: taskPrioritySingleCacheKey,
+  }),
   asyncHandler(TaskPriorityController.getTaskPriorityById.bind(TaskPriorityController))
 );
 
@@ -68,6 +89,7 @@ router.patch(
   '/:id',
   taskPriorityLimiter,
   validate(taskPriorityValidation.updateTaskPriority),
+  // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:task-priorities:*`),
   asyncHandler(TaskPriorityController.updateTaskPriority.bind(TaskPriorityController))
 );
@@ -77,6 +99,7 @@ router.delete(
   '/:id',
   taskPriorityLimiter,
   validate(taskPriorityValidation.deleteTaskPriority),
+  // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:task-priorities:*`),
   asyncHandler(TaskPriorityController.deleteTaskPriority.bind(TaskPriorityController))
 );
@@ -86,6 +109,7 @@ router.post(
   '/:id/restore',
   taskPriorityLimiter,
   validate(taskPriorityValidation.getTaskPriority),
+  // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:task-priorities:*`),
   asyncHandler(TaskPriorityController.restoreTaskPriority.bind(TaskPriorityController))
 );
