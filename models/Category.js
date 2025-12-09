@@ -74,11 +74,10 @@ categorySchema.virtual('taskCount', {
 // ========== MIDDLEWARE ==========
 
 // Pre-save: Title ko lowercase mein convert karo for case-insensitive comparison
-categorySchema.pre('save', function (next) {
+categorySchema.pre('save', function () {
   if (this.isModified('title')) {
     this.title = this.title.trim();
   }
-  next();
 });
 
 // Pre-find: Soft deleted categories ko automatically exclude karo
