@@ -23,6 +23,9 @@ import suggestionRoutes from './routes/suggestionRoutes.js';
 import categoryRoutes from "./routes/categoryRoutes.js";
 import taskStatusRoutes from "./routes/taskStatusRoutes.js";
 import taskPriorityRoutes from "./routes/taskPriorityRoutes.js";
+import taskRoutes from "./routes/taskRoutes.js";
+import vitalTaskRoutes from "./routes/vitalTaskRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 
 const app = express();
@@ -99,6 +102,9 @@ app.use("/api/suggestion", suggestionRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/taskStatus", taskStatusRoutes);
 app.use("/api/taskPriority", taskPriorityRoutes);
+app.use("/api/task", taskRoutes);
+app.use("/api/vital-tasks", vitalTaskRoutes);
+app.use("/api/admin", adminRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFound);

@@ -7,10 +7,24 @@ import { protect } from '../middlewares/authMiddleware.js';
 import {
   cacheByUser,
   invalidateCache,
+  cacheMiddleware,
 } from '../middlewares/cacheMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Custom cache key generator for task statuses
+const taskStatusCacheKey = (req) => {
+  const userId = req.user._id;
+  const query = JSON.stringify(req.query);
+  return `user:${userId}:task-statuses:list:${query}`;
+};
+
+const taskStatusSingleCacheKey = (req) => {
+  const userId = req.user._id;
+  const statusId = req.params.id;
+  return `user:${userId}:task-statuses:single:${statusId}`;
+};
 
 // Rate limiter for task status operations
 const taskStatusLimiter = rateLimit({
@@ -25,11 +39,9 @@ const taskStatusLimiter = rateLimit({
 });
 
 // ========== ALL ROUTES REQUIRE AUTHENTICATION ==========
-// Apply protect middleware to all routes
 router.use(protect);
 
 // ========== TASK STATUS STATISTICS ==========
-// Get task status stats (must come before /:id route)
 router.get(
   '/stats/me',
   taskStatusLimiter,
@@ -42,6 +54,7 @@ router.post(
   '/',
   taskStatusLimiter,
   validate(taskStatusValidation.createTaskStatus),
+  // Invalidate all task status caches for this user
   invalidateCache((req) => `user:${req.user._id}:task-statuses:*`),
   asyncHandler(TaskStatusController.createTaskStatus.bind(TaskStatusController))
 );
@@ -50,7 +63,11 @@ router.post(
 router.get(
   '/',
   taskStatusLimiter,
-  cacheByUser(300), // Cache for 5 minutes
+  // Use custom cache key for list
+  cacheMiddleware({
+    ttl: 300, // 5 minutes
+    keyGenerator: taskStatusCacheKey,
+  }),
   asyncHandler(TaskStatusController.getAllTaskStatuses.bind(TaskStatusController))
 );
 
@@ -59,7 +76,11 @@ router.get(
   '/:id',
   taskStatusLimiter,
   validate(taskStatusValidation.getTaskStatus),
-  cacheByUser(300), // Cache for 5 minutes
+  // Use custom cache key for single item
+  cacheMiddleware({
+    ttl: 300,
+    keyGenerator: taskStatusSingleCacheKey,
+  }),
   asyncHandler(TaskStatusController.getTaskStatusById.bind(TaskStatusController))
 );
 
@@ -68,6 +89,7 @@ router.patch(
   '/:id',
   taskStatusLimiter,
   validate(taskStatusValidation.updateTaskStatus),
+  // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:task-statuses:*`),
   asyncHandler(TaskStatusController.updateTaskStatus.bind(TaskStatusController))
 );
@@ -77,6 +99,7 @@ router.delete(
   '/:id',
   taskStatusLimiter,
   validate(taskStatusValidation.deleteTaskStatus),
+  // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:task-statuses:*`),
   asyncHandler(TaskStatusController.deleteTaskStatus.bind(TaskStatusController))
 );
@@ -86,6 +109,7 @@ router.post(
   '/:id/restore',
   taskStatusLimiter,
   validate(taskStatusValidation.getTaskStatus),
+  // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:task-statuses:*`),
   asyncHandler(TaskStatusController.restoreTaskStatus.bind(TaskStatusController))
 );

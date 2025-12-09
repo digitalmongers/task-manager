@@ -1,0 +1,152 @@
+import express from 'express';
+import TaskController from '../controllers/taskController.js';
+import { taskValidation } from '../validators/taskValidation.js';
+import validate from '../middlewares/validate.js';
+import asyncHandler from '../middlewares/asyncHandler.js';
+import { protect } from '../middlewares/authMiddleware.js';
+import upload from '../middlewares/upload.js';
+import {
+  cacheByUser,
+  invalidateCache,
+} from '../middlewares/cacheMiddleware.js';
+import rateLimit from 'express-rate-limit';
+
+const router = express.Router();
+
+// Rate limiter for task operations
+const taskLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // 200 requests per 15 minutes
+  message: {
+    success: false,
+    message: 'Too many task requests, please try again later',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiter for image upload
+const imageUploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 50, // 50 image uploads per hour
+  message: {
+    success: false,
+    message: 'Too many image uploads, please try again later',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ========== ALL ROUTES REQUIRE AUTHENTICATION ==========
+router.use(protect);
+
+// ========== TASK STATISTICS ==========
+// Get task stats (must come before /:id route)
+router.get(
+  '/stats/me',
+  taskLimiter,
+  cacheByUser(300), // Cache for 5 minutes
+  asyncHandler(TaskController.getTaskStats.bind(TaskController))
+);
+
+// ========== DROPDOWN OPTIONS ==========
+// Get dropdown options (categories, statuses, priorities)
+router.get(
+  '/dropdown-options',
+  taskLimiter,
+  cacheByUser(300), // Cache for 5 minutes
+  asyncHandler(TaskController.getDropdownOptions.bind(TaskController))
+);
+
+// ========== CREATE TASK ==========
+router.post(
+  '/',
+  taskLimiter,
+  validate(taskValidation.createTask),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.createTask.bind(TaskController))
+);
+
+// ========== GET ALL TASKS ==========
+router.get(
+  '/',
+  taskLimiter,
+  validate(taskValidation.getAllTasks),
+  cacheByUser(60), // Cache for 1 minute (tasks change frequently)
+  asyncHandler(TaskController.getAllTasks.bind(TaskController))
+);
+
+// ========== GET SINGLE TASK ==========
+router.get(
+  '/:id',
+  taskLimiter,
+  validate(taskValidation.getTask),
+  cacheByUser(300), // Cache for 5 minutes
+  asyncHandler(TaskController.getTaskById.bind(TaskController))
+);
+
+// ========== UPDATE TASK ==========
+router.patch(
+  '/:id',
+  taskLimiter,
+  validate(taskValidation.updateTask),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.updateTask.bind(TaskController))
+);
+
+// ========== DELETE TASK ==========
+router.delete(
+  '/:id',
+  taskLimiter,
+  validate(taskValidation.deleteTask),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.deleteTask.bind(TaskController))
+);
+
+// ========== TOGGLE TASK COMPLETION ==========
+router.post(
+  '/:id/toggle-complete',
+  taskLimiter,
+  validate(taskValidation.toggleComplete),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.toggleComplete.bind(TaskController))
+);
+
+// ========== UPLOAD TASK IMAGE ==========
+router.post(
+  '/:id/image',
+  imageUploadLimiter,
+  validate(taskValidation.uploadTaskImage),
+  upload.single('image'),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.uploadTaskImage.bind(TaskController))
+);
+
+// ========== DELETE TASK IMAGE ==========
+router.delete(
+  '/:id/image',
+  taskLimiter,
+  validate(taskValidation.deleteTaskImage),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.deleteTaskImage.bind(TaskController))
+);
+
+// ========== RESTORE TASK (OPTIONAL) ==========
+router.post(
+  '/:id/restore',
+  taskLimiter,
+  validate(taskValidation.getTask),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.restoreTask.bind(TaskController))
+);
+
+// ========== CONVERT TO VITAL TASK ==========
+router.post(
+  '/:id/convert-to-vital',
+  taskLimiter,
+  validate(taskValidation.getTask),
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.convertToVitalTask.bind(TaskController))
+);
+
+export default router;

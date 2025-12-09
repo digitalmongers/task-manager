@@ -1,0 +1,190 @@
+import TaskService from '../services/taskService.js';
+import ApiResponse from '../utils/ApiResponse.js';
+import ApiError from '../utils/ApiError.js';
+
+class TaskController {
+  /**
+   * Create new task
+   * POST /api/tasks
+   */
+  async createTask(req, res) {
+    const userId = req.user._id;
+    const taskData = req.body;
+
+    const result = await TaskService.createTask(userId, taskData);
+
+    ApiResponse.success(res, 201, result.message, {
+      task: result.task,
+    });
+  }
+
+  /**
+   * Get all tasks for user
+   * GET /api/tasks
+   */
+  async getAllTasks(req, res) {
+    const userId = req.user._id;
+    const filters = req.query;
+
+    const result = await TaskService.getAllTasks(userId, filters);
+
+    ApiResponse.success(res, 200, 'Tasks fetched successfully', {
+      tasks: result.tasks,
+      pagination: result.pagination,
+    });
+  }
+
+  /**
+   * Get single task by ID
+   * GET /api/tasks/:id
+   */
+  async getTaskById(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await TaskService.getTaskById(userId, taskId);
+
+    ApiResponse.success(res, 200, 'Task fetched successfully', {
+      task: result.task,
+    });
+  }
+
+  /**
+   * Update task
+   * PATCH /api/tasks/:id
+   */
+  async updateTask(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+    const updateData = req.body;
+
+    const result = await TaskService.updateTask(userId, taskId, updateData);
+
+    ApiResponse.success(res, 200, result.message, {
+      task: result.task,
+    });
+  }
+
+  /**
+   * Delete task
+   * DELETE /api/tasks/:id
+   */
+  async deleteTask(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await TaskService.deleteTask(userId, taskId);
+
+    ApiResponse.success(res, 200, result.message);
+  }
+
+  /**
+   * Toggle task completion
+   * POST /api/tasks/:id/toggle-complete
+   */
+  async toggleComplete(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await TaskService.toggleComplete(userId, taskId);
+
+    ApiResponse.success(res, 200, result.message, {
+      task: result.task,
+    });
+  }
+
+  /**
+   * Upload task image
+   * POST /api/tasks/:id/image
+   */
+  async uploadTaskImage(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+    const file = req.file;
+
+    if (!file) {
+      throw ApiError.badRequest('Please upload an image file');
+    }
+
+    const result = await TaskService.uploadTaskImage(userId, taskId, file);
+
+    ApiResponse.success(res, 200, result.message, {
+      task: result.task,
+    });
+  }
+
+  /**
+   * Delete task image
+   * DELETE /api/tasks/:id/image
+   */
+  async deleteTaskImage(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await TaskService.deleteTaskImage(userId, taskId);
+
+    ApiResponse.success(res, 200, result.message, {
+      task: result.task,
+    });
+  }
+
+  /**
+   * Get task statistics
+   * GET /api/tasks/stats/me
+   */
+  async getTaskStats(req, res) {
+    const userId = req.user._id;
+
+    const result = await TaskService.getTaskStats(userId);
+
+    ApiResponse.success(res, 200, 'Task statistics fetched successfully', {
+      stats: result.stats,
+    });
+  }
+
+  /**
+   * Get dropdown options (categories, statuses, priorities)
+   * GET /api/tasks/dropdown-options
+   */
+  async getDropdownOptions(req, res) {
+    const userId = req.user._id;
+
+    const result = await TaskService.getDropdownOptions(userId);
+
+    ApiResponse.success(res, 200, 'Dropdown options fetched successfully', {
+      options: result,
+    });
+  }
+
+  /**
+   * Restore deleted task
+   * POST /api/tasks/:id/restore
+   */
+  async restoreTask(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await TaskService.restoreTask(userId, taskId);
+
+    ApiResponse.success(res, 200, result.message, {
+      task: result.task,
+    });
+  }
+
+  /**
+   * Convert regular task to vital task
+   * POST /api/task/:id/convert-to-vital
+   */
+  async convertToVitalTask(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await TaskService.convertToVitalTask(userId, taskId);
+
+    ApiResponse.success(res, 200, result.message, {
+      vitalTask: result.vitalTask,
+    });
+  }
+}
+
+export default new TaskController();
