@@ -34,10 +34,10 @@ const developmentFormat = combine(
   devLogFormat
 );
 
-// File transports
+
 const transports = [];
 
-// Only create file transports in non-ephemeral environments
+
 if (process.env.NODE_ENV !== 'production' || process.env.PERSISTENT_LOGS === 'true') {
   transports.push(
     new DailyRotateFile({
@@ -60,7 +60,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.PERSISTENT_LOGS === 'tr
   );
 }
 
-// Console transport (always enabled)
+
 transports.push(
   new winston.transports.Console({
     handleExceptions: true,
@@ -69,7 +69,7 @@ transports.push(
   })
 );
 
-// Create logger
+
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
   format: process.env.NODE_ENV === 'production' ? prodLogFormat : developmentFormat,
@@ -81,7 +81,7 @@ const logger = winston.createLogger({
   exitOnError: false,
 });
 
-// Exception/rejection handlers (only if file logging enabled)
+
 if (process.env.NODE_ENV !== 'production' || process.env.PERSISTENT_LOGS === 'true') {
   logger.exceptions.handle(
     new DailyRotateFile({
@@ -105,12 +105,10 @@ if (process.env.NODE_ENV !== 'production' || process.env.PERSISTENT_LOGS === 'tr
 }
 
 
-// Sensitive fields to sanitize
+
 const SENSITIVE_FIELDS = ['password', 'token', 'apiKey', 'secret', 'authorization', 'creditCard', 'ssn', 'pin'];
 
-/**
- * Sanitize data before logging
- */
+
 function sanitize(data) {
   if (!data || typeof data !== 'object') return data;
   
@@ -150,9 +148,7 @@ class Logger {
     logger.http(message, sanitize(meta));
   }
 
-  /**
-   * Log HTTP request with sanitized data
-   */
+  
   static logRequest(req) {
     logger.http('HTTP Request', {
       requestId: req.requestId || req.id,
@@ -165,9 +161,7 @@ class Logger {
     });
   }
 
-  /**
-   * Log HTTP response with performance metrics
-   */
+  
   static logResponse(req, res, responseTime) {
     const level = res.statusCode >= 400 ? 'warn' : 'http';
     
@@ -181,9 +175,7 @@ class Logger {
     });
   }
 
-  /**
-   * Log database query with performance tracking
-   */
+  
   static logQuery(operation, collection, query = {}, duration = null) {
     logger.debug('Database Query', {
       operation,
@@ -193,9 +185,7 @@ class Logger {
     });
   }
 
-  /**
-   * Log error with full context and sanitized request data
-   */
+  
   static logError(error, req = null) {
     const errorLog = {
       message: error.message,
@@ -221,9 +211,7 @@ class Logger {
     logger.error('Application Error', errorLog);
   }
 
-  /**
-   * Log authentication events
-   */
+  
   static logAuth(event, userId, meta = {}) {
     logger.info(`Auth: ${event}`, {
       userId,
@@ -232,16 +220,12 @@ class Logger {
     });
   }
 
-  /**
-   * Log security events
-   */
+  
   static logSecurity(event, meta = {}) {
     logger.warn(`Security: ${event}`, sanitize(meta));
   }
 
-  /**
-   * Log performance metrics
-   */
+  
   static logPerformance(operation, duration, meta = {}) {
     const level = duration > 1000 ? 'warn' : 'debug';
     
