@@ -74,11 +74,10 @@ taskPrioritySchema.virtual('taskCount', {
 // ========== MIDDLEWARE ==========
 
 // Pre-save: Name ko trim karo
-taskPrioritySchema.pre('save', function (next) {
+taskPrioritySchema.pre('save', function () {
   if (this.isModified('name')) {
     this.name = this.name.trim();
   }
-  next();
 });
 
 // Pre-find: Soft deleted priorities ko automatically exclude karo
