@@ -7,17 +7,14 @@ import Logger from "../config/logger.js";
 
 class AuthController {
 
-  /**
-   * Get the primary frontend URL for redirects
-   * Takes the first URL from FRONTEND_URL or uses REDIRECT_URL if set
-   */
+  
   getRedirectUrl() {
-    // Use dedicated REDIRECT_URL if available
+    
     if (process.env.REDIRECT_URL) {
       return process.env.REDIRECT_URL.trim();
     }
     
-    // Otherwise use first URL from FRONTEND_URL
+    
     if (process.env.FRONTEND_URL) {
       const urls = process.env.FRONTEND_URL.split(',');
       return urls[0].trim();
@@ -26,25 +23,18 @@ class AuthController {
     // Fallback
     return 'http://localhost:3000';
   }
-  /**
-   * Register new user
-   * @route POST /api/v1/auth/register
-   */
+  
   async register(req, res) {
     const result = await AuthService.register(req.body);
 
     return ApiResponse.created(res, result.message, { user: result.user });
   }
 
-  /**
-   * Login user
-   * @route POST /api/v1/auth/login
-   */
+ 
   async login(req, res) {
     const result = await AuthService.login(req.body, req);
 
-    // Set token in httpOnly cookie for security
-    // For cross-origin (Vercel frontend + Render backend), we need sameSite: 'none' with secure: true
+    
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // HTTPS only in production
@@ -68,10 +58,7 @@ class AuthController {
     });
   }
 
-  /**
-   * Verify email
-   * @route GET /api/v1/auth/verify-email/:token
-   */
+  
   async verifyEmail(req, res) {
     const { token } = req.params;
     const result = await AuthService.verifyEmail(token);
@@ -81,10 +68,7 @@ class AuthController {
     });
   }
 
-  /**
-   * Resend verification email
-   * @route POST /api/v1/auth/resend-verification
-   */
+  
   async resendVerification(req, res) {
     const { email } = req.body;
     const result = await AuthService.resendVerification(email);
@@ -92,10 +76,7 @@ class AuthController {
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
-  /**
-   * Forgot password
-   * @route POST /api/auth/forgot-password
-   */
+  
   async forgotPassword(req, res) {
     const { email } = req.body;
 
@@ -105,10 +86,7 @@ class AuthController {
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
-  /**
-   * Reset password
-   * @route POST /api/auth/reset-password/:token
-   */
+  
   async resetPassword(req, res) {
     const { token } = req.params;
     const { password } = req.body;
@@ -119,14 +97,11 @@ class AuthController {
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
-  /**
-   * Change password (authenticated)
-   * @route POST /api/auth/change-password
-   */
+  
   async changePassword(req, res) {
     const { currentPassword, newPassword } = req.body;
 
-    // IMPORTANT: Pass req object for IP tracking and security logging
+    
     const result = await AuthService.changePassword(
       req.user._id,
       currentPassword,
@@ -137,10 +112,7 @@ class AuthController {
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
-  /**
-   * Get current user
-   * @route GET /api/auth/me
-   */
+  
   async getCurrentUser(req, res) {
     const user = await AuthService.getCurrentUser(req.user._id);
 
@@ -152,11 +124,8 @@ class AuthController {
     );
   }
 
-  // ========== NEW: Update profile ==========
-  /**
-   * Update user profile
-   * @route PATCH /api/auth/profile
-   */
+  
+  
   async updateProfile(req, res) {
     const result = await AuthService.updateProfile(req.user._id, req.body, req);
 
@@ -165,11 +134,8 @@ class AuthController {
     });
   }
 
-  // ========== NEW: Update avatar ==========
-  /**
-   * Update profile photo
-   * @route PUT /api/auth/avatar
-   */
+  
+  
   async updateAvatar(req, res) {
     if (!req.file) {
       throw ApiError.badRequest("Profile photo is required");
@@ -194,11 +160,8 @@ class AuthController {
     });
   }
 
-  // ========== NEW: Delete avatar ==========
-  /**
-   * Delete profile photo
-   * @route DELETE /api/auth/avatar
-   */
+  
+  
   async deleteAvatar(req, res) {
     const result = await AuthService.deleteAvatar(req.user._id, req);
 
@@ -207,11 +170,8 @@ class AuthController {
     });
   }
 
-  // ========== NEW: Delete account ==========
-  /**
-   * Delete user account
-   * @route DELETE /api/auth/account
-   */
+  
+  
   async deleteAccount(req, res) {
     const { password } = req.body;
 
@@ -228,10 +188,7 @@ class AuthController {
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
-  /**
-   * Logout user
-   * @route POST /api/v1/auth/logout
-   */
+  
   async logout(req, res) {
     const result = await AuthService.logout(req.user._id, req);
 
@@ -242,11 +199,7 @@ class AuthController {
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
-  /**
-   * Refresh access token
-   * @route POST /api/v1/auth/refresh-token
-   */
-  async refreshToken(req, res) {
+    async refreshToken(req, res) {
     const { refreshToken } = req.body || req.cookies;
 
     if (!refreshToken) {
@@ -280,12 +233,9 @@ class AuthController {
     );
   }
 
-  // Add these methods to your existing AuthController class:
+  
 
-  /**
-   * Initiate Google OAuth
-   * @route GET /api/auth/google
-   */
+  // Initiate Google OAuth
   googleAuth(req, res, next) {
     passport.authenticate("google", {
       scope: ["profile", "email"],
@@ -294,17 +244,14 @@ class AuthController {
     })(req, res, next);
   }
 
-  /**
-   * Google OAuth callback
-   * @route GET /api/auth/google/callback
-   */
-  async googleCallback(req, res, next) {
+  // Google OAuth callback
+    async googleCallback(req, res, next) {
     passport.authenticate(
       "google",
       { session: false },
       async (err, user, info) => {
         try {
-          // Get the correct redirect URL
+          
           const redirectBase = this.getRedirectUrl();
 
           if (err) {
@@ -335,7 +282,7 @@ class AuthController {
           res.cookie("token", result.token, cookieOptions);
           res.cookie("refreshToken", result.refreshToken, cookieOptions);
 
-          // Pass both tokens in URL so frontend can store them
+          
           const successUrl = `${redirectBase}/auth/google/success?token=${result.token}&refreshToken=${result.refreshToken}`;
           return res.redirect(successUrl);
         } catch (error) {
@@ -352,10 +299,7 @@ class AuthController {
     )(req, res, next);
   }
 
-  /**
-   * Unlink Google account
-   * @route POST /api/auth/google/unlink
-   */
+  // Unlink Google account
   async unlinkGoogle(req, res) {
     const { password } = req.body;
 
@@ -374,11 +318,7 @@ class AuthController {
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
-  /**
-   * Check email availability
-   * @route POST /api/auth/check-email
-   */
-  async checkEmail(req, res) {
+    async checkEmail(req, res) {
     const { email } = req.body;
 
     if (!email) {
@@ -395,27 +335,21 @@ class AuthController {
     );
   }
 
-  /**
-   * Initiate Facebook OAuth
-   * @route GET /api/auth/facebook
-   */
-  facebookAuth(req, res, next) {
+  // Initiate Facebook OAuth
+    facebookAuth(req, res, next) {
     passport.authenticate("facebook", {
       scope: ["email", "public_profile"],
     })(req, res, next);
   }
 
-  /**
-   * Facebook OAuth callback
-   * @route GET /api/auth/facebook/callback
-   */
+  // Facebook OAuth callback
   async facebookCallback(req, res, next) {
     passport.authenticate(
       "facebook",
       { session: false },
       async (err, user, info) => {
         try {
-          // Get the correct redirect URL
+          
           const redirectBase = this.getRedirectUrl();
 
           if (err) {
@@ -446,7 +380,7 @@ class AuthController {
           res.cookie("token", result.token, cookieOptions);
           res.cookie("refreshToken", result.refreshToken, cookieOptions);
 
-          // Pass both tokens in URL so frontend can store them
+          
           const successUrl = `${redirectBase}/auth/facebook/success?token=${result.token}&refreshToken=${result.refreshToken}`;
           return res.redirect(successUrl);
         } catch (error) {
@@ -463,10 +397,7 @@ class AuthController {
     )(req, res, next);
   }
 
-  /**
-   * Unlink Facebook account
-   * @route POST /api/auth/facebook/unlink
-   */
+  // Unlink Facebook account
   async unlinkFacebook(req, res) {
     const { password } = req.body;
 

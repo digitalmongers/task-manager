@@ -5,13 +5,7 @@ import logger from "./logger.js";
 
 let redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
 
-// if (process.env.NODE_ENV !== "production" && redisUrl.includes("red-")) {
-//   logger.warn("Development mode: Render Redis not accessible locally, switching to localhost");
-//   redisUrl = "redis://127.0.0.1:6379";
-// }
 
-
-// Base config for regular Redis operations
 const redisConfig = {
   retryStrategy(times) {
     const delay = Math.min(times * 50, 2000);
@@ -45,7 +39,7 @@ redisClient.on("error", (err) => {
 redisClient.on("connect", () => {
   logger.info({
     event: "REDIS_CONNECTED",
-    url: redisUrl.replace(/:[^:]*@/, ":***@"), // Hide password in logs
+    url: redisUrl.replace(/:[^:]*@/, ":***@"), 
   });
 });
 

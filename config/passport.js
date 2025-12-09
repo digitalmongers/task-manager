@@ -85,7 +85,7 @@ passport.use(
           googleId,
           isEmailVerified,
           googlePhoto,
-          termsAccepted: true, // Assumed accepted via Google OAuth
+          termsAccepted: true, 
           termsAcceptedAt: new Date(),
         });
 
@@ -107,7 +107,7 @@ passport.use(
   )
 );
 
-// ========== FACEBOOK OAUTH STRATEGY ==========
+// facebook oauth strategy
 passport.use(
   new FacebookStrategy(
     {
