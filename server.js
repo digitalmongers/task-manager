@@ -20,6 +20,9 @@ import uploadRoutes from './routes/upload.routes.js';
 import authRoutes from './routes/authRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import suggestionRoutes from './routes/suggestionRoutes.js';
+import categoryRoutes from "./routes/categoryRoutes.js";
+import taskStatusRoutes from "./routes/taskStatusRoutes.js";
+import taskPriorityRoutes from "./routes/taskPriorityRoutes.js";
 
 
 const app = express();
@@ -93,6 +96,9 @@ app.use('/api/v1/upload', uploadRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/contact",contactRoutes)
 app.use("/api/suggestion", suggestionRoutes);
+app.use("/api/categories", categoryRoutes);
+app.use("/api/taskStatus", taskStatusRoutes);
+app.use("/api/taskPriority", taskPriorityRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFound);
