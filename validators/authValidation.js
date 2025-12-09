@@ -218,9 +218,9 @@ export const authValidation = {
   deleteAccount: {
     body: Joi.object({
       password: Joi.string()
-        .required()
+        .allow(null, '')
         .messages({
-          'string.empty': 'Password is required to delete account',
+          'string.base': 'Password must be a string',
         }),
     }),
   },

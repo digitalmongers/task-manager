@@ -801,14 +801,29 @@ class AuthService {
       throw ApiError.notFound("User not found");
     }
 
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      Logger.logSecurity("ACCOUNT_DELETE_WRONG_PASSWORD", {
+    // For OAuth users (no password set), skip password verification
+    if (user.authProvider === 'local' && user.password) {
+      // Regular users must provide password
+      if (!password) {
+        throw ApiError.badRequest("Password is required to delete your account");
+      }
+
+      const isPasswordValid = await user.comparePassword(password);
+      if (!isPasswordValid) {
+        Logger.logSecurity("ACCOUNT_DELETE_WRONG_PASSWORD", {
+          userId,
+          email: user.email,
+          ip: req?.ip,
+        });
+        throw ApiError.unauthorized("Incorrect password");
+      }
+    } else if (user.authProvider !== 'local') {
+      // OAuth users (Google/Facebook) - no password required
+      Logger.info("OAuth user deleting account", {
         userId,
+        authProvider: user.authProvider,
         email: user.email,
-        ip: req?.ip,
       });
-      throw ApiError.unauthorized("Incorrect password");
     }
 
     // Delete avatar if exists
@@ -832,6 +847,7 @@ class AuthService {
 
     Logger.logAuth("ACCOUNT_DELETED", userId, {
       email: user.email,
+      authProvider: user.authProvider,
       ip: req?.ip,
       userAgent: req?.get("user-agent"),
     });
