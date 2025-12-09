@@ -160,6 +160,19 @@ class AuthService {
       );
     }
 
+    // Check if user registered via OAuth (Google/Facebook) and doesn't have a password
+    if (user.authProvider !== 'local' && !user.password) {
+      Logger.logSecurity("LOGIN_ATTEMPT_OAUTH_USER_NO_PASSWORD", {
+        userId: user._id,
+        email: user.email,
+        authProvider: user.authProvider,
+        ip: req.ip,
+      });
+      throw ApiError.badRequest(
+        `This account was created using ${user.authProvider === 'google' ? 'Google' : 'Facebook'}. Please sign in with ${user.authProvider === 'google' ? 'Google' : 'Facebook'} or contact support to set a password.`
+      );
+    }
+
     // Verify password
     const isPasswordValid = await user.comparePassword(password);
 
