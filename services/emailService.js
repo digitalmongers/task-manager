@@ -1731,8 +1731,8 @@ async sendSuggestionConfirmation(suggestionData) {
  */
 async sendTaskInvitation(invitation, task, inviter) {
   const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
-  const acceptUrl = `${frontendUrl}/invitations/accept/${invitation.invitationToken}`;
-  const declineUrl = `${frontendUrl}/invitations/decline/${invitation.invitationToken}`;
+  const acceptUrl = `${frontendUrl}/collaborations/accept/${invitation.invitationToken}`;
+  const declineUrl = `${frontendUrl}/collaborations/decline/${invitation.invitationToken}`;
   
   const roleDescriptions = {
     owner: 'Full control - manage task, invite others, delete',
@@ -2054,13 +2054,22 @@ async sendTaskInvitation(invitation, task, inviter) {
   });
 }
 
+
 /**
- * Send team member invitation email
+ * Send team member invitation email (Enterprise Design)
  */
 async sendTeamMemberInvitation(teamMember, owner) {
   const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
   const acceptUrl = `${frontendUrl}/invitations/accept/${teamMember.invitationToken}`;
+  const declineUrl = `${frontendUrl}/invitations/decline/${teamMember.invitationToken}`;
   
+  const roleDescriptions = {
+    owner: 'Full team control - manage all tasks and members',
+    editor: 'Create and edit tasks, invite collaborators',
+    assignee: 'Work on assigned tasks and update status',
+    viewer: 'View team tasks and activity (read-only)'
+  };
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -2078,7 +2087,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
             padding: 0;
           }
           .container { 
-            max-width: 600px; 
+            max-width: 650px; 
             margin: 30px auto; 
             background: white;
             border-radius: 10px;
@@ -2091,18 +2100,163 @@ async sendTeamMemberInvitation(teamMember, owner) {
             padding: 40px 30px; 
             text-align: center; 
           }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+          }
+          .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.95;
+          }
           .content { 
             padding: 40px 30px;
+          }
+          .inviter-info {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          .inviter-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            margin-right: 15px;
+            flex-shrink: 0;
+          }
+          .inviter-details h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+            font-size: 18px;
+          }
+          .inviter-details p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+          }
+          .team-card {
+            background: #ffffff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+          }
+          .team-info {
+            margin: 20px 0;
+          }
+          .info-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+          }
+          .info-row:last-child {
+            border-bottom: none;
+          }
+          .info-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .info-value {
+            color: #212529;
+          }
+          .role-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            margin: 15px 0;
+          }
+          .role-description {
+            background: #e7f3ff;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+          }
+          .role-description p {
+            margin: 0;
+            color: #084298;
+            font-size: 14px;
+          }
+          .message-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .message-box p {
+            margin: 5px 0;
+            color: #856404;
+            font-style: italic;
+          }
+          .benefits-box {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .benefits-box h4 {
+            margin: 0 0 10px 0;
+            color: #065f46;
+            font-size: 16px;
+          }
+          .benefits-box ul {
+            margin: 10px 0;
+            padding-left: 20px;
+            color: #065f46;
+          }
+          .benefits-box li {
+            margin: 5px 0;
+          }
+          .button-container {
+            text-align: center;
+            margin: 30px 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
           }
           .button {
             display: inline-block;
             padding: 15px 40px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white !important;
             text-decoration: none;
             border-radius: 5px;
             font-weight: 600;
             font-size: 16px;
+            transition: transform 0.2s;
+          }
+          .button-accept {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white !important;
+          }
+          .button-decline {
+            background: #6c757d;
+            color: white !important;
+          }
+          .button:hover {
+            transform: translateY(-2px);
           }
           .footer { 
             text-align: center; 
@@ -2111,31 +2265,97 @@ async sendTeamMemberInvitation(teamMember, owner) {
             color: #6c757d; 
             font-size: 13px; 
           }
+          .footer p {
+            margin: 5px 0;
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
             <h1>👥 Team Invitation</h1>
+            <p>Join a collaborative workspace</p>
           </div>
+          
           <div class="content">
-            <h2>Hello,</h2>
-            <p>${owner.firstName} ${owner.lastName} has invited you to join their team on Task Manager as a <strong>${teamMember.role}</strong>.</p>
-            
+            <div class="inviter-info">
+              <div class="inviter-avatar">
+                ${owner.firstName.charAt(0)}${owner.lastName?.charAt(0) || ''}
+              </div>
+              <div class="inviter-details">
+                <h3>${owner.firstName} ${owner.lastName || ''}</h3>
+                <p>${owner.email}</p>
+                <p style="color: #667eea; font-weight: 600; margin-top: 5px;">invited you to join their team</p>
+              </div>
+            </div>
+
+            <div class="team-card">
+              <h2 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">Team Invitation Details</h2>
+              
+              <div class="team-info">
+                <div class="info-row">
+                  <div class="info-label">
+                    <span>👤</span>
+                    <span>Team Owner:</span>
+                  </div>
+                  <div class="info-value">${owner.firstName} ${owner.lastName || ''}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">
+                    <span>📧</span>
+                    <span>Your Email:</span>
+                  </div>
+                  <div class="info-value">${teamMember.member.email}</div>
+                </div>
+                <div class="info-row">
+                  <div class="info-label">
+                    <span>🎭</span>
+                    <span>Your Role:</span>
+                  </div>
+                  <div class="info-value">
+                    <span class="role-badge" style="margin: 0; padding: 4px 12px; font-size: 12px;">${teamMember.role}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="role-description">
+                <p><strong>📌 Your Permissions:</strong> ${roleDescriptions[teamMember.role] || 'Team member with assigned permissions'}</p>
+              </div>
+            </div>
+
             ${teamMember.invitationNote ? `
-              <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p style="margin: 0;"><strong>Message:</strong> "${teamMember.invitationNote}"</p>
+              <div class="message-box">
+                <p><strong>💬 Personal message from ${owner.firstName}:</strong></p>
+                <p>"${teamMember.invitationNote}"</p>
               </div>
             ` : ''}
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${acceptUrl}" class="button">Accept Invitation</a>
+
+            <div class="benefits-box">
+              <h4>✨ What you'll get as a team member:</h4>
+              <ul>
+                <li>Collaborate on tasks in real-time</li>
+                <li>Stay updated with team activity</li>
+                <li>Share progress and communicate effectively</li>
+                <li>Access team tasks and resources</li>
+              </ul>
             </div>
-            
-            <p>Best regards,<br><strong>The Task Manager Team</strong></p>
+
+            <div class="button-container">
+              <a href="${acceptUrl}" class="button button-accept">✓ Accept & Join Team</a>
+              <a href="${declineUrl}" class="button button-decline">✗ Decline</a>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid #e9ecef;">
+              <p style="color: #6c757d; font-size: 14px; margin: 0;">
+                Don't have an account? Sign up first, then accept this invitation.
+              </p>
+            </div>
           </div>
+          
           <div class="footer">
+            <p><strong>Task Manager</strong></p>
             <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p>This invitation was sent to ${teamMember.member.email}</p>
           </div>
         </div>
       </body>
@@ -2145,18 +2365,29 @@ async sendTeamMemberInvitation(teamMember, owner) {
   const text = `
     Team Invitation
     
-    ${owner.firstName} ${owner.lastName} has invited you to join their team as a ${teamMember.role}.
+    ${owner.firstName} ${owner.lastName || ''} (${owner.email}) has invited you to join their team on Task Manager.
     
-    ${teamMember.invitationNote ? `Message: "${teamMember.invitationNote}"` : ''}
+    Your Role: ${teamMember.role}
+    Permissions: ${roleDescriptions[teamMember.role] || 'Team member with assigned permissions'}
     
-    Accept: ${acceptUrl}
+    ${teamMember.invitationNote ? `Personal message: "${teamMember.invitationNote}"` : ''}
     
-    Best regards,
-    Task Manager Team
+    What you'll get:
+    - Collaborate on tasks in real-time
+    - Stay updated with team activity
+    - Share progress and communicate effectively
+    - Access team tasks and resources
+    
+    Accept invitation: ${acceptUrl}
+    Decline invitation: ${declineUrl}
+    
+    ---
+    Task Manager
+    © ${new Date().getFullYear()}
   `;
 
   return await this.sendEmail({
-    to: teamMember.memberEmail,
+    to: teamMember.member.email,
     subject: `${owner.firstName} invited you to join their team on Task Manager`,
     html,
     text,
