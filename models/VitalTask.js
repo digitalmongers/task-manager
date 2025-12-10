@@ -41,10 +41,13 @@ const vitalTaskSchema = new mongoose.Schema(
       validate: {
         validator: async function(value) {
           if (!value) return true;
+          const user = this.user || (typeof this.getQuery === 'function' ? this.getQuery().user : null);
+          if (!user) return true; // Skip validation if user context is missing (handled by service)
+
           const TaskPriority = mongoose.model('TaskPriority');
           const priority = await TaskPriority.findOne({ 
             _id: value, 
-            user: this.user 
+            user: user 
           });
           return !!priority;
         },
@@ -60,10 +63,13 @@ const vitalTaskSchema = new mongoose.Schema(
       validate: {
         validator: async function(value) {
           if (!value) return true;
+          const user = this.user || (typeof this.getQuery === 'function' ? this.getQuery().user : null);
+          if (!user) return true; // Skip validation if user context is missing (handled by service)
+
           const TaskStatus = mongoose.model('TaskStatus');
           const status = await TaskStatus.findOne({ 
             _id: value, 
-            user: this.user 
+            user: user 
           });
           return !!status;
         },
@@ -79,10 +85,13 @@ const vitalTaskSchema = new mongoose.Schema(
       validate: {
         validator: async function(value) {
           if (!value) return true;
+          const user = this.user || (typeof this.getQuery === 'function' ? this.getQuery().user : null);
+          if (!user) return true; // Skip validation if user context is missing (handled by service)
+
           const Category = mongoose.model('Category');
           const category = await Category.findOne({ 
             _id: value, 
-            user: this.user 
+            user: user 
           });
           return !!category;
         },
