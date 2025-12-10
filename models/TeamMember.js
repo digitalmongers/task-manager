@@ -103,21 +103,20 @@ teamMemberSchema.index({ owner: 1, status: 1 });
 teamMemberSchema.index({ member: 1, status: 1 });
 teamMemberSchema.index({ invitationToken: 1, status: 1 });
 
-// Generate invitation token before saving
+// Pre-save validations and token generation
 teamMemberSchema.pre('save', function(next) {
+  // Prevent user from inviting themselves
+  if (this.member && this.owner.equals(this.member)) {
+    return next(new Error('Cannot invite yourself as a team member'));
+  }
+  
+  // Generate invitation token
   if (this.isNew && this.status === 'pending' && !this.invitationToken) {
     this.invitationToken = crypto.randomBytes(32).toString('hex');
     // Token expires in 7 days
     this.tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   }
-  next();
-});
-
-// Prevent user from inviting themselves
-teamMemberSchema.pre('save', function(next) {
-  if (this.member && this.owner.equals(this.member)) {
-    return next(new Error('Cannot invite yourself as a team member'));
-  }
+  
   next();
 });
 
