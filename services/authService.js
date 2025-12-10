@@ -918,6 +918,11 @@ class AuthService {
    */
   async refreshToken(refreshToken) {
     try {
+      Logger.debug("Attempting to verify refresh token", {
+        tokenSnippet: refreshToken ? refreshToken.substring(0, 20) + '...' : 'null',
+        isJwt: refreshToken && refreshToken.startsWith('ey'),
+      });
+
       const decoded = jwt.verify(
         refreshToken,
         process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET
