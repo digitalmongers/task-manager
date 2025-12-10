@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const taskSchema = new mongoose.Schema(
   {
-    // Task owner - har task ek user ki hogi
+    
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -134,12 +134,43 @@ const taskSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+    // Shareable link token
+    shareToken: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
+
+    shareTokenExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
+    // Track if task is shared
+    isShared: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Count of active collaborators
+    collaboratorCount: {
+      type: Number,
+      default: 0,
+    },
+    // Shared with team members (for quick lookup)
+    sharedWithTeam: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 );
 
 // ========== INDEXES ==========
@@ -149,6 +180,7 @@ taskSchema.index({ user: 1, status: 1 });
 taskSchema.index({ user: 1, priority: 1 });
 taskSchema.index({ user: 1, isCompleted: 1 });
 taskSchema.index({ user: 1, createdAt: -1 });
+taskSchema.index({ shareToken: 1, shareTokenExpires: 1 });
 
 // ========== VIRTUALS ==========
 taskSchema.virtual('isOverdue').get(function() {
@@ -198,6 +230,33 @@ taskSchema.methods.markIncomplete = function() {
   return this.save();
 };
 
+taskSchema.methods.hasValidShareLink = function() {
+  return this.shareToken && this.shareTokenExpires && new Date() < this.shareTokenExpires;
+};
+
+taskSchema.methods.addCollaborator = function() {
+  if (!this.isShared) {
+    this.isShared = true;
+    this.collaboratorCount = 1;
+  } else {
+    this.collaboratorCount += 1;
+  }
+  return this.save();
+};
+
+taskSchema.methods.removeCollaborator = function() {
+  if (this.collaboratorCount > 0) {
+    this.collaboratorCount -= 1;
+  }
+  if (this.collaboratorCount === 0) {
+    this.isShared = false;
+    this.sharedWithTeam = false;
+  }
+  return this.save();
+};
+
+
+
 // ========== STATIC METHODS ==========
 taskSchema.statics.findByUser = function(userId, filters = {}) {
   const query = { user: userId, isDeleted: false };
@@ -225,6 +284,44 @@ taskSchema.statics.countByStatus = async function(statusId) {
 taskSchema.statics.countByPriority = async function(priorityId) {
   return this.countDocuments({ priority: priorityId, isDeleted: false });
 };
+
+taskSchema.statics.findByShareToken = function(token) {
+  return this.findOne({
+    shareToken: token,
+    shareTokenExpires: { $gt: new Date() },
+  }).populate([
+    { path: 'category', select: 'title color' },
+    { path: 'status', select: 'name color' },
+    { path: 'priority', select: 'name color' },
+    { path: 'user', select: 'firstName lastName email avatar' },
+  ]);
+};
+
+// Get tasks shared with user (as collaborator)
+taskSchema.statics.getSharedTasks = async function(userId) {
+  const TaskCollaborator = mongoose.model('TaskCollaborator');
+  
+  const collaborations = await TaskCollaborator.find({
+    collaborator: userId,
+    status: 'active'
+  }).populate({
+    path: 'task',
+    populate: [
+      { path: 'category', select: 'title color' },
+      { path: 'status', select: 'name color' },
+      { path: 'priority', select: 'name color' },
+      { path: 'user', select: 'firstName lastName email avatar' }
+    ]
+  });
+  
+  return collaborations.map(c => ({
+    ...c.task.toObject(),
+    userRole: c.role,
+    sharedBy: c.taskOwner,
+    sharedAt: c.createdAt
+  }));
+};
+
 
 const Task = mongoose.model('Task', taskSchema);
 

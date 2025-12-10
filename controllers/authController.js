@@ -25,13 +25,16 @@ class AuthController {
   }
   
   async register(req, res) {
-    const result = await AuthService.register(req.body);
+    // Add invitationToken to body if present
+    const userData = { ...req.body };
+    const result = await AuthService.register(userData);
 
     return ApiResponse.created(res, result.message, { user: result.user });
   }
 
  
   async login(req, res) {
+    // Pass invitationToken if present
     const result = await AuthService.login(req.body, req);
 
     

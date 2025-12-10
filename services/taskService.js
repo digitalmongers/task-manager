@@ -6,6 +6,8 @@ import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import cloudinary from '../config/cloudinary.js';
 import streamifier from 'streamifier';
+import CollaborationRepository from '../repositories/collaborationRepository.js';
+import Task from '../models/Task.js';
 
 class TaskService {
   /**
@@ -91,13 +93,75 @@ class TaskService {
   /**
    * Get all tasks for user with filters
    */
+  /**
+   * Get all tasks for user with filters (owned + shared)
+   */
   async getAllTasks(userId, filters = {}) {
     try {
-      const result = await TaskRepository.findByUser(userId, {}, filters);
+      // Get owned tasks
+      const ownedTasksResult = await TaskRepository.findByUser(userId, {}, filters);
+      
+      // Get shared tasks (tasks where user is collaborator)
+      const sharedTasks = await Task.getSharedTasks(userId);
+      
+      // Apply filters to shared tasks if needed
+      let filteredSharedTasks = sharedTasks;
+      if (filters.category) {
+        filteredSharedTasks = sharedTasks.filter(t => 
+          t.category && t.category._id.toString() === filters.category
+        );
+      }
+      if (filters.status) {
+        filteredSharedTasks = filteredSharedTasks.filter(t => 
+          t.status && t.status._id.toString() === filters.status
+        );
+      }
+      if (filters.priority) {
+        filteredSharedTasks = filteredSharedTasks.filter(t => 
+          t.priority && t.priority._id.toString() === filters.priority
+        );
+      }
+      if (filters.isCompleted !== undefined) {
+        const completed = filters.isCompleted === 'true' || filters.isCompleted === true;
+        filteredSharedTasks = filteredSharedTasks.filter(t => t.isCompleted === completed);
+      }
+
+      // Combine both lists
+      const allTasks = [
+        ...ownedTasksResult.tasks.map(task => ({
+          ...task.toObject(),
+          isOwner: true,
+          userRole: 'owner',
+        })),
+        ...filteredSharedTasks.map(task => ({
+          ...task,
+          isOwner: false,
+        }))
+      ];
+
+      // Sort by most recent
+      allTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      // Apply pagination
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 10;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedTasks = allTasks.slice(startIndex, endIndex);
 
       return {
-        tasks: result.tasks,
-        pagination: result.pagination,
+        tasks: paginatedTasks,
+        pagination: {
+          total: allTasks.length,
+          page,
+          limit,
+          pages: Math.ceil(allTasks.length / limit),
+        },
+        stats: {
+          owned: ownedTasksResult.tasks.length,
+          shared: filteredSharedTasks.length,
+          total: allTasks.length,
+        }
       };
     } catch (error) {
       Logger.error('Error in getAllTasks service', {
@@ -108,18 +172,60 @@ class TaskService {
     }
   }
 
+
   /**
    * Get single task by ID
    */
   async getTaskById(userId, taskId) {
     try {
-      const task = await TaskRepository.findByIdAndUser(taskId, userId);
+      // First check if user owns the task
+      let task = await TaskRepository.findByIdAndUser(taskId, userId);
+      let isOwner = true;
+      let userRole = 'owner';
+
+      // If not owner, check if user is collaborator
+      if (!task) {
+        const access = await CollaborationRepository.canUserAccessTask(taskId, userId);
+        
+        if (!access.canAccess) {
+          throw ApiError.notFound('Task not found or you do not have access');
+        }
+
+        // User is collaborator, fetch task
+        task = await Task.findById(taskId)
+          .populate('category', 'title color')
+          .populate('status', 'name color')
+          .populate('priority', 'name color')
+          .populate('user', 'firstName lastName email avatar');
+        
+        isOwner = false;
+        userRole = access.role;
+      }
 
       if (!task) {
         throw ApiError.notFound('Task not found');
       }
 
-      return { task };
+      // Get collaborators if task is shared
+      let collaborators = [];
+      if (task.isShared) {
+        const collabs = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
+        collaborators = collabs.map(c => ({
+          _id: c._id,
+          user: c.collaborator,
+          role: c.role,
+          addedAt: c.createdAt,
+        }));
+      }
+
+      return { 
+        task: {
+          ...task.toObject(),
+          isOwner,
+          userRole,
+          collaborators,
+        }
+      };
     } catch (error) {
       Logger.error('Error in getTaskById service', {
         error: error.message,
@@ -135,61 +241,85 @@ class TaskService {
    */
   async updateTask(userId, taskId, updateData, file) {
     try {
-      // Check if task exists and belongs to user
-      const existingTask = await TaskRepository.findByIdAndUser(taskId, userId);
+      // Check access permission
+      let task;
+      const ownedTask = await TaskRepository.findByIdAndUser(taskId, userId);
+      
+      if (ownedTask) {
+        task = ownedTask;
+      } else {
+        // Check collaborator access
+        const access = await CollaborationRepository.canUserAccessTask(taskId, userId);
+        if (!access.canAccess || access.role === 'viewer') {
+          throw ApiError.forbidden('You do not have permission to edit this task');
+        }
+        task = await Task.findById(taskId);
+      }
 
-      if (!existingTask) {
+      if (!task) {
         throw ApiError.notFound('Task not found');
       }
 
-      // Verify category belongs to user (if being updated)
+      // Verify category belongs to task owner (if being updated)
       if (updateData.category) {
         const categoryExists = await CategoryRepository.findByIdAndUser(
           updateData.category,
-          userId
+          task.user
         );
         if (!categoryExists) {
-          throw ApiError.badRequest('Invalid category or category does not belong to you');
+          throw ApiError.badRequest('Invalid category or category does not belong to task owner');
         }
       }
 
-      // Verify status belongs to user (if being updated)
+      // Verify status belongs to task owner (if being updated)
       if (updateData.status) {
         const statusExists = await TaskStatusRepository.findByIdAndUser(
           updateData.status,
-          userId
+          task.user
         );
         if (!statusExists) {
-          throw ApiError.badRequest('Invalid status or status does not belong to you');
+          throw ApiError.badRequest('Invalid status or status does not belong to task owner');
         }
       }
 
-      // Verify priority belongs to user (if being updated)
+      // Verify priority belongs to task owner (if being updated)
       if (updateData.priority) {
         const priorityExists = await TaskPriorityRepository.findByIdAndUser(
           updateData.priority,
-          userId
+          task.user
         );
         if (!priorityExists) {
-          throw ApiError.badRequest('Invalid priority or priority does not belong to you');
+          throw ApiError.badRequest('Invalid priority or priority does not belong to task owner');
         }
       }
 
       // Update task
-      let updatedTask = await TaskRepository.updateTask(taskId, userId, updateData);
+      Object.assign(task, updateData);
+      await task.save();
+      
+      // Populate
+      await task.populate([
+        { path: 'category', select: 'title color' },
+        { path: 'status', select: 'name color' },
+        { path: 'priority', select: 'name color' },
+      ]);
 
       // Handle image upload if file exists
       if (file) {
-        updatedTask = await this.handleImageUpload(userId, taskId, file);
+        await this.handleImageUpload(userId, taskId, file);
+        task = await Task.findById(taskId)
+          .populate('category', 'title color')
+          .populate('status', 'name color')
+          .populate('priority', 'name color');
       }
 
       Logger.logAuth('TASK_UPDATED', userId, {
-        taskId: updatedTask._id,
+        taskId: task._id,
         updatedFields: Object.keys(updateData),
       });
 
       return {
-        task: updatedTask,
+        task,
         message: 'Task updated successfully',
       };
     } catch (error) {
@@ -202,16 +332,21 @@ class TaskService {
     }
   }
 
+
+
   /**
    * Delete task
    */
+  /**
+   * Delete task (only owner can delete)
+   */
   async deleteTask(userId, taskId) {
     try {
-      // Check if task exists and belongs to user
+      // Only owner can delete task
       const task = await TaskRepository.findByIdAndUser(taskId, userId);
 
       if (!task) {
-        throw ApiError.notFound('Task not found');
+        throw ApiError.notFound('Task not found or you do not have permission to delete');
       }
 
       // Delete image from cloudinary if exists
@@ -223,6 +358,12 @@ class TaskService {
             error: error.message,
           });
         });
+      }
+
+      // Delete all collaborations
+      if (task.isShared) {
+        const TaskCollaborator = (await import('../models/TaskCollaborator.js')).default;
+        await TaskCollaborator.deleteMany({ task: taskId });
       }
 
       // Soft delete task
@@ -245,16 +386,38 @@ class TaskService {
       throw error;
     }
   }
-
   /**
    * Toggle task completion
    */
   async toggleComplete(userId, taskId) {
     try {
-      const task = await TaskRepository.toggleComplete(taskId, userId);
+      // Try as owner first
+      let task = await TaskRepository.toggleComplete(taskId, userId);
 
+      // If not owner, check collaborator access
       if (!task) {
-        throw ApiError.notFound('Task not found');
+        const access = await CollaborationRepository.canUserAccessTask(taskId, userId);
+        if (!access.canAccess || access.role === 'viewer') {
+          throw ApiError.forbidden('You do not have permission to modify this task');
+        }
+        
+        // Fetch and toggle manually
+        task = await Task.findById(taskId);
+        if (!task) {
+          throw ApiError.notFound('Task not found');
+        }
+        
+        if (task.isCompleted) {
+          await task.markIncomplete();
+        } else {
+          await task.markComplete();
+        }
+        
+        await task.populate([
+          { path: 'category', select: 'title color' },
+          { path: 'status', select: 'name color' },
+          { path: 'priority', select: 'name color' },
+        ]);
       }
 
       Logger.logAuth('TASK_COMPLETION_TOGGLED', userId, {
@@ -276,12 +439,23 @@ class TaskService {
     }
   }
 
+
   /**
    * Helper to handle image upload
    */
   async handleImageUpload(userId, taskId, file) {
     try {
-      const task = await TaskRepository.findByIdAndUser(taskId, userId);
+      // Check access
+      const access = await CollaborationRepository.canUserAccessTask(taskId, userId);
+      const isOwner = access.isOwner;
+      
+      let task;
+      if (isOwner) {
+        task = await TaskRepository.findByIdAndUser(taskId, userId);
+      } else {
+        const Task = (await import('../models/Task.js')).default;
+        task = await Task.findById(taskId);
+      }
 
       // Delete old image if exists
       if (task.image?.publicId) {
@@ -315,23 +489,44 @@ class TaskService {
       });
 
       // Update task with new image
-      const updatedTask = await TaskRepository.updateTaskImage(taskId, userId, {
-        url: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
-      });
+      let updatedTask;
+      if (isOwner) {
+        updatedTask = await TaskRepository.updateTaskImage(taskId, userId, {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+        });
+      } else {
+        task.image = {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+        };
+        await task.save();
+        updatedTask = task;
+      }
 
       return updatedTask;
     } catch (error) {
       throw ApiError.internal('Failed to upload task image. Please try again.');
     }
   }
-
   /**
    * Delete task image
    */
   async deleteTaskImage(userId, taskId) {
     try {
-      const task = await TaskRepository.findByIdAndUser(taskId, userId);
+      // Check access
+      const access = await CollaborationRepository.canUserAccessTask(taskId, userId);
+      
+      let task;
+      if (access.isOwner) {
+        task = await TaskRepository.findByIdAndUser(taskId, userId);
+      } else {
+        if (access.role === 'viewer') {
+          throw ApiError.forbidden('You do not have permission to modify this task');
+        }
+        const Task = (await import('../models/Task.js')).default;
+        task = await Task.findById(taskId);
+      }
 
       if (!task) {
         throw ApiError.notFound('Task not found');
@@ -345,7 +540,19 @@ class TaskService {
       await cloudinary.uploader.destroy(task.image.publicId);
 
       // Update task
-      const updatedTask = await TaskRepository.deleteTaskImage(taskId, userId);
+      let updatedTask;
+      if (access.isOwner) {
+        updatedTask = await TaskRepository.deleteTaskImage(taskId, userId);
+      } else {
+        task.image = { url: null, publicId: null };
+        await task.save();
+        await task.populate([
+          { path: 'category', select: 'title color' },
+          { path: 'status', select: 'name color' },
+          { path: 'priority', select: 'name color' },
+        ]);
+        updatedTask = task;
+      }
 
       Logger.logAuth('TASK_IMAGE_DELETED', userId, {
         taskId,

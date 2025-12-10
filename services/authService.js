@@ -51,6 +51,7 @@ class AuthService {
       firstName,
       lastName,
       termsAccepted,
+      invitationToken, // Optional: Token from invite link
     } = userData;
 
     // Check if passwords match (validation should catch this, but double-check)
@@ -104,11 +105,42 @@ class AuthService {
     };
   }
 
+  // Helper to handle pending invitations after auth
+  async handlePendingInvitation(user, invitationToken) {
+    if (!invitationToken) return;
+
+    try {
+      // Import dynamically to avoid circular dependencies
+      const CollaborationService = (await import("../services/collaborationService.js")).default;
+      const TeamService = (await import("../services/TeamService.js")).default;
+      
+      // Try accepting as Task Invitation
+      try {
+        await CollaborationService.acceptInvitation(invitationToken, user._id);
+        Logger.info("Automatically accepted task invitation after auth", { userId: user._id, token: invitationToken });
+        return;
+      } catch (e) {
+        // Ignore specific errors if not found/valid, try Team Invitation next
+      }
+
+      // Try accepting as Team Invitation
+      try {
+        await TeamService.acceptTeamInvitation(invitationToken, user._id);
+        Logger.info("Automatically accepted team invitation after auth", { userId: user._id, token: invitationToken });
+      } catch (e) {
+         Logger.warn("Failed to auto-accept invitation after auth", { userId: user._id, error: e.message });
+      }
+
+    } catch (error) {
+      Logger.error("Error in handlePendingInvitation", { error: error.message });
+    }
+  }
+
   /**
    * Login user
    */
   async login(credentials, req) {
-    const { email, password, rememberMe } = credentials;
+    const { email, password, rememberMe, invitationToken } = credentials;
 
     // Find user with password
     const user = await AuthRepository.findByEmailWithPassword(email);
@@ -197,6 +229,11 @@ class AuthService {
     // Generate tokens
     const token = this.generateToken(user._id, rememberMe);
     const refreshToken = this.generateRefreshToken(user._id);
+
+    // Handle invitation if provided (e.g. user logged in via invite link)
+    if (invitationToken) {
+      await this.handlePendingInvitation(user, invitationToken);
+    }
 
     // Log successful login
     Logger.logAuth("USER_LOGIN", user._id, {
