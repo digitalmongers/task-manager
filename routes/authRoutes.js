@@ -15,7 +15,7 @@ const router = express.Router();
 
 // Strict rate limiter for auth attempts (login/register)
 const authLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes
   max: 10000, // 5 attempts
   message: {
     success: false,
@@ -28,7 +28,7 @@ const authLimiter = rateLimit({
 
 // Stricter rate limiter for email operations
 const emailLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 5 * 60 * 1000, // 5 minutes
   max: 10000, // Only 3 attempts per hour
   message: {
     success: false,
@@ -40,8 +40,8 @@ const emailLimiter = rateLimit({
 
 // Extra strict rate limiter for password reset
 const resetPasswordLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3, // Only 3 reset attempts
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // Only 3 reset attempts
   message: {
     success: false,
     message: "Too many password reset attempts, please try again later",

@@ -51,8 +51,8 @@ export const PAGINATION = {
 
 // Rate Limiting
 export const RATE_LIMIT = {
-  WINDOW_MS: 15 * 60 * 1000, // 15 minutes
-  MAX_REQUESTS: 100, // limit each IP to 100 requests per windowMs
+  WINDOW_MS: 5 * 60 * 1000, // 5 minutes
+  MAX_REQUESTS: 10000, // limit each IP to 10000 requests per windowMs
 };
 
 

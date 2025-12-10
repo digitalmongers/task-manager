@@ -107,8 +107,8 @@ export const limiter = rateLimit({
 });
 
 export const speedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  delayAfter: 50, // Allow 50 requests per window
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  delayAfter: 10000, // Allow 10000 requests per window before delaying
   delayMs: (hits) => hits * 100, // Add 100ms delay per request after limit
   skip: (req) => req.path === '/health' || req.path === '/api-docs',
 });

@@ -30,8 +30,8 @@ const taskSingleCacheKey = (req) => {
 
 // Rate limiter for task operations
 const taskLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // 200 requests per 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // 200 requests per 15 minutes
   message: {
     success: false,
     message: 'Too many task requests, please try again later',
@@ -42,8 +42,8 @@ const taskLimiter = rateLimit({
 
 // Rate limiter for image upload
 const imageUploadLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 50, // 50 image uploads per hour
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // 50 image uploads per hour
   message: {
     success: false,
     message: 'Too many image uploads, please try again later',

@@ -28,8 +28,8 @@ const taskStatusSingleCacheKey = (req) => {
 
 // Rate limiter for task status operations
 const taskStatusLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // 10000 requests per 5 minutes
   message: {
     success: false,
     message: 'Too many task status requests, please try again later',
