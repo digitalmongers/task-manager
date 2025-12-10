@@ -275,7 +275,7 @@ class CollaborationService {
 
       Logger.logAuth('TASK_INVITATION_ACCEPTED', userId || 'anonymous', {
         invitationId: invitation._id,
-        taskId: invitation.task,
+        taskId: invitation.task._id || invitation.task,
       });
 
       return {

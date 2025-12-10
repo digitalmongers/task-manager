@@ -109,9 +109,28 @@ if (process.env.NODE_ENV !== 'production' || process.env.PERSISTENT_LOGS === 'tr
 const SENSITIVE_FIELDS = ['password', 'token', 'apiKey', 'secret', 'authorization', 'creditCard', 'ssn', 'pin'];
 
 
-function sanitize(data) {
+function sanitize(data, seen = new WeakSet()) {
   if (!data || typeof data !== 'object') return data;
   
+  // Prevent circular reference recursion
+  if (seen.has(data)) {
+    return '[Circular]';
+  }
+  seen.add(data);
+  
+  // Handle specific types we don't want to traverse
+  if (data instanceof Date) return data;
+  if (data instanceof RegExp) return data;
+  
+  // Handle Mongoose documents explicitly to safe object
+  if (data.toObject && typeof data.toObject === 'function') {
+      try {
+          data = data.toObject();
+      } catch (e) {
+          // fallback if toObject fails
+      }
+  }
+
   const sanitized = Array.isArray(data) ? [...data] : { ...data };
   
   for (const key in sanitized) {
@@ -120,7 +139,7 @@ function sanitize(data) {
     if (SENSITIVE_FIELDS.some(field => lowerKey.includes(field.toLowerCase()))) {
       sanitized[key] = '***REDACTED***';
     } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
-      sanitized[key] = sanitize(sanitized[key]);
+      sanitized[key] = sanitize(sanitized[key], seen);
     }
   }
   
