@@ -14,7 +14,7 @@ export const taskStatusValidation = {
           'string.min': 'Status name must be at least 2 characters',
           'string.max': 'Status name cannot exceed 50 characters',
         }),
-      
+       
       description: Joi.string()
         .max(500)
         .trim()
