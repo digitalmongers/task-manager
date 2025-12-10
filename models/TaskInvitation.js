@@ -109,11 +109,11 @@ taskInvitationSchema.index({ invitationToken: 1, status: 1 });
 taskInvitationSchema.index({ expiresAt: 1, status: 1 });
 
 // Generate invitation token before saving
-taskInvitationSchema.pre('save', function(next) {
+// Generate invitation token before saving
+taskInvitationSchema.pre('save', async function() {
   if (this.isNew && !this.invitationToken) {
     this.invitationToken = crypto.randomBytes(32).toString('hex');
   }
-  next();
 });
 
 // Virtual for checking if expired

@@ -2,12 +2,12 @@ import mongoose from 'mongoose';
 
 const taskStatusSchema = new mongoose.Schema(
   {
-    // Status owner - har status ek user ki hogi
+    
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: [true, 'Status must belong to a user'],
-      index: true, // Fast queries ke liye
+      index: true, 
     },
 
     // Status name

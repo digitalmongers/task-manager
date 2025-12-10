@@ -104,10 +104,11 @@ teamMemberSchema.index({ member: 1, status: 1 });
 teamMemberSchema.index({ invitationToken: 1, status: 1 });
 
 // Pre-save validations and token generation
-teamMemberSchema.pre('save', function(next) {
+// Pre-save validations and token generation
+teamMemberSchema.pre('save', async function() {
   // Prevent user from inviting themselves
   if (this.member && this.owner.equals(this.member)) {
-    return next(new Error('Cannot invite yourself as a team member'));
+    throw new Error('Cannot invite yourself as a team member');
   }
   
   // Generate invitation token
@@ -116,8 +117,6 @@ teamMemberSchema.pre('save', function(next) {
     // Token expires in 7 days
     this.tokenExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   }
-  
-  next();
 });
 
 // Virtual for checking if expired
