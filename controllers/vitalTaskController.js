@@ -10,8 +10,9 @@ class VitalTaskController {
   async createVitalTask(req, res) {
     const userId = req.user._id;
     const taskData = req.body;
+    const file = req.file;
 
-    const result = await VitalTaskService.createVitalTask(userId, taskData);
+    const result = await VitalTaskService.createVitalTask(userId, taskData, file);
 
     ApiResponse.success(res, 201, result.message, {
       vitalTask: result.vitalTask,
@@ -57,8 +58,9 @@ class VitalTaskController {
     const userId = req.user._id;
     const taskId = req.params.id;
     const updateData = req.body;
+    const file = req.file;
 
-    const result = await VitalTaskService.updateVitalTask(userId, taskId, updateData);
+    const result = await VitalTaskService.updateVitalTask(userId, taskId, updateData, file);
 
     ApiResponse.success(res, 200, result.message, {
       vitalTask: result.vitalTask,
@@ -93,25 +95,10 @@ class VitalTaskController {
     });
   }
 
-  /**
-   * Upload vital task image
-   * POST /api/vital-tasks/:id/image
+  /*
+   * Upload vital task image endpoint removed.
+   * Image upload is now handled in create/update vital task.
    */
-  async uploadVitalTaskImage(req, res) {
-    const userId = req.user._id;
-    const taskId = req.params.id;
-    const file = req.file;
-
-    if (!file) {
-      throw ApiError.badRequest('Please upload an image file');
-    }
-
-    const result = await VitalTaskService.uploadVitalTaskImage(userId, taskId, file);
-
-    ApiResponse.success(res, 200, result.message, {
-      vitalTask: result.vitalTask,
-    });
-  }
 
   /**
    * Delete vital task image

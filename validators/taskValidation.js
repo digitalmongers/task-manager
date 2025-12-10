@@ -119,10 +119,6 @@ export const taskValidation = {
           'boolean.base': 'isCompleted must be a boolean value',
         }),
     })
-    .min(1)
-    .messages({
-      'object.min': 'At least one field is required to update',
-    }),
   },
 
   // Delete task validation

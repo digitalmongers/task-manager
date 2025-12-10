@@ -76,6 +76,7 @@ router.get(
 router.post(
   '/',
   taskLimiter,
+  upload.single('image'),
   validate(taskValidation.createTask),
   invalidateCache((req) => `user:${req.user._id}:tasks:*`),
   asyncHandler(TaskController.createTask.bind(TaskController))
@@ -111,6 +112,7 @@ router.get(
 router.patch(
   '/:id',
   taskLimiter,
+  upload.single('image'),
   validate(taskValidation.updateTask),
   invalidateCache((req) => `user:${req.user._id}:tasks:*`),
   asyncHandler(TaskController.updateTask.bind(TaskController))
@@ -134,15 +136,7 @@ router.post(
   asyncHandler(TaskController.toggleComplete.bind(TaskController))
 );
 
-// ========== UPLOAD TASK IMAGE ==========
-router.post(
-  '/:id/image',
-  imageUploadLimiter,
-  validate(taskValidation.uploadTaskImage),
-  upload.single('image'),
-  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
-  asyncHandler(TaskController.uploadTaskImage.bind(TaskController))
-);
+// ========== UPLOAD TASK IMAGE REMOVED (Merged into create/update) ==========
 
 // ========== DELETE TASK IMAGE ==========
 router.delete(

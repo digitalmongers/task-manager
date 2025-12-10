@@ -52,6 +52,7 @@ router.get(
  */
 router.post(
   '/',
+  upload.single('image'),
   validate(createVitalTaskSchema),
   // Invalidate all vital task caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
@@ -95,6 +96,7 @@ router.get(
  */
 router.patch(
   '/:id',
+  upload.single('image'),
   validate(updateVitalTaskSchema),
   // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
@@ -127,16 +129,8 @@ router.post(
 
 /**
  * @route   POST /api/vital-tasks/:id/image
- * @desc    Upload vital task image
- * @access  Private
+ * @desc    Upload vital task image - REMOVED (Merged into create/update)
  */
-router.post(
-  '/:id/image',
-  upload.single('image'),
-  // Invalidate all caches for this user
-  invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
-  asyncHandler(VitalTaskController.uploadVitalTaskImage)
-);
 
 /**
  * @route   DELETE /api/vital-tasks/:id/image

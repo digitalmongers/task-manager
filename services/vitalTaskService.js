@@ -11,7 +11,7 @@ class VitalTaskService {
   /**
    * Create new vital task
    */
-  async createVitalTask(userId, taskData) {
+  async createVitalTask(userId, taskData, file) {
     try {
       const { title, description, dueDate, priority, status, category, isCompleted } = taskData;
 
@@ -52,6 +52,23 @@ class VitalTaskService {
         },
         userId
       );
+
+      // Handle image upload if file exists
+      if (file) {
+        await this.handleImageUpload(userId, vitalTask._id, file);
+        // Refetch to get updated image
+        const updatedVitalTask = await VitalTaskRepository.findByIdAndUser(vitalTask._id, userId);
+        
+        Logger.logAuth('VITAL_TASK_CREATED_WITH_IMAGE', userId, {
+          vitalTaskId: vitalTask._id,
+          title: vitalTask.title,
+        });
+
+        return {
+          vitalTask: updatedVitalTask,
+          message: 'Vital task created successfully',
+        };
+      }
 
       Logger.logAuth('VITAL_TASK_CREATED', userId, {
         vitalTaskId: vitalTask._id,
@@ -116,7 +133,7 @@ class VitalTaskService {
   /**
    * Update vital task
    */
-  async updateVitalTask(userId, taskId, updateData) {
+  async updateVitalTask(userId, taskId, updateData, file) {
     try {
       // Check if vital task exists and belongs to user
       const existingVitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
@@ -159,7 +176,12 @@ class VitalTaskService {
       }
 
       // Update vital task
-      const updatedVitalTask = await VitalTaskRepository.updateVitalTask(taskId, userId, updateData);
+      let updatedVitalTask = await VitalTaskRepository.updateVitalTask(taskId, userId, updateData);
+
+      // Handle image upload if file exists
+      if (file) {
+        updatedVitalTask = await this.handleImageUpload(userId, taskId, file);
+      }
 
       Logger.logAuth('VITAL_TASK_UPDATED', userId, {
         vitalTaskId: updatedVitalTask._id,
@@ -255,15 +277,11 @@ class VitalTaskService {
   }
 
   /**
-   * Upload vital task image
+   * Helper to handle image upload
    */
-  async uploadVitalTaskImage(userId, taskId, file) {
+  async handleImageUpload(userId, taskId, file) {
     try {
       const vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
-
-      if (!vitalTask) {
-        throw ApiError.notFound('Vital task not found');
-      }
 
       // Delete old image if exists
       if (vitalTask.image?.publicId) {
@@ -302,22 +320,9 @@ class VitalTaskService {
         publicId: uploadResult.public_id,
       });
 
-      Logger.logAuth('VITAL_TASK_IMAGE_UPLOADED', userId, {
-        vitalTaskId: taskId,
-        imageUrl: uploadResult.secure_url,
-      });
-
-      return {
-        vitalTask: updatedVitalTask,
-        message: 'Vital task image uploaded successfully',
-      };
+      return updatedVitalTask;
     } catch (error) {
-      Logger.error('Error in uploadVitalTaskImage service', {
-        error: error.message,
-        userId,
-        taskId,
-      });
-      throw ApiError.internal('Failed to upload vital task image. Please try again.');
+       throw ApiError.internal('Failed to upload vital task image. Please try again.');
     }
   }
 

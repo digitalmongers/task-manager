@@ -11,7 +11,7 @@ class TaskService {
   /**
    * Create new task
    */
-  async createTask(userId, taskData) {
+  async createTask(userId, taskData, file) {
     try {
       const { title, description, dueDate, priority, status, category, isCompleted } = taskData;
 
@@ -52,6 +52,23 @@ class TaskService {
         },
         userId
       );
+
+      // Handle image upload if file exists
+      if (file) {
+        await this.handleImageUpload(userId, task._id, file);
+        // Refetch task to include image data
+        const updatedTask = await TaskRepository.findByIdAndUser(task._id, userId);
+        
+        Logger.logAuth('TASK_CREATED_WITH_IMAGE', userId, {
+          taskId: task._id,
+          title: task.title,
+        });
+
+        return {
+          task: updatedTask,
+          message: 'Task created successfully',
+        };
+      }
 
       Logger.logAuth('TASK_CREATED', userId, {
         taskId: task._id,
@@ -116,7 +133,7 @@ class TaskService {
   /**
    * Update task
    */
-  async updateTask(userId, taskId, updateData) {
+  async updateTask(userId, taskId, updateData, file) {
     try {
       // Check if task exists and belongs to user
       const existingTask = await TaskRepository.findByIdAndUser(taskId, userId);
@@ -159,7 +176,12 @@ class TaskService {
       }
 
       // Update task
-      const updatedTask = await TaskRepository.updateTask(taskId, userId, updateData);
+      let updatedTask = await TaskRepository.updateTask(taskId, userId, updateData);
+
+      // Handle image upload if file exists
+      if (file) {
+        updatedTask = await this.handleImageUpload(userId, taskId, file);
+      }
 
       Logger.logAuth('TASK_UPDATED', userId, {
         taskId: updatedTask._id,
@@ -255,15 +277,11 @@ class TaskService {
   }
 
   /**
-   * Upload task image
+   * Helper to handle image upload
    */
-  async uploadTaskImage(userId, taskId, file) {
+  async handleImageUpload(userId, taskId, file) {
     try {
       const task = await TaskRepository.findByIdAndUser(taskId, userId);
-
-      if (!task) {
-        throw ApiError.notFound('Task not found');
-      }
 
       // Delete old image if exists
       if (task.image?.publicId) {
@@ -302,21 +320,8 @@ class TaskService {
         publicId: uploadResult.public_id,
       });
 
-      Logger.logAuth('TASK_IMAGE_UPLOADED', userId, {
-        taskId,
-        imageUrl: uploadResult.secure_url,
-      });
-
-      return {
-        task: updatedTask,
-        message: 'Task image uploaded successfully',
-      };
+      return updatedTask;
     } catch (error) {
-      Logger.error('Error in uploadTaskImage service', {
-        error: error.message,
-        userId,
-        taskId,
-      });
       throw ApiError.internal('Failed to upload task image. Please try again.');
     }
   }
