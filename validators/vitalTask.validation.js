@@ -92,4 +92,4 @@ export const updateVitalTaskSchema = Joi.object({
   isCompleted: Joi.boolean().messages({
     'boolean.base': 'isCompleted must be a boolean',
   }),
-}).min(1);
+});

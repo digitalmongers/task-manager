@@ -10,8 +10,9 @@ class TaskController {
   async createTask(req, res) {
     const userId = req.user._id;
     const taskData = req.body;
+    const file = req.file;
 
-    const result = await TaskService.createTask(userId, taskData);
+    const result = await TaskService.createTask(userId, taskData, file);
 
     ApiResponse.success(res, 201, result.message, {
       task: result.task,
@@ -57,8 +58,9 @@ class TaskController {
     const userId = req.user._id;
     const taskId = req.params.id;
     const updateData = req.body;
+    const file = req.file;
 
-    const result = await TaskService.updateTask(userId, taskId, updateData);
+    const result = await TaskService.updateTask(userId, taskId, updateData, file);
 
     ApiResponse.success(res, 200, result.message, {
       task: result.task,
@@ -93,25 +95,10 @@ class TaskController {
     });
   }
 
-  /**
-   * Upload task image
-   * POST /api/tasks/:id/image
+  /*
+   * Upload task image endpoint removed.
+   * Image upload is now handled in create/update task.
    */
-  async uploadTaskImage(req, res) {
-    const userId = req.user._id;
-    const taskId = req.params.id;
-    const file = req.file;
-
-    if (!file) {
-      throw ApiError.badRequest('Please upload an image file');
-    }
-
-    const result = await TaskService.uploadTaskImage(userId, taskId, file);
-
-    ApiResponse.success(res, 200, result.message, {
-      task: result.task,
-    });
-  }
 
   /**
    * Delete task image
