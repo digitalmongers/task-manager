@@ -116,7 +116,7 @@ teamMemberSchema.pre('save', function(next) {
 // Prevent user from inviting themselves
 teamMemberSchema.pre('save', function(next) {
   if (this.member && this.owner.equals(this.member)) {
-    next(new Error('Cannot invite yourself as a team member'));
+    return next(new Error('Cannot invite yourself as a team member'));
   }
   next();
 });
