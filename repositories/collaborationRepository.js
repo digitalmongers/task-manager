@@ -1,0 +1,379 @@
+import TaskCollaborator from '../models/TaskCollaborator.js';
+import TaskInvitation from '../models/TaskInvitation.js';
+import TeamMember from '../models/TeamMember.js';
+import Task from '../models/Task.js';
+import User from '../models/User.js';
+import Logger from '../config/logger.js';
+
+class CollaborationRepository {
+  // ========== TASK INVITATIONS ==========
+  
+  /**
+   * Create task invitation
+   */
+  async createTaskInvitation(data) {
+    try {
+      const invitation = await TaskInvitation.create(data);
+      await invitation.populate([
+        { path: 'task' },
+        { path: 'inviter', select: 'firstName lastName email avatar' },
+        { path: 'inviteeUser', select: 'firstName lastName email avatar' }
+      ]);
+      
+      Logger.info('Task invitation created', {
+        invitationId: invitation._id,
+        taskId: data.task,
+        inviteeEmail: data.inviteeEmail,
+      });
+      
+      return invitation;
+    } catch (error) {
+      Logger.error('Error creating task invitation', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Find invitation by token
+   */
+  async findInvitationByToken(token) {
+    try {
+      return await TaskInvitation.findByToken(token);
+    } catch (error) {
+      Logger.error('Error finding invitation by token', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get pending invitations for a task
+   */
+  async getTaskInvitations(taskId, status = 'pending') {
+    try {
+      return await TaskInvitation.find({ task: taskId, status })
+        .populate('inviteeUser', 'firstName lastName email avatar')
+        .populate('inviter', 'firstName lastName')
+        .sort('-invitedAt');
+    } catch (error) {
+      Logger.error('Error getting task invitations', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel invitation
+   */
+  async cancelInvitation(invitationId) {
+    try {
+      const invitation = await TaskInvitation.findById(invitationId);
+      if (!invitation) return null;
+      
+      await invitation.cancel();
+      Logger.info('Invitation cancelled', { invitationId });
+      return invitation;
+    } catch (error) {
+      Logger.error('Error cancelling invitation', { error: error.message });
+      throw error;
+    }
+  }
+
+  // ========== TASK COLLABORATORS ==========
+  
+  /**
+   * Add collaborator to task
+   */
+  async addCollaborator(data) {
+    try {
+      const collaborator = await TaskCollaborator.create(data);
+      await collaborator.populate([
+        { path: 'task' },
+        { path: 'collaborator', select: 'firstName lastName email avatar' },
+        { path: 'sharedBy', select: 'firstName lastName' }
+      ]);
+      
+      Logger.info('Collaborator added', {
+        taskId: data.task,
+        collaboratorId: data.collaborator,
+        role: data.role,
+      });
+      
+      return collaborator;
+    } catch (error) {
+      Logger.error('Error adding collaborator', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get task collaborators
+   */
+  async getTaskCollaborators(taskId, status = 'active') {
+    try {
+      return await TaskCollaborator.getTaskCollaborators(taskId, status);
+    } catch (error) {
+      Logger.error('Error getting task collaborators', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's shared tasks
+   */
+  async getUserSharedTasks(userId, status = 'active') {
+    try {
+      return await TaskCollaborator.getUserSharedTasks(userId, status);
+    } catch (error) {
+      Logger.error('Error getting user shared tasks', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user can access task
+   */
+  async canUserAccessTask(taskId, userId) {
+    try {
+      return await TaskCollaborator.canUserAccessTask(taskId, userId);
+    } catch (error) {
+      Logger.error('Error checking task access', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Update collaborator role
+   */
+  async updateCollaboratorRole(taskId, collaboratorId, newRole) {
+    try {
+      const collaboration = await TaskCollaborator.findOne({
+        task: taskId,
+        collaborator: collaboratorId,
+        status: 'active'
+      });
+      
+      if (!collaboration) return null;
+      
+      collaboration.role = newRole;
+      await collaboration.save();
+      
+      Logger.info('Collaborator role updated', {
+        taskId,
+        collaboratorId,
+        newRole,
+      });
+      
+      return collaboration;
+    } catch (error) {
+      Logger.error('Error updating collaborator role', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Remove collaborator from task
+   */
+  async removeCollaborator(taskId, collaboratorId) {
+    try {
+      const collaboration = await TaskCollaborator.findOne({
+        task: taskId,
+        collaborator: collaboratorId,
+        status: 'active'
+      });
+      
+      if (!collaboration) return null;
+      
+      await collaboration.removeCollaborator();
+      
+      Logger.info('Collaborator removed', {
+        taskId,
+        collaboratorId,
+      });
+      
+      return collaboration;
+    } catch (error) {
+      Logger.error('Error removing collaborator', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Transfer task ownership
+   */
+  async transferOwnership(taskId, currentOwnerId, newOwnerId) {
+    try {
+      const task = await Task.findOne({ _id: taskId, user: currentOwnerId });
+      if (!task) return null;
+
+      // Update task owner
+      task.user = newOwnerId;
+      await task.save();
+
+      // Update current owner to editor
+      const currentOwnerCollab = await TaskCollaborator.findOne({
+        task: taskId,
+        collaborator: currentOwnerId
+      });
+      
+      if (currentOwnerCollab) {
+        currentOwnerCollab.role = 'editor';
+        await currentOwnerCollab.save();
+      } else {
+        await TaskCollaborator.create({
+          task: taskId,
+          taskOwner: newOwnerId,
+          collaborator: currentOwnerId,
+          role: 'editor',
+          status: 'active',
+          sharedBy: newOwnerId,
+        });
+      }
+
+      // Update new owner to owner role
+      await TaskCollaborator.updateOne(
+        { task: taskId, collaborator: newOwnerId },
+        { 
+          role: 'owner',
+          taskOwner: newOwnerId 
+        }
+      );
+
+      // Update all other collaborators' taskOwner field
+      await TaskCollaborator.updateMany(
+        { task: taskId, collaborator: { $ne: newOwnerId } },
+        { taskOwner: newOwnerId }
+      );
+
+      Logger.info('Task ownership transferred', {
+        taskId,
+        from: currentOwnerId,
+        to: newOwnerId,
+      });
+
+      return task;
+    } catch (error) {
+      Logger.error('Error transferring ownership', { error: error.message });
+      throw error;
+    }
+  }
+
+  // ========== TEAM MEMBERS ==========
+  
+  /**
+   * Add team member
+   */
+  async addTeamMember(data) {
+    try {
+      const teamMember = await TeamMember.create(data);
+      await teamMember.populate([
+        { path: 'member', select: 'firstName lastName email avatar' },
+        { path: 'invitedBy', select: 'firstName lastName' }
+      ]);
+      
+      Logger.info('Team member added', {
+        owner: data.owner,
+        member: data.member,
+        role: data.role,
+      });
+      
+      return teamMember;
+    } catch (error) {
+      Logger.error('Error adding team member', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get team members
+   */
+  async getTeamMembers(ownerId, status = 'active') {
+    try {
+      if (status === 'active') {
+        return await TeamMember.getActiveMembers(ownerId);
+      } else if (status === 'pending') {
+        return await TeamMember.getPendingInvitations(ownerId);
+      }
+      
+      return await TeamMember.find({ owner: ownerId, status })
+        .populate('member', 'firstName lastName email avatar')
+        .sort('-acceptedAt');
+    } catch (error) {
+      Logger.error('Error getting team members', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Accept team invitation
+   */
+  async acceptTeamInvitation(teamMemberId) {
+    try {
+      const teamMember = await TeamMember.findById(teamMemberId);
+      if (!teamMember) return null;
+      
+      await teamMember.acceptInvitation();
+      
+      Logger.info('Team invitation accepted', { teamMemberId });
+      return teamMember;
+    } catch (error) {
+      Logger.error('Error accepting team invitation', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Remove team member
+   */
+  async removeTeamMember(ownerId, memberId, removedBy) {
+    try {
+      const teamMember = await TeamMember.findOne({
+        owner: ownerId,
+        member: memberId,
+        status: { $in: ['pending', 'active'] }
+      });
+      
+      if (!teamMember) return null;
+      
+      await teamMember.removeMember(removedBy);
+      
+      Logger.info('Team member removed', { ownerId, memberId });
+      return teamMember;
+    } catch (error) {
+      Logger.error('Error removing team member', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user is team member
+   */
+  async isTeamMember(ownerId, userId) {
+    try {
+      const teamMember = await TeamMember.findOne({
+        owner: ownerId,
+        member: userId,
+        status: 'active'
+      });
+      
+      return !!teamMember;
+    } catch (error) {
+      Logger.error('Error checking team membership', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's teams (where they are a member)
+   */
+  async getUserTeams(userId) {
+    try {
+      return await TeamMember.find({ member: userId, status: 'active' })
+        .populate('owner', 'firstName lastName email avatar')
+        .sort('-acceptedAt');
+    } catch (error) {
+      Logger.error('Error getting user teams', { error: error.message });
+      throw error;
+    }
+  }
+}
+
+export default new CollaborationRepository();

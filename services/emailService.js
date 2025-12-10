@@ -1724,6 +1724,630 @@ async sendSuggestionConfirmation(suggestionData) {
   });
 }
 
+// Add these methods to your existing EmailService class
+
+/**
+ * Send task invitation email
+ */
+async sendTaskInvitation(invitation, task, inviter) {
+  const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
+  const acceptUrl = `${frontendUrl}/invitations/accept/${invitation.invitationToken}`;
+  const declineUrl = `${frontendUrl}/invitations/decline/${invitation.invitationToken}`;
+  
+  const roleDescriptions = {
+    owner: 'Full control - manage task, invite others, delete',
+    editor: 'Edit task details, add subtasks, change status',
+    assignee: 'Edit task and receive assignment notifications',
+    viewer: 'View task details only (read-only access)'
+  };
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Task Collaboration Invitation</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 650px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+          }
+          .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.95;
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .inviter-info {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          .inviter-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            margin-right: 15px;
+          }
+          .inviter-details h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+            font-size: 18px;
+          }
+          .inviter-details p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+          }
+          .task-card {
+            background: #ffffff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+          }
+          .task-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 15px 0;
+          }
+          .task-description {
+            color: #555;
+            line-height: 1.8;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+          }
+          .task-meta {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+          }
+          .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #6c757d;
+            font-size: 14px;
+          }
+          .role-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            margin: 15px 0;
+          }
+          .role-description {
+            background: #e7f3ff;
+            border-left: 4px solid #0d6efd;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+          }
+          .role-description p {
+            margin: 0;
+            color: #084298;
+            font-size: 14px;
+          }
+          .message-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .message-box p {
+            margin: 5px 0;
+            color: #856404;
+            font-style: italic;
+          }
+          .button-container {
+            text-align: center;
+            margin: 30px 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+          }
+          .button {
+            display: inline-block;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s;
+          }
+          .button-accept {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white !important;
+          }
+          .button-decline {
+            background: #6c757d;
+            color: white !important;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+          }
+          .expires-warning {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .expires-warning p {
+            margin: 0;
+            color: #991b1b;
+            font-size: 14px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 13px; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🤝 Task Collaboration Invitation</h1>
+            <p>You've been invited to collaborate on a task</p>
+          </div>
+          
+          <div class="content">
+            <div class="inviter-info">
+              <div class="inviter-avatar">
+                ${inviter.firstName.charAt(0)}${inviter.lastName?.charAt(0) || ''}
+              </div>
+              <div class="inviter-details">
+                <h3>${inviter.firstName} ${inviter.lastName || ''}</h3>
+                <p>${inviter.email}</p>
+                <p style="color: #667eea; font-weight: 600; margin-top: 5px;">wants to collaborate with you</p>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-title">📋 ${task.title}</div>
+              
+              ${task.description ? `
+                <div class="task-description">
+                  ${task.description}
+                </div>
+              ` : ''}
+
+              <div class="task-meta">
+                ${task.dueDate ? `
+                  <div class="meta-item">
+                    <span>📅</span>
+                    <span>Due: ${new Date(task.dueDate).toLocaleDateString()}</span>
+                  </div>
+                ` : ''}
+                ${task.category ? `
+                  <div class="meta-item">
+                    <span>🏷️</span>
+                    <span>${task.category.title || 'Categorized'}</span>
+                  </div>
+                ` : ''}
+                ${task.priority ? `
+                  <div class="meta-item">
+                    <span>⚡</span>
+                    <span>${task.priority.name || 'Priority Set'}</span>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div style="margin-top: 20px;">
+                <div>You're being invited as:</div>
+                <div class="role-badge">${invitation.role}</div>
+              </div>
+
+              <div class="role-description">
+                <p><strong>📌 Your Permissions:</strong> ${roleDescriptions[invitation.role]}</p>
+              </div>
+            </div>
+
+            ${invitation.message ? `
+              <div class="message-box">
+                <p><strong>💬 Personal message from ${inviter.firstName}:</strong></p>
+                <p>"${invitation.message}"</p>
+              </div>
+            ` : ''}
+
+            <div class="button-container">
+              <a href="${acceptUrl}" class="button button-accept">✓ Accept Invitation</a>
+              <a href="${declineUrl}" class="button button-decline">✗ Decline</a>
+            </div>
+
+            <div class="expires-warning">
+              <p><strong>⏰ Important:</strong> This invitation will expire on ${new Date(invitation.expiresAt).toLocaleDateString()} at ${new Date(invitation.expiresAt).toLocaleTimeString()}</p>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid #e9ecef;">
+              <p style="color: #6c757d; font-size: 14px; margin: 0;">
+                Don't have an account? You'll be able to create one when you accept this invitation.
+              </p>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p>This invitation was sent to ${invitation.inviteeEmail}</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Task Collaboration Invitation
+    
+    ${inviter.firstName} ${inviter.lastName || ''} (${inviter.email}) has invited you to collaborate on a task.
+    
+    Task: ${task.title}
+    ${task.description ? `Description: ${task.description}` : ''}
+    
+    Your Role: ${invitation.role}
+    Permissions: ${roleDescriptions[invitation.role]}
+    
+    ${invitation.message ? `Personal message: "${invitation.message}"` : ''}
+    
+    Accept invitation: ${acceptUrl}
+    Decline invitation: ${declineUrl}
+    
+    This invitation expires on ${new Date(invitation.expiresAt).toLocaleString()}
+    
+    ---
+    Task Manager
+    © ${new Date().getFullYear()}
+  `;
+
+  return await this.sendEmail({
+    to: invitation.inviteeEmail,
+    subject: `${inviter.firstName} invited you to collaborate on "${task.title}"`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send team member invitation email
+ */
+async sendTeamMemberInvitation(teamMember, owner) {
+  const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
+  const acceptUrl = `${frontendUrl}/team/accept/${teamMember._id}`;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Team Invitation</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .button {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 16px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 13px; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>👥 Team Invitation</h1>
+          </div>
+          <div class="content">
+            <h2>Hello,</h2>
+            <p>${owner.firstName} ${owner.lastName} has invited you to join their team on Task Manager as a <strong>${teamMember.role}</strong>.</p>
+            
+            ${teamMember.invitationNote ? `
+              <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="margin: 0;"><strong>Message:</strong> "${teamMember.invitationNote}"</p>
+              </div>
+            ` : ''}
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${acceptUrl}" class="button">Accept Invitation</a>
+            </div>
+            
+            <p>Best regards,<br><strong>The Task Manager Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Team Invitation
+    
+    ${owner.firstName} ${owner.lastName} has invited you to join their team as a ${teamMember.role}.
+    
+    ${teamMember.invitationNote ? `Message: "${teamMember.invitationNote}"` : ''}
+    
+    Accept: ${acceptUrl}
+    
+    Best regards,
+    Task Manager Team
+  `;
+
+  return await this.sendEmail({
+    to: teamMember.member.email,
+    subject: `${owner.firstName} invited you to join their team on Task Manager`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send invitation reminder
+ */
+async sendInvitationReminder(invitation, task, inviter) {
+  const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
+  const acceptUrl = `${frontendUrl}/invitations/accept/${invitation.invitationToken}`;
+  
+  const daysLeft = Math.ceil((invitation.expiresAt - new Date()) / (1000 * 60 * 60 * 24));
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Invitation Reminder</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
+          .button { display: inline-block; padding: 15px 40px; background: #667eea; color: white !important; text-decoration: none; border-radius: 5px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h2>⏰ Reminder: Task Collaboration Invitation</h2>
+          <p>Hi there,</p>
+          <p>This is a friendly reminder that ${inviter.firstName} invited you to collaborate on the task "<strong>${task.title}</strong>".</p>
+          <p><strong>⚠️ This invitation expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}!</strong></p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${acceptUrl}" class="button">Accept Invitation Now</a>
+          </div>
+          <p>Best regards,<br>Task Manager Team</p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return await this.sendEmail({
+    to: invitation.inviteeEmail,
+    subject: `⏰ Reminder: Invitation for "${task.title}" expires soon`,
+    html,
+    text: `Reminder: ${inviter.firstName} invited you to collaborate on "${task.title}". Expires in ${daysLeft} days. Accept: ${acceptUrl}`,
+  });
+}
+
+/**
+ * Send notification when invitation is accepted
+ */
+async sendInvitationAcceptedNotification(invitation, task, acceptedBy) {
+  const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
+  const taskUrl = `${frontendUrl}/tasks/${task._id}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Invitation Accepted</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
+          .success { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; border-radius: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h2>✅ Invitation Accepted!</h2>
+          <div class="success">
+            <p><strong>${acceptedBy.firstName} ${acceptedBy.lastName}</strong> has accepted your invitation to collaborate on "<strong>${task.title}</strong>".</p>
+          </div>
+          <p>They can now access and collaborate on this task based on their assigned role.</p>
+          <p><a href="${taskUrl}" style="color: #667eea;">View Task →</a></p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return await this.sendEmail({
+    to: invitation.inviter.email,
+    subject: `✅ ${acceptedBy.firstName} accepted your task invitation`,
+    html,
+    text: `${acceptedBy.firstName} ${acceptedBy.lastName} accepted your invitation for "${task.title}". View: ${taskUrl}`,
+  });
+}
+
+/**
+ * Send notification when collaborator is removed
+ */
+async sendCollaboratorRemovedNotification(task, removedUser, removedBy) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Removed from Task</title>
+      </head>
+      <body>
+        <div style="max-width: 600px; margin: 30px auto; padding: 40px; background: white;">
+          <h2>📌 Task Access Removed</h2>
+          <p>Hi ${removedUser.firstName},</p>
+          <p>You have been removed from the task "<strong>${task.title}</strong>" by ${removedBy.firstName} ${removedBy.lastName}.</p>
+          <p>You no longer have access to this task.</p>
+          <p>Best regards,<br>Task Manager Team</p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return await this.sendEmail({
+    to: removedUser.email,
+    subject: `Access removed: "${task.title}"`,
+    html,
+    text: `You have been removed from task "${task.title}".`,
+  });
+}
+
+/**
+ * Send task shared notification to team member
+ */
+async sendTaskSharedNotification(task, teamMember, owner) {
+  const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
+  const taskUrl = `${frontendUrl}/tasks/${task._id}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Task Shared With You</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; margin: -40px -40px 30px; }
+          .task-card { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
+          .button { display: inline-block; padding: 15px 40px; background: #667eea; color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>📋 Task Shared With You</h1>
+          </div>
+          <h2>Hello ${teamMember.firstName},</h2>
+          <p>${owner.firstName} ${owner.lastName} has shared a task with you from their Task Manager.</p>
+          
+          <div class="task-card">
+            <h3>${task.title}</h3>
+            ${task.description ? `<p>${task.description}</p>` : ''}
+            ${task.dueDate ? `<p><strong>Due:</strong> ${new Date(task.dueDate).toLocaleDateString()}</p>` : ''}
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${taskUrl}" class="button">View Task</a>
+          </div>
+          
+          <p>You can now collaborate on this task based on your assigned role.</p>
+          <p>Best regards,<br><strong>Task Manager Team</strong></p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Task Shared With You
+    
+    Hello ${teamMember.firstName},
+    
+    ${owner.firstName} ${owner.lastName} has shared a task with you.
+    
+    Task: ${task.title}
+    ${task.description ? `Description: ${task.description}` : ''}
+    
+    View task: ${taskUrl}
+    
+    Best regards,
+    Task Manager Team
+  `;
+
+  return await this.sendEmail({
+    to: teamMember.email,
+    subject: `${owner.firstName} shared a task with you: "${task.title}"`,
+    html,
+    text,
+  });
+}
+
 }
 
 export default new EmailService();

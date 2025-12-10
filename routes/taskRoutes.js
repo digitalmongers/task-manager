@@ -10,6 +10,7 @@ import {
   invalidateCache,
   cacheMiddleware,
 } from '../middlewares/cacheMiddleware.js';
+import { canAccessTask, canEditTask, canDeleteTask } from '../middlewares/taskPermissionMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -99,6 +100,7 @@ router.get(
 router.get(
   '/:id',
   taskLimiter,
+  canAccessTask,
   validate(taskValidation.getTask),
   // Use custom cache key for single item
   cacheMiddleware({
@@ -112,6 +114,7 @@ router.get(
 router.patch(
   '/:id',
   taskLimiter,
+  canEditTask,
   upload.single('image'),
   validate(taskValidation.updateTask),
   invalidateCache((req) => `user:${req.user._id}:tasks:*`),
@@ -122,6 +125,7 @@ router.patch(
 router.delete(
   '/:id',
   taskLimiter,
+  canDeleteTask,
   validate(taskValidation.deleteTask),
   invalidateCache((req) => `user:${req.user._id}:tasks:*`),
   asyncHandler(TaskController.deleteTask.bind(TaskController))
@@ -131,6 +135,7 @@ router.delete(
 router.post(
   '/:id/toggle-complete',
   taskLimiter,
+  canEditTask,
   validate(taskValidation.toggleComplete),
   invalidateCache((req) => `user:${req.user._id}:tasks:*`),
   asyncHandler(TaskController.toggleComplete.bind(TaskController))
@@ -142,6 +147,7 @@ router.post(
 router.delete(
   '/:id/image',
   taskLimiter,
+  canEditTask,
   validate(taskValidation.deleteTaskImage),
   invalidateCache((req) => `user:${req.user._id}:tasks:*`),
   asyncHandler(TaskController.deleteTaskImage.bind(TaskController))
@@ -151,6 +157,7 @@ router.delete(
 router.post(
   '/:id/restore',
   taskLimiter,
+  canAccessTask,
   validate(taskValidation.getTask),
   invalidateCache((req) => `user:${req.user._id}:tasks:*`),
   asyncHandler(TaskController.restoreTask.bind(TaskController))
@@ -160,6 +167,7 @@ router.post(
 router.post(
   '/:id/convert-to-vital',
   taskLimiter,
+  canDeleteTask,
   validate(taskValidation.getTask),
   invalidateCache((req) => `user:${req.user._id}:tasks:*`),
   asyncHandler(TaskController.convertToVitalTask.bind(TaskController))
