@@ -94,6 +94,11 @@ class AuthService {
       name: user.fullName,
     });
 
+    // Handle invitation if provided (e.g. user signed up via invite link)
+    if (invitationToken) {
+      await this.handlePendingInvitation(user, invitationToken);
+    }
+
     // Return user without password
     const userResponse = user.toObject();
     delete userResponse.password;

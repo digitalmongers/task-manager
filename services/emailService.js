@@ -2059,7 +2059,7 @@ async sendTaskInvitation(invitation, task, inviter) {
  */
 async sendTeamMemberInvitation(teamMember, owner) {
   const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
-  const acceptUrl = `${frontendUrl}/team/accept/${teamMember._id}`;
+  const acceptUrl = `${frontendUrl}/invitations/accept/${teamMember.invitationToken}`;
   
   const html = `
     <!DOCTYPE html>
@@ -2156,7 +2156,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
   `;
 
   return await this.sendEmail({
-    to: teamMember.member.email,
+    to: teamMember.memberEmail,
     subject: `${owner.firstName} invited you to join their team on Task Manager`,
     html,
     text,
