@@ -238,4 +238,4 @@ class Logger {
 }
 
 export { logger };
-export default Logger;
+export default Logger; 

@@ -10,8 +10,8 @@ const router = express.Router();
 
 // Rate limiters
 const teamLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  windowMs: 1 * 60 * 1000, // 15 minutes
+  max: 10000,
   message: {
     success: false,
     message: 'Too many requests, please try again later',
@@ -19,8 +19,8 @@ const teamLimiter = rateLimit({
 });
 
 const inviteLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 20,
+  windowMs: 1 * 60 * 1000, // 1 hour
+  max: 10000,
   message: {
     success: false,
     message: 'Too many invitations sent, please try again later',
