@@ -11,8 +11,8 @@ const router = express.Router();
 
 // Rate limiters
 const invitationLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 hour
-  max: 10000, // 20 invitations per hour
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // 10000 invitations per 5 minutes
   message: {
     success: false,
     message: 'Too many invitations sent, please try again later',
@@ -20,8 +20,8 @@ const invitationLimiter = rateLimit({
 });
 
 const collaborationLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 10000, // 100 requests per 1 minute
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // 10000 requests per 5 minutes
   message: {
     success: false,
     message: 'Too many requests, please try again later',
@@ -154,7 +154,7 @@ router.delete(
 // Accept invitation (requires auth)
 router.post(
   '/invitations/:token/accept',
-  protect,
+  optionalAuth,
   collaborationLimiter,
   validate(collaborationValidation.acceptInvitation),
   asyncHandler(CollaborationController.acceptInvitation.bind(CollaborationController))

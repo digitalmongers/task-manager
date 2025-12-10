@@ -9,8 +9,8 @@ const router = express.Router();
 
 // Rate limiter for contact form (prevent spam)
 const contactLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Only 3 submissions per hour per IP
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // Only 10000 submissions per 5 minutes per IP
   message: {
     success: false,
     message: 'Too many contact requests. Please try again later.',

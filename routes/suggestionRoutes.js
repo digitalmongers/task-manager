@@ -10,8 +10,8 @@ const router = express.Router();
 
 // Rate limiter for suggestions (prevent spam)
 const suggestionLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Max 5 suggestions per hour per user
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // Max 10000 suggestions per 5 minutes per user
   message: {
     success: false,
     message: 'Too many suggestions submitted. Please try again later.',

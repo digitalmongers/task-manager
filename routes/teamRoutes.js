@@ -10,7 +10,7 @@ const router = express.Router();
 
 // Rate limiters
 const teamLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 15 minutes
+  windowMs: 5 * 60 * 1000, // 5 minutes
   max: 10000,
   message: {
     success: false,
@@ -19,7 +19,7 @@ const teamLimiter = rateLimit({
 });
 
 const inviteLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 hour
+  windowMs: 5 * 60 * 1000, // 5 minutes
   max: 10000,
   message: {
     success: false,
@@ -109,7 +109,7 @@ router.get(
 // Accept invitation (requires auth - user must login/signup first)
 router.post(
   '/accept/:token',
-  protect,
+  optionalAuth,
   teamLimiter,
   validate(teamValidation.acceptInvitation),
   asyncHandler(TeamController.acceptInvitation.bind(TeamController))
