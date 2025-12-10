@@ -2305,7 +2305,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
                     <span>📧</span>
                     <span>Your Email:</span>
                   </div>
-                  <div class="info-value">${teamMember.member.email}</div>
+                  <div class="info-value">${teamMember.memberEmail}</div>
                 </div>
                 <div class="info-row">
                   <div class="info-label">
@@ -2355,7 +2355,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
           <div class="footer">
             <p><strong>Task Manager</strong></p>
             <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
-            <p>This invitation was sent to ${teamMember.member.email}</p>
+            <p>This invitation was sent to ${teamMember.memberEmail}</p>
           </div>
         </div>
       </body>
@@ -2387,7 +2387,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
   `;
 
   return await this.sendEmail({
-    to: teamMember.member.email,
+    to: teamMember.memberEmail,
     subject: `${owner.firstName} invited you to join their team on Task Manager`,
     html,
     text,

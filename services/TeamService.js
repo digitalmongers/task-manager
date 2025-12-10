@@ -45,6 +45,8 @@ class TeamService {
         invitedBy: ownerId,
         invitationNote: message,
         status: 'pending',
+        invitationToken: (await import('crypto')).randomBytes(32).toString('hex'),
+        tokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
       });
 
       await invitation.populate([
