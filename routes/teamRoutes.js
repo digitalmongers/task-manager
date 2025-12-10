@@ -107,6 +107,7 @@ router.get(
 );
 
 // Accept invitation (requires auth - user must login/signup first)
+
 router.post(
   '/accept/:token',
   optionalAuth,

@@ -128,19 +128,31 @@ teamMemberSchema.virtual('isExpired').get(function() {
 
 // Instance method to accept invitation
 teamMemberSchema.methods.acceptInvitation = async function(userId) {
-  if (this.status !== 'pending') {
-    throw new Error('Invitation is not pending');
+  // Allow accepting if pending OR if active but member is null (late binding for unauthenticated accept)
+  const isPending = this.status === 'pending';
+  const isActiveButNoMember = this.status === 'active' && !this.member;
+
+  if (!isPending && !isActiveButNoMember) {
+    throw new Error('Invitation is already accepted or removed');
   }
   
-  if (this.isExpired) {
+  if (isPending && this.isExpired) {
     this.status = 'expired';
     await this.save();
     throw new Error('Invitation has expired');
   }
   
   this.status = 'active';
-  this.member = userId;
-  this.acceptedAt = new Date();
+  // Only set member if userId provided
+  if (userId) {
+    this.member = userId;
+  }
+  
+  // Update acceptedAt only if not already set (or set it again, doesn't matter much)
+  if (!this.acceptedAt) {
+      this.acceptedAt = new Date();
+  }
+  
   return this.save();
 };
 

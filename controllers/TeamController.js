@@ -43,7 +43,7 @@ class TeamController {
    * POST /api/team/accept/:token
    */
   async acceptInvitation(req, res) {
-    const userId = req.user._id;
+    const userId = req.user ? req.user._id : null;
     const { token } = req.params;
 
     const result = await TeamService.acceptTeamInvitation(token, userId);

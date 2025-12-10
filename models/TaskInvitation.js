@@ -122,19 +122,36 @@ taskInvitationSchema.virtual('isExpired').get(function() {
 });
 
 // Instance methods
-taskInvitationSchema.methods.accept = async function() {
-  if (this.status !== 'pending') {
+taskInvitationSchema.methods.accept = async function(userId) {
+  const isPending = this.status === 'pending';
+  // Check if accepted but waiting for user binding (if we decide to support this state)
+  // For now, let's keep it simple: if accepted, it's accepted.
+  // But if we want late binding, we might need to check inviteeUser.
+  
+  // NOTE: For task invitations, usually we create a TaskCollaborator record.
+  // If we accept anonymously, we update status to 'accepted'.
+  // When user signs up, we link them.
+  
+  if (this.status !== 'pending' && this.status !== 'accepted') {
     throw new Error('Invitation is not pending');
   }
   
-  if (this.isExpired) {
+  if (isPending && this.isExpired) {
     this.status = 'expired';
     await this.save();
     throw new Error('Invitation has expired');
   }
   
   this.status = 'accepted';
-  this.acceptedAt = new Date();
+  // Only set acceptedAt if first time
+  if (!this.acceptedAt) {
+      this.acceptedAt = new Date();
+  }
+  
+  if (userId) {
+      this.inviteeUser = userId;
+  }
+  
   return this.save();
 };
 

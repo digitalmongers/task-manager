@@ -69,7 +69,7 @@ class CollaborationController {
    * POST /api/collaborations/invitations/:token/accept
    */
   async acceptInvitation(req, res) {
-    const userId = req.user._id;
+    const userId = req.user ? req.user._id : null;
     const { token } = req.params;
 
     const result = await CollaborationService.acceptInvitation(token, userId);

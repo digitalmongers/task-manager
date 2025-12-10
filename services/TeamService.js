@@ -103,29 +103,49 @@ class TeamService {
    */
   async acceptTeamInvitation(token, userId) {
     try {
-      const invitation = await TeamMember.findByToken(token);
+      // Find invitation by token (even if active, to allow late binding)
+      const invitation = await TeamMember.findOne({ invitationToken: token })
+        .populate('owner', 'firstName lastName email avatar')
+        .populate('invitedBy', 'firstName lastName email');
 
       if (!invitation) {
-        throw ApiError.notFound('Invitation not found or expired');
+        throw ApiError.notFound('Invitation not found');
       }
 
-      // Verify email matches if user exists
-      const user = await User.findById(userId);
-      if (user.email !== invitation.memberEmail) {
-        throw ApiError.forbidden('This invitation is not for your email address');
+      // If invitation is removed or expired
+      if (invitation.status === 'removed' || invitation.status === 'expired') {
+         throw ApiError.badRequest('Invitation is no longer valid');
       }
 
-      // Accept invitation
-      await invitation.acceptInvitation(userId);
+      // If passed userId is present (Authenticated user)
+      if (userId) {
+        // Verify email matches if user exists and email is set on invitation
+        const user = await User.findById(userId);
+        if (user && user.email.toLowerCase() !== invitation.memberEmail.toLowerCase()) {
+          throw ApiError.forbidden('This invitation is not for your email address');
+        }
+      }
 
-      Logger.logAuth('TEAM_INVITATION_ACCEPTED', userId, {
-        invitationId: invitation._id,
-        ownerId: invitation.owner._id,
-      });
+      // Accept invitation (userId can be null)
+      await invitation.acceptInvitation(userId || null);
+
+      if (userId) {
+        Logger.logAuth('TEAM_INVITATION_ACCEPTED', userId, {
+          invitationId: invitation._id,
+          ownerId: invitation.owner._id,
+        });
+      } else {
+        Logger.info('Team invitation accepted anonymously', {
+           invitationId: invitation._id,
+           email: invitation.memberEmail
+        });
+      }
 
       return {
         teamMember: invitation,
-        message: 'Team invitation accepted successfully',
+        message: userId 
+          ? 'Team invitation accepted successfully' 
+          : 'Invitation accepted! Please sign up or login to access the team.',
       };
     } catch (error) {
       Logger.error('Error accepting team invitation', { error: error.message });

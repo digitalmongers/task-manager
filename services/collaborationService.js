@@ -232,8 +232,11 @@ class CollaborationService {
         throw ApiError.notFound('Invitation not found');
       }
 
-      // Check if already accepted
-      if (invitation.status === 'accepted') {
+      // Check if already accepted (unless it's a late-binding for anonymous acceptance)
+      // If status is accepted but inviteeUser is null, we allow proceeding to link the user
+      const isAnonymousAccepted = invitation.status === 'accepted' && !invitation.inviteeUser;
+      
+      if (invitation.status === 'accepted' && !isAnonymousAccepted) {
         throw ApiError.badRequest('Invitation already accepted');
       }
 
@@ -244,25 +247,44 @@ class CollaborationService {
         throw ApiError.badRequest('Invitation has expired');
       }
 
-      // Verify user email matches
-      const user = await User.findById(userId);
-      if (user.email !== invitation.inviteeEmail) {
-        throw ApiError.forbidden('This invitation is not for you');
+      // If userId is provided (Authenticated)
+      if (userId) {
+        const user = await User.findById(userId);
+        if (user && user.email.toLowerCase() !== invitation.inviteeEmail.toLowerCase()) {
+          throw ApiError.forbidden('This invitation is not for you');
+        }
       }
 
       // Accept invitation
-      await invitation.accept();
+      await invitation.accept(userId || null);
 
-      // Add as collaborator
-      const collaborator = await CollaborationRepository.addCollaborator({
-        task: invitation.task._id,
-        taskOwner: invitation.task.user,
-        collaborator: userId,
-        role: invitation.role,
-        status: 'active',
-        sharedBy: invitation.inviter,
-        shareMessage: invitation.message,
+      // Add as collaborator (only if user is authenticated)
+      // If anonymous, we just mark invitation as accepted. 
+      // The user will be linked when they sign up (handled by AuthService.handlePendingInvitation)
+      let collaborator = null;
+      if (userId) {
+         collaborator = await CollaborationRepository.addCollaborator(
+          invitation.task._id || invitation.task,
+          userId,
+          invitation.role,
+          invitation.inviter,
+          'active',
+          invitation.message
+        );
+      }
+
+      Logger.logAuth('TASK_INVITATION_ACCEPTED', userId || 'anonymous', {
+        invitationId: invitation._id,
+        taskId: invitation.task,
       });
+
+      return {
+        task: invitation.task,
+        collaborator,
+        message: userId 
+          ? 'Invitation accepted successfully' 
+          : 'Invitation accepted! Please sign up or login to access the task.',
+      };
 
       // Update task counts
       const Task = (await import('../models/Task.js')).default;
