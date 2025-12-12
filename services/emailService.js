@@ -21,7 +21,7 @@ class EmailService {
         to,
         from: {
           email: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM,
-          name: process.env.SENDGRID_FROM_NAME || 'Task Manager',
+          name: process.env.SENDGRID_FROM_NAME || 'Taaskr',
         },
         subject,
         text,
@@ -168,11 +168,11 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🎉 Welcome to Task Manager!</h1>
+              <h1>🎉 Welcome to Taaskr!</h1>
             </div>
             <div class="content">
               <h2>Hello ${user.firstName} ${user.lastName},</h2>
-              <p>Thank you for registering with Task Manager. To complete your registration and start using our platform, please verify your email address by clicking the button below.</p>
+              <p>Thank you for registering with Taaskr. To complete your registration and start using our platform, please verify your email address by clicking the button below.</p>
               
               <div class="button-container">
                 <a href="${verificationUrl}" class="button">Verify Email Address</a>
@@ -184,13 +184,13 @@ class EmailService {
               </div>
               
               <div class="warning">
-                <strong>⚠️ Important:</strong> This verification link will expire in 24 hours. If you did not create an account with Task Manager, please ignore this email.
+                <strong>⚠️ Important:</strong> This verification link will expire in 24 hours. If you did not create an account with Taaskr, please ignore this email.
               </div>
               
-              <p style="margin-top: 30px;">Best regards,<br><strong>The Task Manager Team</strong></p>
+              <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
               <p>This is an automated email. Please do not reply to this message.</p>
             </div>
           </div>
@@ -199,7 +199,7 @@ class EmailService {
     `;
 
     const text = `
-      Welcome to Task Manager!
+      Welcome to Taaskr!
       
       Hello ${user.firstName} ${user.lastName},
       
@@ -211,12 +211,12 @@ class EmailService {
       If you did not create an account, please ignore this email.
       
       Best regards,
-      The Task Manager Team
+      The Taaskr Team
     `;
 
     return await this.sendEmail({
       to: user.email,
-      subject: 'Verify Your Email - Task Manager',
+      subject: 'Verify Your Email - Taaskr',
       html,
       text,
     });
@@ -235,7 +235,7 @@ class EmailService {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Welcome to Task Manager</title>
+          <title>Welcome to Taaskr</title>
           <style>
             body { 
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -317,7 +317,7 @@ class EmailService {
             </div>
             <div class="content">
               <h2>Welcome aboard, ${user.firstName}!</h2>
-              <p>Your email has been verified successfully. You can now access all features of Task Manager.</p>
+              <p>Your email has been verified successfully. You can now access all features of Taaskr.</p>
               
               <div class="feature">
                 <strong>✓ Create and manage tasks</strong>
@@ -340,10 +340,10 @@ class EmailService {
               
               <p style="margin-top: 30px;">If you have any questions, feel free to reach out to our support team.</p>
               
-              <p>Best regards,<br><strong>The Task Manager Team</strong></p>
+              <p>Best regards,<br><strong>The Taaskr Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -359,12 +359,12 @@ class EmailService {
       ${loginUrl}
       
       Best regards,
-      The Task Manager Team
+      The Taaskr Team
     `;
 
     return await this.sendEmail({
       to: user.email,
-      subject: 'Welcome to Task Manager - Email Verified',
+      subject: 'Welcome to Taaskr - Email Verified',
       html,
       text,
     });
@@ -462,7 +462,7 @@ class EmailService {
             </div>
             <div class="content">
               <h2>Hello ${user.firstName},</h2>
-              <p>We received a request to reset your password for your Task Manager account.</p>
+              <p>We received a request to reset your password for your Taaskr account.</p>
               
               <div class="button-container">
                 <a href="${resetUrl}" class="button">Reset Password</a>
@@ -484,10 +484,10 @@ class EmailService {
                 <li>Enable two-factor authentication if available</li>
               </ul>
               
-              <p style="margin-top: 30px;">Best regards,<br><strong>The Task Manager Team</strong></p>
+              <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
               <p>This is an automated email. Please do not reply.</p>
             </div>
           </div>
@@ -508,12 +508,12 @@ class EmailService {
       If you did not request this, please ignore this email.
       
       Best regards,
-      The Task Manager Team
+      The Taaskr Team
     `;
 
     return await this.sendEmail({
       to: user.email,
-      subject: 'Reset Your Password - Task Manager',
+      subject: 'Reset Your Password - Taaskr',
       html,
       text,
     });
@@ -651,15 +651,15 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
             <p><strong>Security Tips:</strong></p>
             <ul>
               <li>Never share your password with anyone</li>
-              <li>Use a unique password for your Task Manager account</li>
+              <li>Use a unique password for your Taaskr account</li>
               <li>Enable two-factor authentication if available</li>
               <li>Regularly update your password</li>
             </ul>
             
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Task Manager Team</strong></p>
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
             <p>This is an automated security notification.</p>
           </div>
         </div>
@@ -685,12 +685,12 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
     Support: ${supportUrl}
     
     Best regards,
-    The Task Manager Team
+    The Taaskr Team
   `;
 
   return await this.sendEmail({
     to: user.email,
-    subject: 'Password Changed Successfully - Task Manager',
+    subject: 'Password Changed Successfully - Taaskr',
     html,
     text,
   });
@@ -760,7 +760,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
             </div>
             <div class="content">
               <h2>Hello ${user.firstName},</h2>
-              <p>We detected a new login to your Task Manager account.</p>
+              <p>We detected a new login to your Taaskr account.</p>
               
               <div class="info-box">
                 <p><strong>📅 Login Details:</strong></p>
@@ -772,10 +772,10 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
               <p>If this was you, you can safely ignore this email.</p>
               <p><strong>If you did not log in, please change your password immediately and contact our support team.</strong></p>
               
-              <p style="margin-top: 30px;">Best regards,<br><strong>The Task Manager Team</strong></p>
+              <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -796,12 +796,12 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
       If this wasn't you, please change your password immediately.
       
       Best regards,
-      The Task Manager Team
+      The Taaskr Team
     `;
 
     return await this.sendEmail({
       to: user.email,
-      subject: 'New Login Detected - Task Manager',
+      subject: 'New Login Detected - Taaskr',
       html,
       text,
     });
@@ -816,7 +816,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
         to: recipient.email,
         from: {
           email: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM,
-          name: process.env.SENDGRID_FROM_NAME || 'Task Manager',
+          name: process.env.SENDGRID_FROM_NAME || 'Taaskr',
         },
         subject,
         text,
@@ -986,7 +986,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
         <div class="container">
           <div class="header">
             <h1>📩 New Contact Form Submission</h1>
-            <p>Task Manager Support</p>
+            <p>Taaskr Support</p>
           </div>
           
           <div class="content">
@@ -1043,8 +1043,8 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
           </div>
           
           <div class="footer">
-            <p><strong>Task Manager Support Team</strong></p>
-            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p><strong>Taaskr Support Team</strong></p>
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
             <p>This is an automated notification from the contact form system.</p>
           </div>
         </div>
@@ -1054,7 +1054,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
 
   const text = `
     NEW CONTACT FORM SUBMISSION
-    Task Manager Support 
+    Taaskr Support 
     
     ========================================
     CONTACT INFORMATION
@@ -1080,8 +1080,8 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
     Reply directly to: ${email}
     
     ---
-    Task Manager Support Team
-    © ${new Date().getFullYear()} Task Manager
+    Taaskr Support Team
+    © ${new Date().getFullYear()} Taaskr
   `;
 
   return await this.sendEmail({
@@ -1220,7 +1220,7 @@ async sendContactConfirmation(contactData) {
           
           <div class="content">
             <h2>Hello ${name},</h2>
-            <p>Thank you for contacting Task Manager Support. We've successfully received your message and our team will review it shortly.</p>
+            <p>Thank you for contacting Taaskr Support. We've successfully received your message and our team will review it shortly.</p>
             
             <div class="info-box">
               <p><strong>📋 Your Submission Details:</strong></p>
@@ -1240,12 +1240,12 @@ async sendContactConfirmation(contactData) {
               </p>
             </div>
 
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Task Manager Support Team</strong></p>
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Support Team</strong></p>
           </div>
           
           <div class="footer">
-            <p><strong>Task Manager</strong></p>
-            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p><strong>Taaskr</strong></p>
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
             <p>Need immediate help? Visit our <a href="${frontendUrl}/help" style="color: #667eea;">Help Center</a></p>
           </div>
         </div>
@@ -1258,7 +1258,7 @@ async sendContactConfirmation(contactData) {
 
     Hello ${name},
 
-    Thank you for contacting Task Manager Support. We've received your message.
+    Thank you for contacting Taaskr Support. We've received your message.
 
     Your Submission Details:
     - Subject: ${subject}
@@ -1269,10 +1269,10 @@ async sendContactConfirmation(contactData) {
     
 
     Best regards,
-    The Task Manager Support Team
+    The Taaskr Support Team
 
     ---
-    © ${new Date().getFullYear()} Task Manager
+    © ${new Date().getFullYear()} Taaskr
   `;
 
   return await this.sendEmail({
@@ -1457,7 +1457,7 @@ async sendSuggestionEmail(suggestionData) {
         <div class="container">
           <div class="header">
             <h1>💡 New User Suggestion</h1>
-            <p>Task Manager - User Feedback System</p>
+            <p>Taaskr - User Feedback System</p>
           </div>
           
           <div class="content">
@@ -1523,8 +1523,8 @@ async sendSuggestionEmail(suggestionData) {
           </div>
           
           <div class="footer">
-            <p><strong>Task Manager Support Team</strong></p>
-            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p><strong>Taaskr Support Team</strong></p>
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
             <p>This is an automated notification from the user suggestion system.</p>
           </div>
         </div>
@@ -1534,7 +1534,7 @@ async sendSuggestionEmail(suggestionData) {
 
   const text = `
     NEW USER SUGGESTION
-    Task Manager - User Feedback System
+    Taaskr - User Feedback System
     
     ========================================
     USER INFORMATION
@@ -1567,8 +1567,8 @@ async sendSuggestionEmail(suggestionData) {
     Reply to user: ${userEmail}
     
     ---
-    Task Manager Support Team
-    © ${new Date().getFullYear()} Task Manager
+    Taaskr Support Team
+    © ${new Date().getFullYear()} Taaskr
   `;
 
   return await this.sendEmail({
@@ -1667,7 +1667,7 @@ async sendSuggestionConfirmation(suggestionData) {
           
           <div class="content">
             <h2>Hello ${userName},</h2>
-            <p>Thank you for taking the time to share your suggestion with us! We truly value your feedback and ideas for improving Task Manager.</p>
+            <p>Thank you for taking the time to share your suggestion with us! We truly value your feedback and ideas for improving Taaskr.</p>
             
             <div class="info-box">
               <p><strong>📋 Your Suggestion:</strong></p>
@@ -1675,7 +1675,7 @@ async sendSuggestionConfirmation(suggestionData) {
               <p><strong>Submitted:</strong> ${new Date(submittedAt).toLocaleString()}</p>
             </div>
 
-            <p>Our team will carefully review your suggestion and consider it for future updates. We're committed to making Task Manager better based on user feedback like yours.</p>
+            <p>Our team will carefully review your suggestion and consider it for future updates. We're committed to making Taaskr better based on user feedback like yours.</p>
 
             <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin: 25px 0; border-radius: 4px;">
               <p style="margin: 0; color: #0c4a6e;">
@@ -1683,13 +1683,13 @@ async sendSuggestionConfirmation(suggestionData) {
               </p>
             </div>
 
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Task Manager Team</strong></p>
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
           </div>
           
           <div class="footer">
-            <p><strong>Task Manager</strong></p>
-            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
-            <p>Continue improving with us! Visit <a href="${frontendUrl}" style="color: #667eea;">Task Manager</a></p>
+            <p><strong>Taaskr</strong></p>
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p>Continue improving with us! Visit <a href="${frontendUrl}" style="color: #667eea;">Taaskr</a></p>
           </div>
         </div>
       </body>
@@ -1710,10 +1710,10 @@ async sendSuggestionConfirmation(suggestionData) {
     Our team will review your suggestion and consider it for future updates.
 
     Best regards,
-    The Task Manager Team
+    The Taaskr Team
 
     ---
-    © ${new Date().getFullYear()} Task Manager
+    © ${new Date().getFullYear()} Taaskr
   `;
 
   return await this.sendEmail({
@@ -2015,7 +2015,7 @@ async sendTaskInvitation(invitation, task, inviter) {
           </div>
           
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
             <p>This invitation was sent to ${invitation.inviteeEmail}</p>
           </div>
         </div>
@@ -2042,7 +2042,7 @@ async sendTaskInvitation(invitation, task, inviter) {
     This invitation expires on ${new Date(invitation.expiresAt).toLocaleString()}
     
     ---
-    Task Manager
+    Taaskr
     © ${new Date().getFullYear()}
   `;
 
@@ -2353,8 +2353,8 @@ async sendTeamMemberInvitation(teamMember, owner) {
           </div>
           
           <div class="footer">
-            <p><strong>Task Manager</strong></p>
-            <p>© ${new Date().getFullYear()} Task Manager. All rights reserved.</p>
+            <p><strong>Taaskr</strong></p>
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
             <p>This invitation was sent to ${teamMember.memberEmail}</p>
           </div>
         </div>
@@ -2365,7 +2365,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
   const text = `
     Team Invitation
     
-    ${owner.firstName} ${owner.lastName || ''} (${owner.email}) has invited you to join their team on Task Manager.
+    ${owner.firstName} ${owner.lastName || ''} (${owner.email}) has invited you to join their team on Taaskr.
     
     Your Role: ${teamMember.role}
     Permissions: ${roleDescriptions[teamMember.role] || 'Team member with assigned permissions'}
@@ -2382,13 +2382,13 @@ async sendTeamMemberInvitation(teamMember, owner) {
     Decline invitation: ${declineUrl}
     
     ---
-    Task Manager
+    Taaskr
     © ${new Date().getFullYear()}
   `;
 
   return await this.sendEmail({
     to: teamMember.memberEmail,
-    subject: `${owner.firstName} invited you to join their team on Task Manager`,
+    subject: `${owner.firstName} invited you to join their team on Taaskr`,
     html,
     text,
   });
@@ -2424,7 +2424,7 @@ async sendInvitationReminder(invitation, task, inviter) {
           <div style="text-align: center; margin: 30px 0;">
             <a href="${acceptUrl}" class="button">Accept Invitation Now</a>
           </div>
-          <p>Best regards,<br>Task Manager Team</p>
+          <p>Best regards,<br>Taaskr Team</p>
         </div>
       </body>
     </html>
@@ -2495,7 +2495,7 @@ async sendCollaboratorRemovedNotification(task, removedUser, removedBy) {
           <p>Hi ${removedUser.firstName},</p>
           <p>You have been removed from the task "<strong>${task.title}</strong>" by ${removedBy.firstName} ${removedBy.lastName}.</p>
           <p>You no longer have access to this task.</p>
-          <p>Best regards,<br>Task Manager Team</p>
+          <p>Best regards,<br>Taaskr Team</p>
         </div>
       </body>
     </html>
@@ -2536,7 +2536,7 @@ async sendTaskSharedNotification(task, teamMember, owner) {
             <h1>📋 Task Shared With You</h1>
           </div>
           <h2>Hello ${teamMember.firstName},</h2>
-          <p>${owner.firstName} ${owner.lastName} has shared a task with you from their Task Manager.</p>
+          <p>${owner.firstName} ${owner.lastName} has shared a task with you from their Taaskr.</p>
           
           <div class="task-card">
             <h3>${task.title}</h3>
@@ -2549,7 +2549,7 @@ async sendTaskSharedNotification(task, teamMember, owner) {
           </div>
           
           <p>You can now collaborate on this task based on your assigned role.</p>
-          <p>Best regards,<br><strong>Task Manager Team</strong></p>
+          <p>Best regards,<br><strong>Taaskr Team</strong></p>
         </div>
       </body>
     </html>
@@ -2568,7 +2568,7 @@ async sendTaskSharedNotification(task, teamMember, owner) {
     View task: ${taskUrl}
     
     Best regards,
-    Task Manager Team
+    Taaskr Team
   `;
 
   return await this.sendEmail({

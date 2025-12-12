@@ -11,6 +11,7 @@ import Category from '../../models/Category.js';
 import TaskPriority from '../../models/TaskPriority.js';
 import TaskStatus from '../../models/TaskStatus.js';
 import { parseJSONResponse, handleAIError } from './aiHelpers.js';
+import ChatConversation from '../../models/ChatConversation.js';
 
 class ChatbotService {
   /**
@@ -105,58 +106,120 @@ Respond naturally and conversationally.`;
   }
 
   /**
-   * Chat with AI assistant
+   * Chat with AI assistant (Persistent)
    */
-  async chat(userId, message, conversationHistory = []) {
+  async chat(userId, message, conversationId = null) {
     try {
       if (!openai) {
         throw new Error('AI service not configured');
       }
 
-      // Get user context
+      // 1. Get or create conversation
+      let conversation;
+      if (conversationId) {
+        conversation = await ChatConversation.findOne({ _id: conversationId, user: userId });
+      }
+
+      // Create new if not found or not provided
+      if (!conversation) {
+        conversation = new ChatConversation({
+          user: userId,
+          messages: [],
+          title: message.substring(0, 50) + (message.length > 50 ? '...' : '')
+        });
+      }
+
+      // 2. Get user context
       const userContext = await this.getUserContext(userId);
       if (!userContext) {
         throw new Error('Failed to get user context');
       }
 
-      // Build system prompt
+      // 3. Build system prompt
       const systemPrompt = this.buildSystemPrompt(userContext);
 
-      // Build messages array
+      // 4. Prepare message history for OpenAI (optimize context window)
+      // Take last 10 messages from DB + current message
+      const historyContext = conversation.messages.slice(-10).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
       const messages = [
         { role: 'system', content: systemPrompt },
-        ...conversationHistory,
-        { role: 'user', content: message },
+        ...historyContext,
+        { role: 'user', content: message }
       ];
 
-      // Call OpenAI
+      // 5. Call OpenAI
       const config = getConfig();
       const response = await openai.chat.completions.create({
         model: config.model,
         messages: messages,
-        max_tokens: 800, // Longer for chat
-        temperature: 0.8, // More conversational
+        max_tokens: 1000, 
+        temperature: 0.7,
       });
 
       const assistantMessage = response.choices[0].message.content;
 
-      Logger.info('Chatbot response generated', {
+      // 6. Save to database
+      conversation.messages.push({ role: 'user', content: message });
+      conversation.messages.push({ role: 'assistant', content: assistantMessage });
+      
+      // Update title if it's a generic "New Conversation" matching the first message
+      if (conversation.messages.length === 2 && conversation.title === 'New Conversation') {
+         conversation.title = message.substring(0, 30) + '...';
+      }
+
+      await conversation.save();
+
+      Logger.info('Chatbot response generated & saved', {
         userId,
+        conversationId: conversation._id,
         messageLength: message.length,
-        responseLength: assistantMessage.length,
       });
 
       return {
         message: assistantMessage,
-        conversationHistory: [
-          ...conversationHistory,
-          { role: 'user', content: message },
-          { role: 'assistant', content: assistantMessage },
-        ],
-        userContext,
+        conversationId: conversation._id,
+        history: conversation.messages,
+        userContext, // Optional: return if frontend needs to update UI
       };
     } catch (error) {
       return handleAIError(error, 'chat');
+    }
+  }
+
+  /**
+   * Get chat history for a user
+   */
+  async getChatHistory(userId, conversationId = null) {
+    try {
+      if (conversationId) {
+         return await ChatConversation.findOne({ _id: conversationId, user: userId });
+      }
+      
+      // List all conversations (summaries)
+      return await ChatConversation.find({ user: userId })
+        .select('title updatedAt createdAt')
+        .sort({ updatedAt: -1 })
+        .limit(20);
+    } catch (error) {
+      Logger.error('Failed to get chat history', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a conversation
+   */
+  async deleteConversation(userId, conversationId) {
+    try {
+      await ChatConversation.findOneAndDelete({ _id: conversationId, user: userId });
+      return { success: true };
+    } catch (error) {
+      Logger.error('Failed to delete conversation', { error: error.message });
+      throw error;
     }
   }
 

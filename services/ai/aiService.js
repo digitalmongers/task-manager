@@ -390,19 +390,29 @@ class AIService {
    */
   async findSimilarTasks(taskId, userId) {
     try {
-      // Get target task
-      const targetTask = await Task.findOne({ _id: taskId, user: userId })
-        .select('title description category priority')
-        .lean();
+      let targetTask = null;
 
-      if (!targetTask) {
-        throw new Error('Task not found');
+      // Check if first argument is an ID (string) or draft object
+      if (typeof taskId === 'string' && taskId.match(/^[0-9a-fA-F]{24}$/)) {
+        // It's an ID, fetch from DB
+        targetTask = await Task.findOne({ _id: taskId, user: userId })
+          .select('title description category priority')
+          .lean();
+          
+        if (!targetTask) {
+          throw new Error('Task not found');
+        }
+      } else if (typeof taskId === 'object' && taskId !== null) {
+         // It's a draft object { title, description }
+         targetTask = taskId;
+      } else {
+         throw new Error('Invalid task identifier or draft data');
       }
 
       // Get all user tasks
       const allTasks = await Task.find({
         user: userId,
-        _id: { $ne: taskId },
+        _id: { $ne: targetTask._id }, // Exclude itself if it exists (for drafts _id might be undefined, which is fine)
         isDeleted: false,
       })
         .select('title description category priority')

@@ -109,12 +109,19 @@ class AIController {
   /**
    * Find similar tasks
    * GET /api/ai/similar/:taskId
+   * POST /api/ai/similar (for drafts)
    */
   async findSimilarTasks(req, res) {
-    const { taskId } = req.params;
+    let taskIdOrDraft;
+    
+    if (req.method === 'GET') {
+       taskIdOrDraft = req.params.taskId;
+    } else {
+       taskIdOrDraft = req.body; // { title, description }
+    }
 
-    if (!taskId) {
-      throw ApiError.badRequest('Task ID is required');
+    if (!taskIdOrDraft) {
+      throw ApiError.badRequest('Task ID or draft data is required');
     }
 
     if (!AIService.isEnabled()) {
@@ -122,7 +129,7 @@ class AIController {
     }
 
     const similarTasks = await AIService.findSimilarTasks(
-      taskId,
+      taskIdOrDraft,
       req.user._id
     );
 
@@ -131,7 +138,7 @@ class AIController {
     }
 
     Logger.logActivity('AI_SIMILAR_TASKS_FOUND', req.user._id, {
-      taskId,
+      source: req.method === 'GET' ? 'existing_task' : 'draft',
       similarCount: similarTasks.similarTasks?.length || 0,
     });
 
@@ -144,11 +151,116 @@ class AIController {
   }
 
   /**
+   * Suggest task details (Category, Priority, etc.)
+   * POST /api/ai/suggest/task
+   */
+  async suggestTask(req, res) {
+    const { title, description } = req.body;
+
+    if (!title) {
+       throw ApiError.badRequest('Title is required for suggestions');
+    }
+
+    if (!AIService.isEnabled()) {
+      throw ApiError.serviceUnavailable('AI service is not configured');
+    }
+
+    const suggestions = await AIService.generateTaskSuggestions({
+      title,
+      description,
+      userId: req.user._id
+    });
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Task suggestions generated',
+      { suggestions }
+    );
+  }
+
+  /**
+   * Suggest categories
+   * POST /api/ai/suggest/category
+   */
+  async suggestCategory(req, res) {
+    const { title } = req.body; 
+
+    if (!title) {
+       throw ApiError.badRequest('Title is required');
+    }
+
+    const suggestions = await AIService.generateCategorySuggestions({
+      title,
+      userId: req.user._id
+    });
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Category suggestions generated',
+      { suggestions }
+    );
+  }
+
+  /**
+   * Suggest priority
+   * POST /api/ai/suggest/priority
+   */
+  async suggestPriority(req, res) {
+    const { name } = req.body; // Using 'name' as context like task title
+
+    if (!name) {
+       throw ApiError.badRequest('Task title/name is required');
+    }
+
+    const suggestions = await AIService.generatePrioritySuggestions({
+      name,
+      userId: req.user._id
+    });
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Priority suggestions generated',
+      { suggestions }
+    );
+  }
+
+  /**
+   * Suggest status
+   * POST /api/ai/suggest/status
+   */
+  async suggestStatus(req, res) {
+    const { name } = req.body;
+
+    if (!name) {
+       throw ApiError.badRequest('Task title/name is required');
+    }
+
+    const suggestions = await AIService.generateStatusSuggestions({
+      name,
+      userId: req.user._id
+    });
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Status suggestions generated',
+      { suggestions }
+    );
+  }
+
+  /**
+   * Chat with AI assistant
+   * POST /api/ai/chat
+   */
+  /**
    * Chat with AI assistant
    * POST /api/ai/chat
    */
   async chat(req, res) {
-    const { message, conversationHistory } = req.body;
+    const { message, conversationId } = req.body;
 
     if (!message || typeof message !== 'string') {
       throw ApiError.badRequest('Message is required');
@@ -158,10 +270,11 @@ class AIController {
       throw ApiError.serviceUnavailable('Chatbot service is not configured');
     }
 
+    // Pass conversationId (optional) to service
     const result = await ChatbotService.chat(
       req.user._id,
       message,
-      conversationHistory || []
+      conversationId
     );
 
     if (result && result.error) {
@@ -170,6 +283,7 @@ class AIController {
 
     Logger.logActivity('AI_CHAT', req.user._id, {
       messageLength: message.length,
+      conversationId: result.conversationId
     });
 
     return ApiResponse.success(
@@ -177,6 +291,51 @@ class AIController {
       HTTP_STATUS.OK,
       'Chat response generated',
       result
+    );
+  }
+
+  /**
+   * Get chat history
+   * GET /api/ai/chat/history
+   * GET /api/ai/chat/history/:conversationId
+   */
+  async getChatHistory(req, res) {
+    const { conversationId } = req.params;
+
+    const history = await ChatbotService.getChatHistory(
+      req.user._id,
+      conversationId
+    );
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Chat history retrieved',
+      { history }
+    );
+  }
+
+  /**
+   * Delete conversation
+   * DELETE /api/ai/chat/history/:conversationId
+   */
+  async deleteConversation(req, res) {
+    const { conversationId } = req.params;
+
+    if (!conversationId) {
+      throw ApiError.badRequest('Conversation ID is required');
+    }
+
+    await ChatbotService.deleteConversation(req.user._id, conversationId);
+
+    Logger.logActivity('AI_CHAT_DELETE', req.user._id, {
+      conversationId
+    });
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Conversation deleted successfully'
     );
   }
 
