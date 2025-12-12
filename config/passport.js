@@ -74,6 +74,21 @@ passport.use(
             userAgent: req.get('user-agent'),
           });
 
+          // Handle pending invitations (email-based late binding)
+          try {
+            const AuthService = (await import('../services/authService.js')).default;
+            await AuthService.handlePendingInvitation(user, null);
+            Logger.info('Pending invitations processed for existing Google user', {
+              userId: user._id,
+              email: user.email,
+            });
+          } catch (error) {
+            Logger.error('Failed to process pending invitations for existing Google user', {
+              userId: user._id,
+              error: error.message,
+            });
+          }
+
           return done(null, user);
         }
 
@@ -94,6 +109,21 @@ passport.use(
           googleId,
           ip: req.ip,
         });
+
+        // Handle pending invitations (email-based late binding)
+        try {
+          const AuthService = (await import('../services/authService.js')).default;
+          await AuthService.handlePendingInvitation(user, null);
+          Logger.info('Pending invitations processed for Google user', {
+            userId: user._id,
+            email: user.email,
+          });
+        } catch (error) {
+          Logger.error('Failed to process pending invitations for Google user', {
+            userId: user._id,
+            error: error.message,
+          });
+        }
 
         return done(null, user);
       } catch (error) {
@@ -160,6 +190,21 @@ passport.use(
             userAgent: req.get('user-agent'),
           });
 
+          // Handle pending invitations (email-based late binding)
+          try {
+            const AuthService = (await import('../services/authService.js')).default;
+            await AuthService.handlePendingInvitation(user, null);
+            Logger.info('Pending invitations processed for existing Facebook user', {
+              userId: user._id,
+              email: user.email,
+            });
+          } catch (error) {
+            Logger.error('Failed to process pending invitations for existing Facebook user', {
+              userId: user._id,
+              error: error.message,
+            });
+          }
+
           return done(null, user);
         }
 
@@ -179,6 +224,21 @@ passport.use(
           facebookId,
           ip: req.ip,
         });
+
+        // Handle pending invitations (email-based late binding)
+        try {
+          const AuthService = (await import('../services/authService.js')).default;
+          await AuthService.handlePendingInvitation(user, null);
+          Logger.info('Pending invitations processed for Facebook user', {
+            userId: user._id,
+            email: user.email,
+          });
+        } catch (error) {
+          Logger.error('Failed to process pending invitations for Facebook user', {
+            userId: user._id,
+            error: error.message,
+          });
+        }
 
         return done(null, user);
       } catch (error) {

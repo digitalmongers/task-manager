@@ -94,10 +94,9 @@ class AuthService {
       name: user.fullName,
     });
 
-    // Handle invitation if provided (e.g. user signed up via invite link)
-    if (invitationToken) {
-      await this.handlePendingInvitation(user, invitationToken);
-    }
+    // ALWAYS handle pending invitations (both token-based and email-based)
+    // This ensures users who accepted invitations anonymously get linked
+    await this.handlePendingInvitation(user, invitationToken);
 
     // Return user without password
     const userResponse = user.toObject();
@@ -352,10 +351,9 @@ class AuthService {
     const token = this.generateToken(user._id, rememberMe);
     const refreshToken = this.generateRefreshToken(user._id);
 
-    // Handle invitation if provided (e.g. user logged in via invite link)
-    if (invitationToken) {
-      await this.handlePendingInvitation(user, invitationToken);
-    }
+    // ALWAYS handle pending invitations (both token-based and email-based)
+    // This ensures users who accepted invitations before login get linked
+    await this.handlePendingInvitation(user, invitationToken);
 
     // Log successful login
     Logger.logAuth("USER_LOGIN", user._id, {
