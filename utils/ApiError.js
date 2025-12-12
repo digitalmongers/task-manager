@@ -44,6 +44,10 @@ class ApiError extends Error {
     return new ApiError(HTTP_STATUS.TOO_MANY_REQUESTS, message);
   }
 
+  static serviceUnavailable(message = ERROR_MESSAGES.INTERNAL_ERROR) {
+    return new ApiError(HTTP_STATUS.SERVICE_UNAVAILABLE, message);
+  }
+
   static internal(message = ERROR_MESSAGES.INTERNAL_ERROR) {
     return new ApiError(HTTP_STATUS.INTERNAL_SERVER_ERROR, message, false);
   }

@@ -22,8 +22,8 @@ class CategoryController {
         userId: req.user._id,
       });
 
-      if (suggestions.error) {
-        throw ApiError.internal(suggestions.error);
+      if (suggestions && suggestions.error) {
+        throw ApiError.serviceUnavailable(suggestions.error);
       }
 
       return ApiResponse.success(res, HTTP_STATUS.OK, 'AI suggestions generated', {
@@ -106,8 +106,8 @@ class CategoryController {
         isUpdate: true,
       });
 
-      if (suggestions.error) {
-        throw ApiError.internalServerError(suggestions.error);
+      if (suggestions && suggestions.error) {
+        throw ApiError.serviceUnavailable(suggestions.error);
       }
 
       return ApiResponse.success(res, HTTP_STATUS.OK, 'AI suggestions generated', {
