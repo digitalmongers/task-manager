@@ -1,17 +1,40 @@
 import VitalTaskService from '../services/vitalTaskService.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
+import AIService from '../services/ai/aiService.js';
 
 class VitalTaskController {
   /**
    * Create new vital task
    * POST /api/vital-tasks
+   * POST /api/vital-tasks?suggestions=true (for AI suggestions)
    */
   async createVitalTask(req, res) {
     const userId = req.user._id;
     const taskData = req.body;
     const file = req.file;
 
+    // Check if AI suggestions requested
+    if (req.query.suggestions === 'true') {
+      if (!AIService.isEnabled()) {
+        throw ApiError.serviceUnavailable('AI service is not configured');
+      }
+
+      const suggestions = await AIService.generateVitalTaskSuggestions({
+        ...taskData,
+        userId,
+      });
+
+      if (suggestions.error) {
+        throw ApiError.internalServerError(suggestions.error);
+      }
+
+      return ApiResponse.success(res, 200, 'AI suggestions generated', {
+        suggestions,
+      });
+    }
+
+    // Normal vital task creation
     const result = await VitalTaskService.createVitalTask(userId, taskData, file);
 
     ApiResponse.success(res, 201, result.message, {
@@ -53,6 +76,7 @@ class VitalTaskController {
   /**
    * Update vital task
    * PATCH /api/vital-tasks/:id
+   * PATCH /api/vital-tasks/:id?suggestions=true (for AI suggestions)
    */
   async updateVitalTask(req, res) {
     const userId = req.user._id;
@@ -60,6 +84,28 @@ class VitalTaskController {
     const updateData = req.body;
     const file = req.file;
 
+    // Check if AI suggestions requested
+    if (req.query.suggestions === 'true') {
+      if (!AIService.isEnabled()) {
+        throw ApiError.serviceUnavailable('AI service is not configured');
+      }
+
+      const suggestions = await AIService.generateVitalTaskSuggestions({
+        ...updateData,
+        userId,
+        isUpdate: true,
+      });
+
+      if (suggestions.error) {
+        throw ApiError.internalServerError(suggestions.error);
+      }
+
+      return ApiResponse.success(res, 200, 'AI suggestions generated', {
+        suggestions,
+      });
+    }
+
+    // Normal vital task update
     const result = await VitalTaskService.updateVitalTask(userId, taskId, updateData, file);
 
     ApiResponse.success(res, 200, result.message, {

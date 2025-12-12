@@ -1,17 +1,40 @@
 import TaskService from '../services/taskService.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
+import AIService from '../services/ai/aiService.js';
 
 class TaskController {
   /**
    * Create new task
    * POST /api/tasks
+   * POST /api/tasks?suggestions=true (for AI suggestions)
    */
   async createTask(req, res) {
     const userId = req.user._id;
     const taskData = req.body;
     const file = req.file;
 
+    // Check if AI suggestions requested
+    if (req.query.suggestions === 'true') {
+      if (!AIService.isEnabled()) {
+        throw ApiError.serviceUnavailable('AI service is not configured');
+      }
+
+      const suggestions = await AIService.generateTaskSuggestions({
+        ...taskData,
+        userId,
+      });
+
+      if (suggestions.error) {
+        throw ApiError.internalServerError(suggestions.error);
+      }
+
+      return ApiResponse.success(res, 200, 'AI suggestions generated', {
+        suggestions,
+      });
+    }
+
+    // Normal task creation
     const result = await TaskService.createTask(userId, taskData, file);
 
     ApiResponse.success(res, 201, result.message, {
@@ -53,6 +76,7 @@ class TaskController {
   /**
    * Update task
    * PATCH /api/tasks/:id
+   * PATCH /api/tasks/:id?suggestions=true (for AI suggestions)
    */
   async updateTask(req, res) {
     const userId = req.user._id;
@@ -60,6 +84,28 @@ class TaskController {
     const updateData = req.body;
     const file = req.file;
 
+    // Check if AI suggestions requested
+    if (req.query.suggestions === 'true') {
+      if (!AIService.isEnabled()) {
+        throw ApiError.serviceUnavailable('AI service is not configured');
+      }
+
+      const suggestions = await AIService.generateTaskSuggestions({
+        ...updateData,
+        userId,
+        isUpdate: true,
+      });
+
+      if (suggestions.error) {
+        throw ApiError.internalServerError(suggestions.error);
+      }
+
+      return ApiResponse.success(res, 200, 'AI suggestions generated', {
+        suggestions,
+      });
+    }
+
+    // Normal task update
     const result = await TaskService.updateTask(userId, taskId, updateData, file);
 
     ApiResponse.success(res, 200, result.message, {
