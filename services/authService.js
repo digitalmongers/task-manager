@@ -110,34 +110,151 @@ class AuthService {
     };
   }
 
-  // Helper to handle pending invitations after auth
+  /**
+   * Handle pending invitations after auth (both token-based and email-based)
+   * This handles:
+   * 1. Token-based: User clicked invitation link with token
+   * 2. Email-based: User signed up/logged in without token, but has pending invitations
+   */
   async handlePendingInvitation(user, invitationToken) {
-    if (!invitationToken) return;
-
     try {
-      // Import dynamically to avoid circular dependencies
-      const CollaborationService = (await import("../services/collaborationService.js")).default;
-      const TeamService = (await import("../services/TeamService.js")).default;
+      const email = user.email.toLowerCase();
       
-      // Try accepting as Task Invitation
-      try {
-        await CollaborationService.acceptInvitation(invitationToken, user._id);
-        Logger.info("Automatically accepted task invitation after auth", { userId: user._id, token: invitationToken });
-        return;
-      } catch (e) {
-        // Ignore specific errors if not found/valid, try Team Invitation next
+      // ========== PART 1: Token-based acceptance (if token provided) ==========
+      if (invitationToken) {
+        const CollaborationService = (await import("../services/collaborationService.js")).default;
+        const TeamService = (await import("../services/TeamService.js")).default;
+        
+        // Try accepting as Task Invitation
+        try {
+          await CollaborationService.acceptInvitation(invitationToken, user._id);
+          Logger.info("Automatically accepted task invitation after auth", { userId: user._id, token: invitationToken });
+        } catch (e) {
+          // Try Team Invitation if task invitation failed
+          try {
+            await TeamService.acceptTeamInvitation(invitationToken, user._id);
+            Logger.info("Automatically accepted team invitation after auth", { userId: user._id, token: invitationToken });
+          } catch (e2) {
+            Logger.warn("Failed to auto-accept invitation after auth", { userId: user._id, error: e2.message });
+          }
+        }
       }
-
-      // Try accepting as Team Invitation
-      try {
-        await TeamService.acceptTeamInvitation(invitationToken, user._id);
-        Logger.info("Automatically accepted team invitation after auth", { userId: user._id, token: invitationToken });
-      } catch (e) {
-         Logger.warn("Failed to auto-accept invitation after auth", { userId: user._id, error: e.message });
+      
+      // ========== PART 2: Email-based late binding (always run) ==========
+      // This links any pending invitations that were accepted anonymously
+      
+      // 1. Link pending TEAM invitations by email
+      const TeamMember = (await import('../models/TeamMember.js')).default;
+      const pendingTeamInvites = await TeamMember.find({
+        memberEmail: email,
+        status: { $in: ['pending', 'active'] },
+        member: null // Not yet linked to a user
+      });
+      
+      for (const invite of pendingTeamInvites) {
+        invite.member = user._id;
+        
+        // If already accepted anonymously, set acceptedAt
+        if (invite.status === 'active' && !invite.acceptedAt) {
+          invite.acceptedAt = new Date();
+        }
+        
+        await invite.save();
+        
+        Logger.info('Team invitation linked to user', {
+          userId: user._id,
+          invitationId: invite._id,
+          email: email,
+        });
       }
-
+      
+      // 2. Link pending TASK COLLABORATION invitations by email
+      const TaskInvitation = (await import('../models/TaskInvitation.js')).default;
+      const TaskCollaborator = (await import('../models/TaskCollaborator.js')).default;
+      const Task = (await import('../models/Task.js')).default;
+      
+      const pendingTaskInvites = await TaskInvitation.find({
+        inviteeEmail: email,
+        status: { $in: ['pending', 'accepted'] },
+        inviteeUser: null // Not yet linked to a user
+      }).populate('task');
+      
+      for (const invite of pendingTaskInvites) {
+        // Link user to invitation
+        invite.inviteeUser = user._id;
+        
+        // If already accepted anonymously, create collaborator now
+        if (invite.status === 'accepted') {
+          // Check if collaborator already exists
+          const existingCollab = await TaskCollaborator.findOne({
+            task: invite.task._id,
+            collaborator: user._id,
+          });
+          
+          if (!existingCollab) {
+            // Create collaborator record
+            await TaskCollaborator.create({
+              task: invite.task._id,
+              taskOwner: invite.task.user,
+              collaborator: user._id,
+              role: invite.role,
+              status: 'active',
+              sharedBy: invite.inviter,
+              shareMessage: invite.message,
+            });
+            
+            // Update task counts
+            const task = await Task.findById(invite.task._id);
+            if (task) {
+              if (!task.isShared) {
+                task.isShared = true;
+                task.collaboratorCount = 1;
+              } else {
+                task.collaboratorCount += 1;
+              }
+              await task.save();
+            }
+            
+            Logger.info('Task collaborator created for anonymous acceptance', {
+              userId: user._id,
+              taskId: invite.task._id,
+              invitationId: invite._id,
+            });
+          }
+        }
+        
+        await invite.save();
+        
+        Logger.info('Task invitation linked to user', {
+          userId: user._id,
+          invitationId: invite._id,
+          taskId: invite.task._id,
+          email: email,
+        });
+      }
+      
+      // Log summary
+      if (pendingTeamInvites.length > 0 || pendingTaskInvites.length > 0) {
+        Logger.info('Pending invitations processed', {
+          userId: user._id,
+          teamInvitationsLinked: pendingTeamInvites.length,
+          taskInvitationsLinked: pendingTaskInvites.length,
+        });
+      }
+      
+      return {
+        teamInvitationsLinked: pendingTeamInvites.length,
+        taskInvitationsLinked: pendingTaskInvites.length,
+      };
+      
     } catch (error) {
-      Logger.error("Error in handlePendingInvitation", { error: error.message });
+      Logger.error("Error in handlePendingInvitation", { 
+        error: error.message,
+        userId: user._id,
+        stack: error.stack,
+      });
+      // Don't throw - this shouldn't block signup/login
+      return { teamInvitationsLinked: 0, taskInvitationsLinked: 0 };
     }
   }
 
