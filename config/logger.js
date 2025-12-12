@@ -239,6 +239,14 @@ class Logger {
     });
   }
 
+  static logActivity(activity, userId, meta = {}) {
+    logger.info(`Activity: ${activity}`, {
+      userId,
+      activity,
+      ...sanitize(meta),
+    });
+  }
+
   
   static logSecurity(event, meta = {}) {
     logger.warn(`Security: ${event}`, sanitize(meta));
