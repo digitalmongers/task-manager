@@ -31,8 +31,8 @@ class AIController {
       req.user._id
     );
 
-    if (parsedTask.error) {
-      throw ApiError.internal(parsedTask.error);
+    if (parsedTask && parsedTask.error) {
+      throw ApiError.serviceUnavailable(parsedTask.error);
     }
 
     Logger.logActivity('AI_NLP_PARSE', req.user._id, {
@@ -58,8 +58,8 @@ class AIController {
 
     const insights = await AIService.getTaskInsights(req.user._id);
 
-    if (insights.error) {
-      throw ApiError.internal(insights.error);
+    if (insights && insights.error) {
+      throw ApiError.serviceUnavailable(insights.error);
     }
 
     Logger.logActivity('AI_INSIGHTS_GENERATED', req.user._id, {
@@ -90,8 +90,8 @@ class AIController {
       preferences
     );
 
-    if (weeklyPlan.error) {
-      throw ApiError.internal(weeklyPlan.error);
+    if (weeklyPlan && weeklyPlan.error) {
+      throw ApiError.serviceUnavailable(weeklyPlan.error);
     }
 
     Logger.logActivity('AI_WEEKLY_PLAN_GENERATED', req.user._id, {
@@ -126,8 +126,8 @@ class AIController {
       req.user._id
     );
 
-    if (similarTasks.error) {
-      throw ApiError.internal(similarTasks.error);
+    if (similarTasks && similarTasks.error) {
+      throw ApiError.serviceUnavailable(similarTasks.error);
     }
 
     Logger.logActivity('AI_SIMILAR_TASKS_FOUND', req.user._id, {
@@ -164,8 +164,8 @@ class AIController {
       conversationHistory || []
     );
 
-    if (result.error) {
-      throw ApiError.internal(result.error);
+    if (result && result.error) {
+      throw ApiError.serviceUnavailable(result.error);
     }
 
     Logger.logActivity('AI_CHAT', req.user._id, {
@@ -196,8 +196,8 @@ class AIController {
       query
     );
 
-    if (suggestions.error) {
-      throw ApiError.internal(suggestions.error);
+    if (suggestions && suggestions.error) {
+      throw ApiError.serviceUnavailable(suggestions.error);
     }
 
     return ApiResponse.success(
@@ -221,8 +221,8 @@ class AIController {
 
     const intent = await ChatbotService.analyzeIntent(message);
 
-    if (intent.error) {
-      throw ApiError.internal(intent.error);
+    if (intent && intent.error) {
+      throw ApiError.serviceUnavailable(intent.error);
     }
 
     return ApiResponse.success(

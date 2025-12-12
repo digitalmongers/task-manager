@@ -25,8 +25,8 @@ class VitalTaskController {
         userId,
       });
 
-      if (suggestions.error) {
-        throw ApiError.internal(suggestions.error);
+      if (suggestions && suggestions.error) {
+        throw ApiError.serviceUnavailable(suggestions.error);
       }
 
       return ApiResponse.success(res, 200, 'AI suggestions generated', {
