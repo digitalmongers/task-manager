@@ -87,20 +87,49 @@ export const validateSuggestions = (suggestions, type) => {
 export const handleAIError = (error, context) => {
   Logger.error('AI Service Error', {
     error: error.message,
+    errorType: error.constructor.name,
+    statusCode: error.status || error.statusCode,
+    errorCode: error.code,
     context,
     stack: error.stack,
   });
   
-  // Return user-friendly error message
-  if (error.message.includes('API key')) {
-    return { error: 'AI service not configured. Please contact administrator.' };
+  // Return user-friendly error message based on error type
+  const errorMessage = error.message?.toLowerCase() || '';
+  
+  // Check for API key issues
+  if (errorMessage.includes('api key') || errorMessage.includes('invalid_api_key') || error.status === 401) {
+    return { error: 'AI service not configured properly. Please contact administrator.' };
   }
   
-  if (error.message.includes('rate limit')) {
-    return { error: 'AI service temporarily unavailable. Please try again later.' };
+  // Check for rate limiting
+  if (errorMessage.includes('rate limit') || errorMessage.includes('rate_limit_exceeded') || error.status === 429) {
+    return { error: 'AI service rate limit exceeded. Please try again in a few moments.' };
   }
   
-  return { error: 'Failed to generate AI suggestions. Please try again.' };
+  // Check for quota/billing issues
+  if (errorMessage.includes('quota') || errorMessage.includes('insufficient_quota') || errorMessage.includes('billing')) {
+    return { error: 'AI service quota exceeded. Please contact administrator to upgrade plan.' };
+  }
+  
+  // Check for model not found
+  if (errorMessage.includes('model') && errorMessage.includes('not found')) {
+    return { error: 'AI model not available. Please contact administrator.' };
+  }
+  
+  // Check for timeout
+  if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+    return { error: 'AI service timeout. Please try again.' };
+  }
+  
+  // Generic error with actual error message for debugging
+  Logger.warn('Unhandled AI error type', { 
+    message: error.message,
+    status: error.status,
+    code: error.code 
+  });
+  
+  return { error: `Failed to generate AI suggestions: ${error.message || 'Please try again.'}` };
 };
 
 /**

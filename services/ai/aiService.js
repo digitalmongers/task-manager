@@ -61,7 +61,11 @@ class AIService {
     } catch (error) {
       Logger.error('OpenAI API call failed', {
         error: error.message,
+        errorType: error.constructor.name,
+        statusCode: error.status || error.statusCode,
+        errorCode: error.code,
         model: getConfig().model,
+        stack: error.stack,
       });
       throw error;
     }

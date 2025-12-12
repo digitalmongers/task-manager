@@ -232,6 +232,75 @@ class AIController {
       { intent }
     );
   }
+
+  /**
+   * Test AI connection
+   * GET /api/ai/test
+   */
+  async testAIConnection(req, res) {
+    try {
+      // Check if AI is enabled
+      if (!AIService.isEnabled()) {
+        return ApiResponse.success(
+          res,
+          HTTP_STATUS.OK,
+          'AI Test Results',
+          {
+            status: 'disabled',
+            message: 'OpenAI API key not configured',
+            config: {
+              hasApiKey: false,
+              model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+            }
+          }
+        );
+      }
+
+      // Try a simple API call
+      const testResult = await AIService.callOpenAI(
+        'You are a helpful assistant.',
+        'Reply with just "OK" if you can read this.'
+      );
+
+      return ApiResponse.success(
+        res,
+        HTTP_STATUS.OK,
+        'AI connection successful',
+        {
+          status: 'connected',
+          message: 'OpenAI API is working correctly',
+          testResponse: testResult,
+          config: {
+            hasApiKey: true,
+            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          }
+        }
+      );
+    } catch (error) {
+      Logger.error('AI connection test failed', {
+        error: error.message,
+        status: error.status,
+        code: error.code,
+      });
+
+      return ApiResponse.success(
+        res,
+        HTTP_STATUS.OK,
+        'AI connection test failed',
+        {
+          status: 'error',
+          message: error.message,
+          errorType: error.constructor.name,
+          statusCode: error.status || error.statusCode,
+          errorCode: error.code,
+          config: {
+            hasApiKey: !!process.env.OPENAI_API_KEY,
+            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+          }
+        }
+      );
+    }
+  }
 }
 
 export default new AIController();

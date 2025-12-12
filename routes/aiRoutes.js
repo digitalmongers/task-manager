@@ -95,4 +95,15 @@ router.post(
   asyncHandler(aiController.analyzeIntent.bind(aiController))
 );
 
+/**
+ * @route   GET /api/ai/test
+ * @desc    Test OpenAI connection and configuration
+ * @access  Private
+ */
+router.get(
+  '/test',
+  protect,
+  asyncHandler(aiController.testAIConnection.bind(aiController))
+);
+
 export default router;
