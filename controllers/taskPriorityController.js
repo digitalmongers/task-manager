@@ -23,7 +23,7 @@ class TaskPriorityController {
       });
 
       if (suggestions.error) {
-        throw ApiError.internalServerError(suggestions.error);
+        throw ApiError.internal(suggestions.error);
       }
 
       return ApiResponse.success(res, HTTP_STATUS.OK, 'AI suggestions generated', {

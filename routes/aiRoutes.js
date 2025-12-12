@@ -59,4 +59,40 @@ router.get(
   asyncHandler(aiController.findSimilarTasks.bind(aiController))
 );
 
+/**
+ * @route   POST /api/ai/chat
+ * @desc    Chat with AI assistant
+ * @access  Private
+ */
+router.post(
+  '/chat',
+  protect,
+  aiRateLimit,
+  asyncHandler(aiController.chat.bind(aiController))
+);
+
+/**
+ * @route   POST /api/ai/quick-suggestions
+ * @desc    Get quick action suggestions
+ * @access  Private
+ */
+router.post(
+  '/quick-suggestions',
+  protect,
+  aiRateLimit,
+  asyncHandler(aiController.getQuickSuggestions.bind(aiController))
+);
+
+/**
+ * @route   POST /api/ai/analyze-intent
+ * @desc    Analyze user intent from message
+ * @access  Private
+ */
+router.post(
+  '/analyze-intent',
+  protect,
+  aiRateLimit,
+  asyncHandler(aiController.analyzeIntent.bind(aiController))
+);
+
 export default router;

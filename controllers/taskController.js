@@ -26,7 +26,7 @@ class TaskController {
       });
 
       if (suggestions.error) {
-        throw ApiError.internalServerError(suggestions.error);
+        throw ApiError.internal(suggestions.error);
       }
 
       return ApiResponse.success(res, 200, 'AI suggestions generated', {
