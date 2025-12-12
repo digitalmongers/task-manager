@@ -4,6 +4,7 @@
  */
 
 import AIService from '../services/ai/aiService.js';
+import ChatbotService from '../services/ai/chatbotService.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import { HTTP_STATUS } from '../config/constants.js';
@@ -31,7 +32,7 @@ class AIController {
     );
 
     if (parsedTask.error) {
-      throw ApiError.internalServerError(parsedTask.error);
+      throw ApiError.internal(parsedTask.error);
     }
 
     Logger.logActivity('AI_NLP_PARSE', req.user._id, {
@@ -58,7 +59,7 @@ class AIController {
     const insights = await AIService.getTaskInsights(req.user._id);
 
     if (insights.error) {
-      throw ApiError.internalServerError(insights.error);
+      throw ApiError.internal(insights.error);
     }
 
     Logger.logActivity('AI_INSIGHTS_GENERATED', req.user._id, {
@@ -90,7 +91,7 @@ class AIController {
     );
 
     if (weeklyPlan.error) {
-      throw ApiError.internalServerError(weeklyPlan.error);
+      throw ApiError.internal(weeklyPlan.error);
     }
 
     Logger.logActivity('AI_WEEKLY_PLAN_GENERATED', req.user._id, {
@@ -126,7 +127,7 @@ class AIController {
     );
 
     if (similarTasks.error) {
-      throw ApiError.internalServerError(similarTasks.error);
+      throw ApiError.internal(similarTasks.error);
     }
 
     Logger.logActivity('AI_SIMILAR_TASKS_FOUND', req.user._id, {
@@ -139,6 +140,96 @@ class AIController {
       HTTP_STATUS.OK,
       'Similar tasks found',
       { similarTasks }
+    );
+  }
+
+  /**
+   * Chat with AI assistant
+   * POST /api/ai/chat
+   */
+  async chat(req, res) {
+    const { message, conversationHistory } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      throw ApiError.badRequest('Message is required');
+    }
+
+    if (!ChatbotService) {
+      throw ApiError.serviceUnavailable('Chatbot service is not configured');
+    }
+
+    const result = await ChatbotService.chat(
+      req.user._id,
+      message,
+      conversationHistory || []
+    );
+
+    if (result.error) {
+      throw ApiError.internal(result.error);
+    }
+
+    Logger.logActivity('AI_CHAT', req.user._id, {
+      messageLength: message.length,
+    });
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Chat response generated',
+      result
+    );
+  }
+
+  /**
+   * Get quick suggestions
+   * POST /api/ai/quick-suggestions
+   */
+  async getQuickSuggestions(req, res) {
+    const { query } = req.body;
+
+    if (!query) {
+      throw ApiError.badRequest('Query is required');
+    }
+
+    const suggestions = await ChatbotService.getQuickSuggestions(
+      req.user._id,
+      query
+    );
+
+    if (suggestions.error) {
+      throw ApiError.internal(suggestions.error);
+    }
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Quick suggestions generated',
+      { suggestions }
+    );
+  }
+
+  /**
+   * Analyze user intent
+   * POST /api/ai/analyze-intent
+   */
+  async analyzeIntent(req, res) {
+    const { message } = req.body;
+
+    if (!message) {
+      throw ApiError.badRequest('Message is required');
+    }
+
+    const intent = await ChatbotService.analyzeIntent(message);
+
+    if (intent.error) {
+      throw ApiError.internal(intent.error);
+    }
+
+    return ApiResponse.success(
+      res,
+      HTTP_STATUS.OK,
+      'Intent analyzed',
+      { intent }
     );
   }
 }
