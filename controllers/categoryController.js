@@ -1,13 +1,37 @@
 import CategoryService from '../services/categoryService.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import { HTTP_STATUS } from '../config/constants.js';
+import AIService from '../services/ai/aiService.js';
+import ApiError from '../utils/ApiError.js';
 
 class CategoryController {
   /**
    * Create new category
    * POST /api/categories
+   * POST /api/categories?suggestions=true (for AI suggestions)
    */
   async createCategory(req, res) {
+    // Check if AI suggestions requested
+    if (req.query.suggestions === 'true') {
+      if (!AIService.isEnabled()) {
+        throw ApiError.serviceUnavailable('AI service is not configured');
+      }
+
+      const suggestions = await AIService.generateCategorySuggestions({
+        ...req.body,
+        userId: req.user._id,
+      });
+
+      if (suggestions.error) {
+        throw ApiError.internalServerError(suggestions.error);
+      }
+
+      return ApiResponse.success(res, HTTP_STATUS.OK, 'AI suggestions generated', {
+        suggestions,
+      });
+    }
+
+    // Normal category creation
     const result = await CategoryService.createCategory(
       req.user._id,
       req.body
@@ -67,8 +91,31 @@ class CategoryController {
   /**
    * Update category
    * PATCH /api/categories/:id
+   * PATCH /api/categories/:id?suggestions=true (for AI suggestions)
    */
   async updateCategory(req, res) {
+    // Check if AI suggestions requested
+    if (req.query.suggestions === 'true') {
+      if (!AIService.isEnabled()) {
+        throw ApiError.serviceUnavailable('AI service is not configured');
+      }
+
+      const suggestions = await AIService.generateCategorySuggestions({
+        ...req.body,
+        userId: req.user._id,
+        isUpdate: true,
+      });
+
+      if (suggestions.error) {
+        throw ApiError.internalServerError(suggestions.error);
+      }
+
+      return ApiResponse.success(res, HTTP_STATUS.OK, 'AI suggestions generated', {
+        suggestions,
+      });
+    }
+
+    // Normal category update
     const result = await CategoryService.updateCategory(
       req.user._id,
       req.params.id,

@@ -1,13 +1,37 @@
 import TaskStatusService from '../services/taskstatusService.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import { HTTP_STATUS } from '../config/constants.js';
+import AIService from '../services/ai/aiService.js';
+import ApiError from '../utils/ApiError.js';
 
 class TaskStatusController {
   /**
    * Create new task status
    * POST /api/task-statuses
+   * POST /api/task-statuses?suggestions=true (for AI suggestions)
    */
   async createTaskStatus(req, res) {
+    // Check if AI suggestions requested
+    if (req.query.suggestions === 'true') {
+      if (!AIService.isEnabled()) {
+        throw ApiError.serviceUnavailable('AI service is not configured');
+      }
+
+      const suggestions = await AIService.generateStatusSuggestions({
+        ...req.body,
+        userId: req.user._id,
+      });
+
+      if (suggestions.error) {
+        throw ApiError.internalServerError(suggestions.error);
+      }
+
+      return ApiResponse.success(res, HTTP_STATUS.OK, 'AI suggestions generated', {
+        suggestions,
+      });
+    }
+
+    // Normal status creation
     const result = await TaskStatusService.createTaskStatus(
       req.user._id,
       req.body

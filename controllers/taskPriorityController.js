@@ -1,13 +1,37 @@
 import TaskPriorityService from '../services/taskPriorityService.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import { HTTP_STATUS } from '../config/constants.js';
+import AIService from '../services/ai/aiService.js';
+import ApiError from '../utils/ApiError.js';
 
 class TaskPriorityController {
   /**
    * Create new task priority
    * POST /api/task-priorities
+   * POST /api/task-priorities?suggestions=true (for AI suggestions)
    */
   async createTaskPriority(req, res) {
+    // Check if AI suggestions requested
+    if (req.query.suggestions === 'true') {
+      if (!AIService.isEnabled()) {
+        throw ApiError.serviceUnavailable('AI service is not configured');
+      }
+
+      const suggestions = await AIService.generatePrioritySuggestions({
+        ...req.body,
+        userId: req.user._id,
+      });
+
+      if (suggestions.error) {
+        throw ApiError.internalServerError(suggestions.error);
+      }
+
+      return ApiResponse.success(res, HTTP_STATUS.OK, 'AI suggestions generated', {
+        suggestions,
+      });
+    }
+
+    // Normal priority creation
     const result = await TaskPriorityService.createTaskPriority(
       req.user._id,
       req.body

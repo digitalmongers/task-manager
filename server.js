@@ -27,6 +27,8 @@ import taskRoutes from "./routes/taskRoutes.js";
 import vitalTaskRoutes from "./routes/vitalTaskRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
 import collaborationRoutes from "./routes/collaborationRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
+import { testConnection as testOpenAI } from './config/openai.js';
 
 
 const app = express();
@@ -72,6 +74,10 @@ app.get("/health", async (req, res) => {
         google: !!process.env.GOOGLE_CLIENT_ID,
         facebook: !!process.env.FACEBOOK_APP_ID,
       },
+      ai: {
+        enabled: !!process.env.OPENAI_API_KEY,
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      },
     });
   } catch (error) {
     ApiResponse.success(res, 200, "Server is healthy (Redis unavailable)", {
@@ -85,6 +91,10 @@ app.get("/health", async (req, res) => {
       oauth: {
         google: !!process.env.GOOGLE_CLIENT_ID,
         facebook: !!process.env.FACEBOOK_APP_ID,
+      },
+      ai: {
+        enabled: !!process.env.OPENAI_API_KEY,
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       },
     });
   }
@@ -107,6 +117,7 @@ app.use("/api/task", taskRoutes);
 app.use("/api/vital-tasks", vitalTaskRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/collaboration", collaborationRoutes);
+app.use("/api/ai", aiRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFound);
@@ -123,6 +134,9 @@ const startServer = async () => {
   try {
     await connectDB();
 
+    // Test OpenAI connection
+    await testOpenAI();
+
     app.listen(PORT, () => {
       Logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
       Logger.info(`Health check: http://localhost:${PORT}/health`);
@@ -131,6 +145,7 @@ const startServer = async () => {
       Logger.info(`Cache Prefix: ${cacheService.prefix}`);
       Logger.info(`Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'Enabled' : 'Disabled'}`);
       Logger.info(`Facebook OAuth: ${process.env.FACEBOOK_APP_ID ? 'Enabled' : 'Disabled'}`);
+      Logger.info(`OpenAI: ${process.env.OPENAI_API_KEY ? 'Enabled' : 'Disabled'}`);
     });
   } catch (error) {
     Logger.error('Failed to start server:', { error: error.message });
