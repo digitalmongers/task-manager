@@ -2,9 +2,10 @@ import CollaborationRepository from '../repositories/collaborationRepository.js'
 import TaskRepository from '../repositories/taskRepository.js';
 import TeamMember from '../models/TeamMember.js';
 import User from '../models/User.js';
+import EmailService from '../services/emailService.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
-import EmailService from '../services/emailService.js';
+import NotificationService from '../services/notificationService.js';
 import crypto from 'crypto';
 
 class CollaborationService {
@@ -161,6 +162,13 @@ class CollaborationService {
             await User.findById(ownerId)
           );
 
+          // Notification: Notify user of assignment/share
+          await NotificationService.notifyTaskAssigned(
+             task, 
+             teamMember.member, 
+             await User.findById(ownerId)
+          );
+
           results.push({
             email: teamMember.memberEmail,
             collaborator
@@ -232,7 +240,7 @@ class CollaborationService {
         throw ApiError.notFound('Invitation not found');
       }
 
-      // If already fully processed (accepted + user linked + collaborator created)
+      // If already fully processed
       if (invitation.status === 'accepted' && invitation.inviteeUser && userId) {
         const TaskCollaborator = (await import('../models/TaskCollaborator.js')).default;
         const existingCollab = await TaskCollaborator.findOne({
@@ -250,7 +258,7 @@ class CollaborationService {
         }
       }
 
-      // Check if expired (only if still pending)
+      // Check if expired
       if (invitation.status === 'pending' && invitation.isExpired) {
         invitation.status = 'expired';
         await invitation.save();
@@ -268,15 +276,11 @@ class CollaborationService {
       // Accept invitation
       await invitation.accept(userId || null);
 
-      // Create collaborator ONLY if user is authenticated
-      // If anonymous, we just mark invitation as accepted
-      // The user will be linked when they sign up (handled by AuthService.handlePendingInvitation)
       let collaborator = null;
       if (userId) {
         const TaskCollaborator = (await import('../models/TaskCollaborator.js')).default;
         const Task = (await import('../models/Task.js')).default;
         
-        // Get task to ensure we have the owner
         const taskId = invitation.task._id || invitation.task;
         const task = await Task.findById(taskId);
         
@@ -293,7 +297,7 @@ class CollaborationService {
         if (!collaborator) {
           collaborator = await TaskCollaborator.create({
             task: taskId,
-            taskOwner: task.user, // Use task.user from fetched task
+            taskOwner: task.user,
             collaborator: userId,
             role: invitation.role,
             status: 'active',
@@ -301,7 +305,6 @@ class CollaborationService {
             shareMessage: invitation.message,
           });
           
-          // Update task counts
           if (!task.isShared) {
             task.isShared = true;
             task.collaboratorCount = 1;
@@ -316,6 +319,29 @@ class CollaborationService {
           { path: 'collaborator', select: 'firstName lastName email avatar' },
           { path: 'sharedBy', select: 'firstName lastName' }
         ]);
+
+        // Notification: Notify owner that someone joined/accepted
+        const taskOwner = await User.findById(task.user);
+        if (taskOwner && userId.toString() !== taskOwner._id.toString()) {
+             const joiner = await User.findById(userId);
+             // We reuse notifyCollaboratorAdded but technically it messages the collaborator.
+             // We want to message the OWNER.
+             // Let's manually create a notification here for the owner using generic createNotification
+             await NotificationService.createNotification({
+                recipient: taskOwner._id,
+                sender: joiner._id,
+                type: 'task_collaborator_added',
+                title: '🤝 Collaborator Accepted',
+                message: `${joiner.firstName} ${joiner.lastName} accepted invitation to task "${task.title}"`,
+                relatedEntity: {
+                  entityType: 'Task',
+                  entityId: task._id
+                },
+                actionUrl: `/tasks/${task._id}`,
+                priority: 'medium',
+                metadata: { memberEmail: joiner.email }
+             });
+        }
       }
 
       Logger.logAuth('TASK_INVITATION_ACCEPTED', userId || 'anonymous', {
@@ -380,7 +406,7 @@ class CollaborationService {
    */
   async cancelInvitation(invitationId, userId) {
     try {
-      const invitation = await CollaborationRepository.findInvitationByToken(invitationId);
+      const invitation = await CollaborationRepository.findInvitationById(invitationId);
       
       if (!invitation) {
         throw ApiError.notFound('Invitation not found');

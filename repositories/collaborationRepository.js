@@ -49,6 +49,20 @@ class CollaborationRepository {
   }
 
   /**
+   * Find invitation by ID
+   */
+  async findInvitationById(invitationId) {
+    try {
+      return await TaskInvitation.findById(invitationId)
+        .populate('task')
+        .populate('inviter', 'firstName lastName email avatar');
+    } catch (error) {
+      Logger.error('Error finding invitation by ID', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
    * Get pending invitations for a task
    */
   async getTaskInvitations(taskId, status = 'pending') {
@@ -580,6 +594,20 @@ class CollaborationRepository {
       return invitation;
     } catch (error) {
       Logger.error('Error creating vital task invitation', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Find vital task invitation by ID
+   */
+  async findVitalTaskInvitationById(invitationId) {
+    try {
+      return await VitalTaskInvitation.findById(invitationId)
+        .populate('vitalTask')
+        .populate('inviter', 'firstName lastName email avatar');
+    } catch (error) {
+      Logger.error('Error finding vital task invitation by ID', { error: error.message });
       throw error;
     }
   }

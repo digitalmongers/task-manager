@@ -8,6 +8,7 @@ import cloudinary from '../config/cloudinary.js';
 import streamifier from 'streamifier';
 import CollaborationRepository from '../repositories/collaborationRepository.js';
 import Task from '../models/Task.js';
+import NotificationService from '../services/notificationService.js';
 
 class TaskService {
   /**
@@ -318,6 +319,21 @@ class TaskService {
         updatedFields: Object.keys(updateData),
       });
 
+      // Notification: Notify all team members (except updater)
+      // Get all collaborators including owner
+      const collaborators = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
+      const allMembers = collaborators.map(c => ({ member: c.collaborator }));
+      // Also add owner if not in collaborators list (though getTaskCollaborators might not include owner in 'collaborator' field depending on schema, but usually it does or we check task.user)
+      if (task.user && !allMembers.some(m => m.member._id.toString() === task.user.toString())) {
+         const ownerUser = await (await import('../models/User.js')).default.findById(task.user);
+         if (ownerUser) {
+           allMembers.push({ member: ownerUser });
+         }
+      }
+      
+      const updater = await (await import('../models/User.js')).default.findById(userId);
+      await NotificationService.notifyTaskUpdated(task, updater, allMembers, updateData);
+
       return {
         task,
         message: 'Task updated successfully',
@@ -358,6 +374,26 @@ class TaskService {
             error: error.message,
           });
         });
+      }
+
+      // Notification: Notify all collaborators (including owner if not deleter)
+      // We need to fetch collaborators BEFORE deleting them
+      let recipients = [];
+      if (task.isShared) {
+         const collaborators = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
+         recipients = collaborators.map(c => c.collaborator._id);
+      }
+      // Add owner if not deleter and not already in recipients
+      if (task.user && task.user.toString() !== userId.toString() && !recipients.some(id => id.toString() === task.user.toString())) {
+         recipients.push(task.user);
+      }
+      
+      const deleter = await (await import('../models/User.js')).default.findById(userId);
+      // Filter out deleter from recipients
+      recipients = recipients.filter(id => id.toString() !== userId.toString());
+      
+      if (recipients.length > 0) {
+        await NotificationService.notifyTaskDeleted(task.title, deleter, recipients);
       }
 
       // Delete all collaborations
@@ -424,6 +460,21 @@ class TaskService {
         taskId,
         isCompleted: task.isCompleted,
       });
+
+      // Notification: Notify collaborators if completed
+      if (task.isCompleted) {
+        // Fetch collaborators
+        const collaborators = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
+        const teamMembers = collaborators.map(c => ({ member: c.collaborator }));
+         // Add owner if needed
+        if (task.user && !teamMembers.some(m => m.member._id.toString() === task.user.toString())) {
+             const ownerUser = await (await import('../models/User.js')).default.findById(task.user);
+             if (ownerUser) teamMembers.push({ member: ownerUser });
+        }
+        
+        const completer = await (await import('../models/User.js')).default.findById(userId);
+        await NotificationService.notifyTaskCompleted(task, completer, teamMembers);
+      }
 
       return {
         task,
@@ -644,6 +695,19 @@ class TaskService {
       Logger.logAuth('TASK_RESTORED', userId, {
         taskId,
       });
+
+      // Notification: Notify restoration
+      // Determine recipients (Owner + Collaborators if they still exist/are valid? Collaborators were deleted on delete. So maybe only Owner?)
+      // Actually TaskService.restoreTask restores the Task document status. 
+      // Collaboration records were HARD deleted in deleteTask : `await TaskCollaborator.deleteMany({ task: taskId });`
+      // So no collaborators exist anymore! 
+      // We can only notify the Owner if the restorer is not the owner.
+      // If we wanted to restore collaborators, we should have soft-deleted them too. 
+      // Assuming naive implementation: Notify owner if different from restorer.
+      if (task.user && task.user.toString() !== userId.toString()) {
+         const restorer = await (await import('../models/User.js')).default.findById(userId);
+         await NotificationService.notifyTaskRestored(task, restorer, [task.user]);
+      }
 
       return {
         task,
