@@ -2,6 +2,9 @@ import TaskCollaborator from '../models/TaskCollaborator.js';
 import TaskInvitation from '../models/TaskInvitation.js';
 import TeamMember from '../models/TeamMember.js';
 import Task from '../models/Task.js';
+import VitalTaskCollaborator from '../models/VitalTaskCollaborator.js';
+import VitalTask from '../models/VitalTask.js';
+import VitalTaskInvitation from '../models/VitalTaskInvitation.js';
 import User from '../models/User.js';
 import Logger from '../config/logger.js';
 
@@ -371,6 +374,256 @@ class CollaborationRepository {
         .sort('-acceptedAt');
     } catch (error) {
       Logger.error('Error getting user teams', { error: error.message });
+      throw error;
+    }
+  }
+
+  // ========== VITAL TASK COLLABORATORS ==========
+  
+  /**
+   * Add collaborator to vital task
+   */
+  async addVitalTaskCollaborator(data) {
+    try {
+      const collaborator = await VitalTaskCollaborator.create(data);
+      await collaborator.populate([
+        { path: 'vitalTask' },
+        { path: 'collaborator', select: 'firstName lastName email avatar' },
+        { path: 'sharedBy', select: 'firstName lastName' }
+      ]);
+      
+      Logger.info('Vital task collaborator added', {
+        vitalTaskId: data.vitalTask,
+        collaboratorId: data.collaborator,
+        role: data.role,
+      });
+      
+      return collaborator;
+    } catch (error) {
+      Logger.error('Error adding vital task collaborator', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get vital task collaborators
+   */
+  async getVitalTaskCollaborators(vitalTaskId, status = 'active') {
+    try {
+      return await VitalTaskCollaborator.getVitalTaskCollaborators(vitalTaskId, status);
+    } catch (error) {
+      Logger.error('Error getting vital task collaborators', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's shared vital tasks
+   */
+  async getUserSharedVitalTasks(userId, status = 'active') {
+    try {
+      return await VitalTaskCollaborator.getUserSharedVitalTasks(userId, status);
+    } catch (error) {
+      Logger.error('Error getting user shared vital tasks', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Check if user can access vital task
+   */
+  async canUserAccessVitalTask(vitalTaskId, userId) {
+    try {
+      return await VitalTaskCollaborator.canUserAccessVitalTask(vitalTaskId, userId);
+    } catch (error) {
+      Logger.error('Error checking vital task access', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Update vital task collaborator role
+   */
+  async updateVitalTaskCollaboratorRole(vitalTaskId, collaboratorId, newRole) {
+    try {
+      const collaboration = await VitalTaskCollaborator.findOne({
+        vitalTask: vitalTaskId,
+        collaborator: collaboratorId,
+        status: 'active'
+      });
+      
+      if (!collaboration) return null;
+      
+      collaboration.role = newRole;
+      await collaboration.save();
+      
+      Logger.info('Vital task collaborator role updated', {
+        vitalTaskId,
+        collaboratorId,
+        newRole,
+      });
+      
+      return collaboration;
+    } catch (error) {
+      Logger.error('Error updating vital task collaborator role', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Remove collaborator from vital task
+   */
+  async removeVitalTaskCollaborator(vitalTaskId, collaboratorId) {
+    try {
+      const collaboration = await VitalTaskCollaborator.findOne({
+        vitalTask: vitalTaskId,
+        collaborator: collaboratorId,
+        status: 'active'
+      });
+      
+      if (!collaboration) return null;
+      
+      await collaboration.removeCollaborator();
+      
+      Logger.info('Vital task collaborator removed', {
+        vitalTaskId,
+        collaboratorId,
+      });
+      
+      return collaboration;
+    } catch (error) {
+      Logger.error('Error removing vital task collaborator', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Transfer vital task ownership
+   */
+  async transferVitalTaskOwnership(vitalTaskId, currentOwnerId, newOwnerId) {
+    try {
+      const vitalTask = await VitalTask.findOne({ _id: vitalTaskId, user: currentOwnerId });
+      if (!vitalTask) return null;
+
+      // Update vital task owner
+      vitalTask.user = newOwnerId;
+      await vitalTask.save();
+
+      // Update current owner to editor
+      const currentOwnerCollab = await VitalTaskCollaborator.findOne({
+        vitalTask: vitalTaskId,
+        collaborator: currentOwnerId
+      });
+      
+      if (currentOwnerCollab) {
+        currentOwnerCollab.role = 'editor';
+        await currentOwnerCollab.save();
+      } else {
+        await VitalTaskCollaborator.create({
+          vitalTask: vitalTaskId,
+          taskOwner: newOwnerId,
+          collaborator: currentOwnerId,
+          role: 'editor',
+          status: 'active',
+          sharedBy: newOwnerId,
+        });
+      }
+
+      // Update new owner to owner role
+      await VitalTaskCollaborator.updateOne(
+        { vitalTask: vitalTaskId, collaborator: newOwnerId },
+        { 
+          role: 'owner',
+          taskOwner: newOwnerId 
+        }
+      );
+
+      // Update all other collaborators' taskOwner field
+      await VitalTaskCollaborator.updateMany(
+        { vitalTask: vitalTaskId, collaborator: { $ne: newOwnerId } },
+        { taskOwner: newOwnerId }
+      );
+
+      Logger.info('Vital task ownership transferred', {
+        vitalTaskId,
+        from: currentOwnerId,
+        to: newOwnerId,
+      });
+
+      return vitalTask;
+    } catch (error) {
+      Logger.error('Error transferring vital task ownership', { error: error.message });
+      throw error;
+    }
+  }
+
+  // ========== VITAL TASK INVITATIONS ==========
+  
+  /**
+   * Create vital task invitation
+   */
+  async createVitalTaskInvitation(data) {
+    try {
+      const invitation = await VitalTaskInvitation.create(data);
+      await invitation.populate([
+        { path: 'vitalTask' },
+        { path: 'inviter', select: 'firstName lastName email avatar' },
+        { path: 'inviteeUser', select: 'firstName lastName email avatar' }
+      ]);
+      
+      Logger.info('Vital task invitation created', {
+        invitationId: invitation._id,
+        vitalTaskId: data.vitalTask,
+        inviteeEmail: data.inviteeEmail,
+      });
+      
+      return invitation;
+    } catch (error) {
+      Logger.error('Error creating vital task invitation', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Find vital task invitation by token
+   */
+  async findVitalTaskInvitationByToken(token) {
+    try {
+      return await VitalTaskInvitation.findByToken(token);
+    } catch (error) {
+      Logger.error('Error finding vital task invitation by token', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get pending invitations for a vital task
+   */
+  async getVitalTaskInvitations(vitalTaskId, status = 'pending') {
+    try {
+      return await VitalTaskInvitation.find({ vitalTask: vitalTaskId, status })
+        .populate('inviteeUser', 'firstName lastName email avatar')
+        .populate('inviter', 'firstName lastName')
+        .sort('-invitedAt');
+    } catch (error) {
+      Logger.error('Error getting vital task invitations', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel vital task invitation
+   */
+  async cancelVitalTaskInvitation(invitationId) {
+    try {
+      const invitation = await VitalTaskInvitation.findById(invitationId);
+      if (!invitation) return null;
+      
+      await invitation.cancel();
+      Logger.info('Vital task invitation cancelled', { invitationId });
+      return invitation;
+    } catch (error) {
+      Logger.error('Error cancelling vital task invitation', { error: error.message });
       throw error;
     }
   }
