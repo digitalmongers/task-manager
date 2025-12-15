@@ -12,8 +12,26 @@ import {
   createVitalTaskSchema,
   updateVitalTaskSchema,
 } from '../validators/vitalTask.validation.js';
+import { 
+  canAccessVitalTask, 
+  canEditVitalTask, 
+  canDeleteVitalTask 
+} from '../middlewares/vitalTaskPermissionMiddleware.js';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Rate limiter for vital task operations
+const vitalTaskLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10000, // 10000 requests per 5 minutes
+  message: {
+    success: false,
+    message: 'Too many vital task requests, please try again later',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Custom cache key generators for vital tasks
 const vitalTaskCacheKey = (req) => {
@@ -38,6 +56,7 @@ router.use(protect);
  */
 router.get(
   '/stats/me',
+  vitalTaskLimiter,
   cacheMiddleware({
     ttl: 300, // 5 minutes
     keyGenerator: (req) => `user:${req.user._id}:vital-tasks:stats`,
@@ -52,6 +71,7 @@ router.get(
  */
 router.post(
   '/',
+  vitalTaskLimiter,
   upload.single('image'),
   validate(createVitalTaskSchema),
   // Invalidate all vital task caches for this user
@@ -66,6 +86,7 @@ router.post(
  */
 router.get(
   '/',
+  vitalTaskLimiter,
   // Use custom cache key for list
   cacheMiddleware({
     ttl: 60, // 1 minute (tasks change frequently)
@@ -81,6 +102,8 @@ router.get(
  */
 router.get(
   '/:id',
+  vitalTaskLimiter,
+  canAccessVitalTask,
   // Use custom cache key for single item
   cacheMiddleware({
     ttl: 300, // 5 minutes
@@ -96,6 +119,8 @@ router.get(
  */
 router.patch(
   '/:id',
+  vitalTaskLimiter,
+  canEditVitalTask,
   upload.single('image'),
   validate(updateVitalTaskSchema),
   // Invalidate all caches for this user
@@ -110,6 +135,8 @@ router.patch(
  */
 router.delete(
   '/:id',
+  vitalTaskLimiter,
+  canDeleteVitalTask,
   // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
   asyncHandler(VitalTaskController.deleteVitalTask)
@@ -122,6 +149,8 @@ router.delete(
  */
 router.post(
   '/:id/toggle-complete',
+  vitalTaskLimiter,
+  canEditVitalTask,
   // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
   asyncHandler(VitalTaskController.toggleComplete)
@@ -139,6 +168,8 @@ router.post(
  */
 router.delete(
   '/:id/image',
+  vitalTaskLimiter,
+  canEditVitalTask,
   // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
   asyncHandler(VitalTaskController.deleteVitalTaskImage)
@@ -151,6 +182,8 @@ router.delete(
  */
 router.post(
   '/:id/restore',
+  vitalTaskLimiter,
+  canAccessVitalTask,
   // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
   asyncHandler(VitalTaskController.restoreVitalTask)
@@ -163,6 +196,8 @@ router.post(
  */
 router.post(
   '/:id/convert-to-regular',
+  vitalTaskLimiter,
+  canDeleteVitalTask,
   // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
   asyncHandler(VitalTaskController.convertToRegularTask)

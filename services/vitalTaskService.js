@@ -6,6 +6,8 @@ import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import cloudinary from '../config/cloudinary.js';
 import streamifier from 'streamifier';
+import CollaborationRepository from '../repositories/collaborationRepository.js';
+import VitalTask from '../models/VitalTask.js';
 
 class VitalTaskService {
   /**
@@ -89,15 +91,74 @@ class VitalTaskService {
   }
 
   /**
-   * Get all vital tasks for user with filters
+   * Get all vital tasks for user with filters (owned + shared)
    */
   async getAllVitalTasks(userId, filters = {}) {
     try {
-      const result = await VitalTaskRepository.findByUser(userId, {}, filters);
+      // Get owned vital tasks
+      const ownedTasksResult = await VitalTaskRepository.findByUser(userId, {}, filters);
+      
+      // Get shared vital tasks (vital tasks where user is collaborator)
+      const sharedTasks = await VitalTask.getSharedTasks(userId);
+      
+      // Apply filters to shared tasks if needed
+      let filteredSharedTasks = sharedTasks;
+      if (filters.category) {
+        filteredSharedTasks = sharedTasks.filter(t => 
+          t.category && t.category._id.toString() === filters.category
+        );
+      }
+      if (filters.status) {
+        filteredSharedTasks = filteredSharedTasks.filter(t => 
+          t.status && t.status._id.toString() === filters.status
+        );
+      }
+      if (filters.priority) {
+        filteredSharedTasks = filteredSharedTasks.filter(t => 
+          t.priority && t.priority._id.toString() === filters.priority
+        );
+      }
+      if (filters.isCompleted !== undefined) {
+        const completed = filters.isCompleted === 'true' || filters.isCompleted === true;
+        filteredSharedTasks = filteredSharedTasks.filter(t => t.isCompleted === completed);
+      }
+
+      // Combine both lists
+      const allTasks = [
+        ...ownedTasksResult.vitalTasks.map(task => ({
+          ...task.toObject(),
+          isOwner: true,
+          userRole: 'owner',
+        })),
+        ...filteredSharedTasks.map(task => ({
+          ...task,
+          isOwner: false,
+        }))
+      ];
+
+      // Sort by most recent
+      allTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      // Apply pagination
+      const page = parseInt(filters.page) || 1;
+      const limit = parseInt(filters.limit) || 10;
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedTasks = allTasks.slice(startIndex, endIndex);
 
       return {
-        vitalTasks: result.vitalTasks,
-        pagination: result.pagination,
+        vitalTasks: paginatedTasks,
+        pagination: {
+          total: allTasks.length,
+          page,
+          limit,
+          pages: Math.ceil(allTasks.length / limit),
+        },
+        stats: {
+          owned: ownedTasksResult.vitalTasks.length,
+          shared: filteredSharedTasks.length,
+          total: allTasks.length,
+        }
       };
     } catch (error) {
       Logger.error('Error in getAllVitalTasks service', {
@@ -113,13 +174,54 @@ class VitalTaskService {
    */
   async getVitalTaskById(userId, taskId) {
     try {
-      const vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      // First check if user owns the vital task
+      let vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      let isOwner = true;
+      let userRole = 'owner';
+
+      // If not owner, check if user is collaborator
+      if (!vitalTask) {
+        const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
+        
+        if (!access.canAccess) {
+          throw ApiError.notFound('Vital task not found or you do not have access');
+        }
+
+        // User is collaborator, fetch vital task
+        vitalTask = await VitalTask.findById(taskId)
+          .populate('category', 'title color')
+          .populate('status', 'name color')
+          .populate('priority', 'name color')
+          .populate('user', 'firstName lastName email avatar');
+        
+        isOwner = false;
+        userRole = access.role;
+      }
 
       if (!vitalTask) {
         throw ApiError.notFound('Vital task not found');
       }
 
-      return { vitalTask };
+      // Get collaborators if vital task is shared
+      let collaborators = [];
+      if (vitalTask.isShared) {
+        const collabs = await CollaborationRepository.getVitalTaskCollaborators(taskId, 'active');
+        collaborators = collabs.map(c => ({
+          _id: c._id,
+          user: c.collaborator,
+          role: c.role,
+          addedAt: c.createdAt,
+        }));
+      }
+
+      return { 
+        vitalTask: {
+          ...vitalTask.toObject(),
+          isOwner,
+          userRole,
+          collaborators,
+        }
+      };
     } catch (error) {
       Logger.error('Error in getVitalTaskById service', {
         error: error.message,
@@ -135,61 +237,85 @@ class VitalTaskService {
    */
   async updateVitalTask(userId, taskId, updateData, file) {
     try {
-      // Check if vital task exists and belongs to user
-      const existingVitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      // Check access permission
+      let vitalTask;
+      const ownedTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      
+      if (ownedTask) {
+        vitalTask = ownedTask;
+      } else {
+        // Check collaborator access
+        const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
+        if (!access.canAccess || access.role === 'viewer') {
+          throw ApiError.forbidden('You do not have permission to edit this vital task');
+        }
+        vitalTask = await VitalTask.findById(taskId);
+      }
 
-      if (!existingVitalTask) {
+      if (!vitalTask) {
         throw ApiError.notFound('Vital task not found');
       }
 
-      // Verify category belongs to user (if being updated)
+      // Verify category belongs to task owner (if being updated)
       if (updateData.category) {
         const categoryExists = await CategoryRepository.findByIdAndUser(
           updateData.category,
-          userId
+          vitalTask.user
         );
         if (!categoryExists) {
-          throw ApiError.badRequest('Invalid category or category does not belong to you');
+          throw ApiError.badRequest('Invalid category or category does not belong to task owner');
         }
       }
 
-      // Verify status belongs to user (if being updated)
+      // Verify status belongs to task owner (if being updated)
       if (updateData.status) {
         const statusExists = await TaskStatusRepository.findByIdAndUser(
           updateData.status,
-          userId
+          vitalTask.user
         );
         if (!statusExists) {
-          throw ApiError.badRequest('Invalid status or status does not belong to you');
+          throw ApiError.badRequest('Invalid status or status does not belong to task owner');
         }
       }
 
-      // Verify priority belongs to user (if being updated)
+      // Verify priority belongs to task owner (if being updated)
       if (updateData.priority) {
         const priorityExists = await TaskPriorityRepository.findByIdAndUser(
           updateData.priority,
-          userId
+          vitalTask.user
         );
         if (!priorityExists) {
-          throw ApiError.badRequest('Invalid priority or priority does not belong to you');
+          throw ApiError.badRequest('Invalid priority or priority does not belong to task owner');
         }
       }
 
       // Update vital task
-      let updatedVitalTask = await VitalTaskRepository.updateVitalTask(taskId, userId, updateData);
+      Object.assign(vitalTask, updateData);
+      await vitalTask.save();
+      
+      // Populate
+      await vitalTask.populate([
+        { path: 'category', select: 'title color' },
+        { path: 'status', select: 'name color' },
+        { path: 'priority', select: 'name color' },
+      ]);
 
       // Handle image upload if file exists
       if (file) {
-        updatedVitalTask = await this.handleImageUpload(userId, taskId, file);
+        await this.handleImageUpload(userId, taskId, file);
+        vitalTask = await VitalTask.findById(taskId)
+          .populate('category', 'title color')
+          .populate('status', 'name color')
+          .populate('priority', 'name color');
       }
 
       Logger.logAuth('VITAL_TASK_UPDATED', userId, {
-        vitalTaskId: updatedVitalTask._id,
+        vitalTaskId: vitalTask._id,
         updatedFields: Object.keys(updateData),
       });
 
       return {
-        vitalTask: updatedVitalTask,
+        vitalTask,
         message: 'Vital task updated successfully',
       };
     } catch (error) {
@@ -203,15 +329,15 @@ class VitalTaskService {
   }
 
   /**
-   * Delete vital task
+   * Delete vital task (only owner can delete)
    */
   async deleteVitalTask(userId, taskId) {
     try {
-      // Check if vital task exists and belongs to user
+      // Only owner can delete vital task
       const vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
 
       if (!vitalTask) {
-        throw ApiError.notFound('Vital task not found');
+        throw ApiError.notFound('Vital task not found or you do not have permission to delete');
       }
 
       // Delete image from cloudinary if exists
@@ -223,6 +349,12 @@ class VitalTaskService {
             error: error.message,
           });
         });
+      }
+
+      // Delete all collaborations
+      if (vitalTask.isShared) {
+        const VitalTaskCollaborator = (await import('../models/VitalTaskCollaborator.js')).default;
+        await VitalTaskCollaborator.deleteMany({ vitalTask: taskId });
       }
 
       // Soft delete vital task
@@ -251,10 +383,33 @@ class VitalTaskService {
    */
   async toggleComplete(userId, taskId) {
     try {
-      const vitalTask = await VitalTaskRepository.toggleComplete(taskId, userId);
+      // Try as owner first
+      let vitalTask = await VitalTaskRepository.toggleComplete(taskId, userId);
 
+      // If not owner, check collaborator access
       if (!vitalTask) {
-        throw ApiError.notFound('Vital task not found');
+        const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
+        if (!access.canAccess || access.role === 'viewer') {
+          throw ApiError.forbidden('You do not have permission to modify this vital task');
+        }
+        
+        // Fetch and toggle manually
+        vitalTask = await VitalTask.findById(taskId);
+        if (!vitalTask) {
+          throw ApiError.notFound('Vital task not found');
+        }
+        
+        if (vitalTask.isCompleted) {
+          await vitalTask.markIncomplete();
+        } else {
+          await vitalTask.markComplete();
+        }
+        
+        await vitalTask.populate([
+          { path: 'category', select: 'title color' },
+          { path: 'status', select: 'name color' },
+          { path: 'priority', select: 'name color' },
+        ]);
       }
 
       Logger.logAuth('VITAL_TASK_COMPLETION_TOGGLED', userId, {
@@ -281,7 +436,17 @@ class VitalTaskService {
    */
   async handleImageUpload(userId, taskId, file) {
     try {
-      const vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      // Check access
+      const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
+      const isOwner = access.isOwner;
+      
+      let vitalTask;
+      if (isOwner) {
+        vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      } else {
+        const VitalTask = (await import('../models/VitalTask.js')).default;
+        vitalTask = await VitalTask.findById(taskId);
+      }
 
       // Delete old image if exists
       if (vitalTask.image?.publicId) {
@@ -315,10 +480,20 @@ class VitalTaskService {
       });
 
       // Update vital task with new image
-      const updatedVitalTask = await VitalTaskRepository.updateVitalTaskImage(taskId, userId, {
-        url: uploadResult.secure_url,
-        publicId: uploadResult.public_id,
-      });
+      let updatedVitalTask;
+      if (isOwner) {
+        updatedVitalTask = await VitalTaskRepository.updateVitalTaskImage(taskId, userId, {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+        });
+      } else {
+        vitalTask.image = {
+          url: uploadResult.secure_url,
+          publicId: uploadResult.public_id,
+        };
+        await vitalTask.save();
+        updatedVitalTask = vitalTask;
+      }
 
       return updatedVitalTask;
     } catch (error) {
@@ -331,7 +506,19 @@ class VitalTaskService {
    */
   async deleteVitalTaskImage(userId, taskId) {
     try {
-      const vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      // Check access
+      const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
+      
+      let vitalTask;
+      if (access.isOwner) {
+        vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      } else {
+        if (access.role === 'viewer') {
+          throw ApiError.forbidden('You do not have permission to modify this vital task');
+        }
+        const VitalTask = (await import('../models/VitalTask.js')).default;
+        vitalTask = await VitalTask.findById(taskId);
+      }
 
       if (!vitalTask) {
         throw ApiError.notFound('Vital task not found');
@@ -345,7 +532,19 @@ class VitalTaskService {
       await cloudinary.uploader.destroy(vitalTask.image.publicId);
 
       // Update vital task
-      const updatedVitalTask = await VitalTaskRepository.deleteVitalTaskImage(taskId, userId);
+      let updatedVitalTask;
+      if (access.isOwner) {
+        updatedVitalTask = await VitalTaskRepository.deleteVitalTaskImage(taskId, userId);
+      } else {
+        vitalTask.image = { url: null, publicId: null };
+        await vitalTask.save();
+        await vitalTask.populate([
+          { path: 'category', select: 'title color' },
+          { path: 'status', select: 'name color' },
+          { path: 'priority', select: 'name color' },
+        ]);
+        updatedVitalTask = vitalTask;
+      }
 
       Logger.logAuth('VITAL_TASK_IMAGE_DELETED', userId, {
         vitalTaskId: taskId,

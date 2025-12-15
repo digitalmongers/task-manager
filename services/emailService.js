@@ -2579,6 +2579,578 @@ async sendTaskSharedNotification(task, teamMember, owner) {
   });
 }
 
+// ========== VITAL TASK EMAIL TEMPLATES ==========
+
+/**
+ * Send vital task invitation email
+ */
+async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
+  const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
+  const acceptUrl = `${frontendUrl}/vital-task-collaborations/accept/${invitation.invitationToken}`;
+  const declineUrl = `${frontendUrl}/vital-task-collaborations/decline/${invitation.invitationToken}`;
+  
+  const roleDescriptions = {
+    owner: 'Full control - manage vital task, invite others, delete',
+    editor: 'Edit vital task details, change status',
+    assignee: 'Edit vital task and receive assignment notifications',
+    viewer: 'View vital task details only (read-only access)'
+  };
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Vital Task Collaboration Invitation</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 650px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+          }
+          .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.95;
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .inviter-info {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+          }
+          .inviter-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            margin-right: 15px;
+          }
+          .inviter-details h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+            font-size: 18px;
+          }
+          .inviter-details p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+          }
+          .task-card {
+            background: #ffffff;
+            border: 2px solid #dc2626;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+          }
+          .task-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 15px 0;
+          }
+          .vital-badge {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            margin-left: 10px;
+          }
+          .task-description {
+            color: #555;
+            line-height: 1.8;
+            margin: 15px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+          }
+          .task-meta {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+          }
+          .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #6c757d;
+            font-size: 14px;
+          }
+          .role-badge {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+            margin: 15px 0;
+          }
+          .role-description {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+          }
+          .role-description p {
+            margin: 0;
+            color: #991b1b;
+            font-size: 14px;
+          }
+          .message-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .message-box p {
+            margin: 5px 0;
+            color: #856404;
+            font-style: italic;
+          }
+          .button-container {
+            text-align: center;
+            margin: 30px 0;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+          }
+          .button {
+            display: inline-block;
+            padding: 15px 40px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: transform 0.2s;
+          }
+          .button-accept {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white !important;
+          }
+          .button-decline {
+            background: #6c757d;
+            color: white !important;
+          }
+          .button:hover {
+            transform: translateY(-2px);
+          }
+          .expires-warning {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .expires-warning p {
+            margin: 0;
+            color: #991b1b;
+            font-size: 14px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 13px; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔴 Vital Task Collaboration Invitation</h1>
+            <p>You've been invited to collaborate on a vital task</p>
+          </div>
+          
+          <div class="content">
+            <div class="inviter-info">
+              <div class="inviter-avatar">
+                ${inviter.firstName.charAt(0)}${inviter.lastName?.charAt(0) || ''}
+              </div>
+              <div class="inviter-details">
+                <h3>${inviter.firstName} ${inviter.lastName || ''}</h3>
+                <p>${inviter.email}</p>
+                <p style="color: #dc2626; font-weight: 600; margin-top: 5px;">wants to collaborate with you</p>
+              </div>
+            </div>
+
+            <div class="task-card">
+              <div class="task-title">
+                🔴 ${vitalTask.title}
+                <span class="vital-badge">VITAL</span>
+              </div>
+              
+              ${vitalTask.description ? `
+                <div class="task-description">
+                  ${vitalTask.description}
+                </div>
+              ` : ''}
+
+              <div class="task-meta">
+                ${vitalTask.dueDate ? `
+                  <div class="meta-item">
+                    <span>📅</span>
+                    <span>Due: ${new Date(vitalTask.dueDate).toLocaleDateString()}</span>
+                  </div>
+                ` : ''}
+                ${vitalTask.category ? `
+                  <div class="meta-item">
+                    <span>🏷️</span>
+                    <span>${vitalTask.category.title || 'Categorized'}</span>
+                  </div>
+                ` : ''}
+                ${vitalTask.priority ? `
+                  <div class="meta-item">
+                    <span>⚡</span>
+                    <span>${vitalTask.priority.name || 'Priority Set'}</span>
+                  </div>
+                ` : ''}
+              </div>
+
+              <div style="margin-top: 20px;">
+                <div>You're being invited as:</div>
+                <div class="role-badge">${invitation.role}</div>
+              </div>
+
+              <div class="role-description">
+                <p><strong>📌 Your Permissions:</strong> ${roleDescriptions[invitation.role]}</p>
+              </div>
+            </div>
+
+            ${invitation.message ? `
+              <div class="message-box">
+                <p><strong>💬 Personal message from ${inviter.firstName}:</strong></p>
+                <p>"${invitation.message}"</p>
+              </div>
+            ` : ''}
+
+            <div class="button-container">
+              <a href="${acceptUrl}" class="button button-accept">✓ Accept Invitation</a>
+              <a href="${declineUrl}" class="button button-decline">✗ Decline</a>
+            </div>
+
+            <div class="expires-warning">
+              <p><strong>⏰ Important:</strong> This invitation will expire on ${new Date(invitation.expiresAt).toLocaleDateString()} at ${new Date(invitation.expiresAt).toLocaleTimeString()}</p>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid #e9ecef;">
+              <p style="color: #6c757d; font-size: 14px; margin: 0;">
+                Don't have an account? You'll be able to create one when you accept this invitation.
+              </p>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p>This invitation was sent to ${invitation.inviteeEmail}</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Vital Task Collaboration Invitation
+    
+    ${inviter.firstName} ${inviter.lastName || ''} (${inviter.email}) has invited you to collaborate on a vital task.
+    
+    Vital Task: ${vitalTask.title}
+    ${vitalTask.description ? `Description: ${vitalTask.description}` : ''}
+    
+    Your Role: ${invitation.role}
+    Permissions: ${roleDescriptions[invitation.role]}
+    
+    ${invitation.message ? `Personal message: "${invitation.message}"` : ''}
+    
+    Accept invitation: ${acceptUrl}
+    Decline invitation: ${declineUrl}
+    
+    This invitation expires on ${new Date(invitation.expiresAt).toLocaleString()}
+    
+    ---
+    Taaskr
+    © ${new Date().getFullYear()}
+  `;
+
+  return await this.sendEmail({
+    to: invitation.inviteeEmail,
+    subject: `🔴 ${inviter.firstName} invited you to collaborate on vital task: "${vitalTask.title}"`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send vital task shared notification
+ */
+async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
+  const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
+  const vitalTaskUrl = `${frontendUrl}/vital-tasks/${vitalTask._id}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Vital Task Shared With You</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 650px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .task-card {
+            background: #ffffff;
+            border: 2px solid #dc2626;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+          }
+          .vital-badge {
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-left: 10px;
+          }
+          .button {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 20px 0;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 13px; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔴 Vital Task Shared With You</h1>
+          </div>
+          
+          <div class="content">
+            <p>Hello ${collaborator.firstName},</p>
+            <p>${owner.firstName} ${owner.lastName || ''} has shared a vital task with you.</p>
+
+            <div class="task-card">
+              <h2>
+                ${vitalTask.title}
+                <span class="vital-badge">VITAL</span>
+              </h2>
+              ${vitalTask.description ? `<p>${vitalTask.description}</p>` : ''}
+            </div>
+
+            <div style="text-align: center;">
+              <a href="${vitalTaskUrl}" class="button">View Vital Task</a>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Vital Task Shared With You
+
+    Hello ${collaborator.firstName},
+
+    ${owner.firstName} ${owner.lastName || ''} has shared a vital task with you.
+
+    Vital Task: ${vitalTask.title}
+    ${vitalTask.description ? `Description: ${vitalTask.description}` : ''}
+
+    View vital task: ${vitalTaskUrl}
+
+    ---
+    Taaskr
+    © ${new Date().getFullYear()}
+  `;
+
+  return await this.sendEmail({
+    to: collaborator.email,
+    subject: `🔴 ${owner.firstName} shared a vital task with you: "${vitalTask.title}"`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send vital task collaborator removed notification
+ */
+async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remover) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Removed from Vital Task</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 650px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center; 
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 13px; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Removed from Vital Task</h1>
+          </div>
+          
+          <div class="content">
+            <p>Hello ${removedUser.firstName},</p>
+            <p>${remover.firstName} ${remover.lastName || ''} has removed you from the vital task: <strong>"${vitalTask.title}"</strong></p>
+            <p>You no longer have access to this vital task.</p>
+          </div>
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Removed from Vital Task
+
+    Hello ${removedUser.firstName},
+
+    ${remover.firstName} ${remover.lastName || ''} has removed you from the vital task: "${vitalTask.title}"
+
+    You no longer have access to this vital task.
+
+    ---
+    Taaskr
+    © ${new Date().getFullYear()}
+  `;
+
+  return await this.sendEmail({
+    to: removedUser.email,
+    subject: `Removed from vital task: "${vitalTask.title}"`,
+    html,
+    text,
+  });
+}
+
 }
 
 export default new EmailService();

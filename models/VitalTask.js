@@ -134,6 +134,37 @@ const vitalTaskSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
+    // Shareable link token
+    shareToken: {
+      type: String,
+      unique: true,
+      sparse: true,
+      select: false,
+    },
+
+    shareTokenExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
+
+    // Track if vital task is shared
+    isShared: {
+      type: Boolean,
+      default: false,
+    },
+
+    // Count of active collaborators
+    collaboratorCount: {
+      type: Number,
+      default: 0,
+    },
+    // Shared with team members (for quick lookup)
+    sharedWithTeam: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,
@@ -149,6 +180,7 @@ vitalTaskSchema.index({ user: 1, status: 1 });
 vitalTaskSchema.index({ user: 1, priority: 1 });
 vitalTaskSchema.index({ user: 1, isCompleted: 1 });
 vitalTaskSchema.index({ user: 1, createdAt: -1 });
+vitalTaskSchema.index({ shareToken: 1, shareTokenExpires: 1 });
 
 // ========== VIRTUALS ==========
 vitalTaskSchema.virtual('isOverdue').get(function() {
@@ -198,6 +230,31 @@ vitalTaskSchema.methods.markIncomplete = function() {
   return this.save();
 };
 
+vitalTaskSchema.methods.hasValidShareLink = function() {
+  return this.shareToken && this.shareTokenExpires && new Date() < this.shareTokenExpires;
+};
+
+vitalTaskSchema.methods.addCollaborator = function() {
+  if (!this.isShared) {
+    this.isShared = true;
+    this.collaboratorCount = 1;
+  } else {
+    this.collaboratorCount += 1;
+  }
+  return this.save();
+};
+
+vitalTaskSchema.methods.removeCollaborator = function() {
+  if (this.collaboratorCount > 0) {
+    this.collaboratorCount -= 1;
+  }
+  if (this.collaboratorCount === 0) {
+    this.isShared = false;
+    this.sharedWithTeam = false;
+  }
+  return this.save();
+};
+
 // ========== STATIC METHODS ==========
 vitalTaskSchema.statics.findByUser = function(userId, filters = {}) {
   const query = { user: userId, isDeleted: false };
@@ -224,6 +281,43 @@ vitalTaskSchema.statics.countByStatus = async function(statusId) {
 
 vitalTaskSchema.statics.countByPriority = async function(priorityId) {
   return this.countDocuments({ priority: priorityId, isDeleted: false });
+};
+
+vitalTaskSchema.statics.findByShareToken = function(token) {
+  return this.findOne({
+    shareToken: token,
+    shareTokenExpires: { $gt: new Date() },
+  }).populate([
+    { path: 'category', select: 'title color' },
+    { path: 'status', select: 'name color' },
+    { path: 'priority', select: 'name color' },
+    { path: 'user', select: 'firstName lastName email avatar' },
+  ]);
+};
+
+// Get vital tasks shared with user (as collaborator)
+vitalTaskSchema.statics.getSharedTasks = async function(userId) {
+  const VitalTaskCollaborator = mongoose.model('VitalTaskCollaborator');
+  
+  const collaborations = await VitalTaskCollaborator.find({
+    collaborator: userId,
+    status: 'active'
+  }).populate({
+    path: 'vitalTask',
+    populate: [
+      { path: 'category', select: 'title color' },
+      { path: 'status', select: 'name color' },
+      { path: 'priority', select: 'name color' },
+      { path: 'user', select: 'firstName lastName email avatar' }
+    ]
+  });
+  
+  return collaborations.map(c => ({
+    ...c.vitalTask.toObject(),
+    userRole: c.role,
+    sharedBy: c.taskOwner,
+    sharedAt: c.createdAt
+  }));
 };
 
 const VitalTask = mongoose.model('VitalTask', vitalTaskSchema);

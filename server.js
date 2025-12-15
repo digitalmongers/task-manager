@@ -27,6 +27,7 @@ import taskRoutes from "./routes/taskRoutes.js";
 import vitalTaskRoutes from "./routes/vitalTaskRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
 import collaborationRoutes from "./routes/collaborationRoutes.js";
+import vitalTaskCollaborationRoutes from "./routes/vitalTaskCollaborationRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import { testConnection as testOpenAI } from './config/openai.js';
 
@@ -117,6 +118,7 @@ app.use("/api/task", taskRoutes);
 app.use("/api/vital-tasks", vitalTaskRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/collaboration", collaborationRoutes);
+app.use("/api/vital-task-collaboration", vitalTaskCollaborationRoutes);
 app.use("/api/ai", aiRoutes);
 
 // 404 handler (must be after all routes)
