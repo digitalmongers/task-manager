@@ -678,7 +678,7 @@ class VitalTaskCollaborationService {
       vitalTask.shareTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await vitalTask.save();
 
-      const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
+      const frontendUrl = (process.env.REDIRECT_URL || process.env.FRONTEND_URL).split(',')[0].trim();
       const shareLink = `${frontendUrl}/vital-tasks/shared/${shareToken}`;
 
       return {
@@ -736,6 +736,11 @@ class VitalTaskCollaborationService {
         vitalTaskId: vitalTask._id,
         shareToken,
       });
+
+      // Notification: Notify owner
+      const owner = await User.findById(vitalTask.user._id || vitalTask.user);
+      const acceptor = await User.findById(userId);
+      await NotificationService.notifyCollaboratorAdded(vitalTask, owner, acceptor, true);
 
       return {
         vitalTask,

@@ -665,7 +665,7 @@ class CollaborationService {
       task.shareTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       await task.save();
 
-      const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
+      const frontendUrl = (process.env.REDIRECT_URL || process.env.FRONTEND_URL).split(',')[0].trim();
       const shareLink = `${frontendUrl}/tasks/shared/${shareToken}`;
 
       return {
@@ -724,6 +724,11 @@ class CollaborationService {
         taskId: task._id,
         shareToken,
       });
+
+      // Notification: Notify owner
+      const owner = await User.findById(task.user);
+      const acceptor = await User.findById(userId);
+      await NotificationService.notifyCollaboratorAdded(task, owner, acceptor);
 
       return {
         task,
