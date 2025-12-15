@@ -3,6 +3,8 @@ import User from '../models/User.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import EmailService from '../services/emailService.js';
+import NotificationService from '../services/notificationService.js';
+
 
 class TeamService {
   /**
@@ -199,6 +201,14 @@ class TeamService {
 
       await teamMember.removeMember(ownerId);
 
+      // Notification: Notify removed member
+      const remover = await User.findById(ownerId);
+      const removedMember = await User.findById(teamMember.member);
+      // We need teamMember populated or we pass ownerId as team identifier
+      // teamMember.owner is an ObjectId.
+      // notifyTeamMemberRemoved expects: (teamMemberDoc, removedUserDoc, removerUserDoc)
+      await NotificationService.notifyTeamMemberRemoved(teamMember, removedMember, remover);
+
       Logger.logAuth('TEAM_MEMBER_REMOVED', ownerId, {
         memberId,
         email: teamMember.memberEmail,
@@ -232,6 +242,11 @@ class TeamService {
       await teamMember.save();
 
       await teamMember.populate('member', 'firstName lastName email avatar');
+
+      // Notification: Notify member of role update
+      const updater = await User.findById(ownerId);
+      // teamMember.member is populated now
+      await NotificationService.notifyTeamRoleUpdated(teamMember, teamMember.member, updater);
 
       Logger.logAuth('TEAM_MEMBER_ROLE_UPDATED', ownerId, {
         memberId,

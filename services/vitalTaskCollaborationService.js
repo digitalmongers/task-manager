@@ -7,6 +7,7 @@ import VitalTaskCollaborator from '../models/VitalTaskCollaborator.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import EmailService from '../services/emailService.js';
+import NotificationService from '../services/notificationService.js';
 import crypto from 'crypto';
 
 class VitalTaskCollaborationService {
@@ -163,6 +164,10 @@ class VitalTaskCollaborationService {
             await User.findById(ownerId)
           );
 
+          // Notification: Real-time notification
+          const assigner = await User.findById(ownerId);
+          await NotificationService.notifyVitalTaskAssigned(vitalTask, teamMember.member, assigner);
+
           results.push({
             email: teamMember.memberEmail,
             collaborator
@@ -318,6 +323,17 @@ class VitalTaskCollaborationService {
         vitalTaskId: invitation.vitalTask._id || invitation.vitalTask,
       });
 
+      // Notification: Notify owner that someone accepted invitation (if userid exists)
+      if (userId) {
+         const vitalTaskId = invitation.vitalTask._id || invitation.vitalTask;
+         const vitalTask = await (await import('../models/VitalTask.js')).default.findById(vitalTaskId);
+         if (vitalTask) {
+             const owner = await User.findById(vitalTask.user);
+             const acceptor = await User.findById(userId);
+             await NotificationService.notifyCollaboratorAdded(vitalTask, owner, acceptor, true); // true for isVitalTask
+         }
+      }
+
       return {
         vitalTask: invitation.vitalTask,
         collaborator,
@@ -375,7 +391,7 @@ class VitalTaskCollaborationService {
    */
   async cancelInvitation(invitationId, userId) {
     try {
-      const invitation = await CollaborationRepository.findVitalTaskInvitationByToken(invitationId);
+      const invitation = await CollaborationRepository.findVitalTaskInvitationById(invitationId);
       
       if (!invitation) {
         throw ApiError.notFound('Invitation not found');
@@ -486,24 +502,25 @@ class VitalTaskCollaborationService {
    */
   async removeCollaborator(vitalTaskId, collaboratorId, userId) {
     try {
+      // Fetch collaborator first
+      const collaboration = await CollaborationRepository.findVitalTaskCollaborator(vitalTaskId, collaboratorId);
+      
+      if (!collaboration) {
+        throw ApiError.notFound('Collaborator not found');
+      }
+
       // Check permission - owner or the collaborator themselves
       const access = await CollaborationRepository.canUserAccessVitalTask(vitalTaskId, userId);
       
-      const isSelf = userId.toString() === collaboratorId.toString();
+      const targetUserId = collaboration.collaborator._id.toString();
+      const isSelf = userId.toString() === targetUserId;
       const canRemove = access.role === 'owner' || isSelf;
       
       if (!canRemove) {
         throw ApiError.forbidden('You do not have permission to remove this collaborator');
       }
 
-      const collaboration = await CollaborationRepository.removeVitalTaskCollaborator(
-        vitalTaskId,
-        collaboratorId
-      );
-
-      if (!collaboration) {
-        throw ApiError.notFound('Collaborator not found');
-      }
+      await collaboration.removeCollaborator();
 
       // Update vital task counts
       const vitalTask = await VitalTask.findById(vitalTaskId);
@@ -517,7 +534,7 @@ class VitalTaskCollaborationService {
 
       // Send notification if removed by owner
       if (!isSelf) {
-        const removedUser = await User.findById(collaboratorId);
+        const removedUser = collaboration.collaborator;
         const remover = await User.findById(userId);
         
         await EmailService.sendVitalTaskCollaboratorRemovedNotification(
@@ -525,6 +542,9 @@ class VitalTaskCollaborationService {
           removedUser,
           remover
         );
+
+        // Notification: Notify removed collaborator
+        await NotificationService.notifyCollaboratorRemoved(vitalTask, removedUser, remover, true);
       }
 
       return {
@@ -532,6 +552,47 @@ class VitalTaskCollaborationService {
       };
     } catch (error) {
       Logger.error('Error removing vital task collaborator', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Update collaborator role
+   */
+  async updateCollaboratorRole(vitalTaskId, collaboratorId, newRole, userId) {
+    try {
+      // Check permission - only owner can change roles
+      const access = await CollaborationRepository.canUserAccessVitalTask(vitalTaskId, userId);
+      if (!access.canAccess || access.role !== 'owner') {
+        throw ApiError.forbidden('Only vital task owner can change collaborator roles');
+      }
+
+      const collaboration = await CollaborationRepository.updateVitalTaskCollaboratorRole(
+        vitalTaskId,
+        collaboratorId,
+        newRole
+      );
+
+      if (!collaboration) {
+        throw ApiError.notFound('Collaborator not found');
+      }
+
+      // Notification: Notify collaborator of role update
+      // reusing notifyCollaboratorAdded with specific message or create new generic method? 
+      // Plan didn't specify Role Update for VitalTaskCollaborator but it's good to have.
+      // NotificationService doesn't have specific 'vital_task_collaborator_role_updated'
+      // We can skip or add if strict. User asked for "secure role based". 
+      // Let's Skip explicit role update notification for now to save complexity/tokens as it wasn't explicitly asked, 
+      // or just rely on generic sync. 
+      // Actually, let's reuse 'notifyCollaboratorAdded' logic but we don't have a distinct type.
+      // For now, I will leave it as is to avoid adding unverified types.
+
+      return {
+        collaboration,
+        message: 'Collaborator role updated',
+      };
+    } catch (error) {
+      Logger.error('Error updating vital task collaborator role', { error: error.message });
       throw error;
     }
   }

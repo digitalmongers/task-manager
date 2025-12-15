@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import { createServer } from "http";
 import cors from "cors";
 import compression from "compression";
 import responseTime from "response-time";
@@ -8,6 +9,7 @@ import passport from './config/passport.js';
 import { connectDB } from "./config/db.js";
 import redisClient from "./config/redis.js";
 import cacheService from "./services/cacheService.js";
+import WebSocketService from "./config/websocket.js";
 import Logger from "./config/logger.js";
 import ApiResponse from "./utils/ApiResponse.js";
 import { applySecurity, corsOptions } from "./middlewares/security.js";
@@ -28,11 +30,16 @@ import vitalTaskRoutes from "./routes/vitalTaskRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
 import collaborationRoutes from "./routes/collaborationRoutes.js";
 import vitalTaskCollaborationRoutes from "./routes/vitalTaskCollaborationRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import { testConnection as testOpenAI } from './config/openai.js';
 
 
 const app = express();
+const httpServer = createServer(app);
+
+// Initialize WebSocket server
+WebSocketService.initialize(httpServer);
 
 app.set('trust proxy', 1);
 
@@ -119,6 +126,7 @@ app.use("/api/vital-tasks", vitalTaskRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api/collaboration", collaborationRoutes);
 app.use("/api/vital-task-collaboration", vitalTaskCollaborationRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/ai", aiRoutes);
 
 // 404 handler (must be after all routes)
@@ -139,12 +147,17 @@ const startServer = async () => {
     // Test OpenAI connection
     await testOpenAI();
 
-    app.listen(PORT, () => {
+    // Initialize Cron Jobs
+    const CronService = (await import('./services/cronService.js')).default;
+    CronService.init();
+
+    httpServer.listen(PORT, () => {
       Logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
       Logger.info(`Health check: http://localhost:${PORT}/health`);
       Logger.info(`Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
       Logger.info(`Redis Status: ${redisClient.status}`);
       Logger.info(`Cache Prefix: ${cacheService.prefix}`);
+      Logger.info(`WebSocket: Enabled`);
       Logger.info(`Google OAuth: ${process.env.GOOGLE_CLIENT_ID ? 'Enabled' : 'Disabled'}`);
       Logger.info(`Facebook OAuth: ${process.env.FACEBOOK_APP_ID ? 'Enabled' : 'Disabled'}`);
       Logger.info(`OpenAI: ${process.env.OPENAI_API_KEY ? 'Enabled' : 'Disabled'}`);

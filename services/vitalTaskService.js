@@ -8,6 +8,7 @@ import cloudinary from '../config/cloudinary.js';
 import streamifier from 'streamifier';
 import CollaborationRepository from '../repositories/collaborationRepository.js';
 import VitalTask from '../models/VitalTask.js';
+import NotificationService from '../services/notificationService.js';
 
 class VitalTaskService {
   /**
@@ -351,6 +352,23 @@ class VitalTaskService {
         });
       }
 
+      // Notification: Notify all collaborators (including owner if not deleter)
+      let recipients = [];
+      if (vitalTask.isShared) {
+         const collaborators = await CollaborationRepository.getVitalTaskCollaborators(taskId, 'active');
+         recipients = collaborators.map(c => c.collaborator._id);
+      }
+      if (vitalTask.user && vitalTask.user.toString() !== userId.toString() && !recipients.some(id => id.toString() === vitalTask.user.toString())) {
+         recipients.push(vitalTask.user);
+      }
+      
+      const deleter = await (await import('../models/User.js')).default.findById(userId);
+      recipients = recipients.filter(id => id.toString() !== userId.toString());
+      
+      if (recipients.length > 0) {
+        await NotificationService.notifyVitalTaskDeleted(vitalTask.title, deleter, recipients);
+      }
+
       // Delete all collaborations
       if (vitalTask.isShared) {
         const VitalTaskCollaborator = (await import('../models/VitalTaskCollaborator.js')).default;
@@ -416,6 +434,22 @@ class VitalTaskService {
         vitalTaskId: taskId,
         isCompleted: vitalTask.isCompleted,
       });
+
+      // Notification: Notify collaborators if completed
+      if (vitalTask.isCompleted) {
+        // Fetch collaborators
+        const collaborators = await CollaborationRepository.getVitalTaskCollaborators(taskId, 'active');
+        const teamMembers = collaborators.map(c => ({ member: c.collaborator }));
+        
+        // Add owner if needed
+        if (vitalTask.user && !teamMembers.some(m => m.member._id.toString() === vitalTask.user.toString())) {
+             const ownerUser = await (await import('../models/User.js')).default.findById(vitalTask.user);
+             if (ownerUser) teamMembers.push({ member: ownerUser });
+        }
+        
+        const completer = await (await import('../models/User.js')).default.findById(userId);
+        await NotificationService.notifyVitalTaskCompleted(vitalTask, completer, teamMembers);
+      }
 
       return {
         vitalTask,
@@ -597,6 +631,12 @@ class VitalTaskService {
       Logger.logAuth('VITAL_TASK_RESTORED', userId, {
         vitalTaskId: taskId,
       });
+
+      // Notification: Notify restoration (To Owner only as collaborators generated during collaboration are hard deleted)
+      if (vitalTask.user && vitalTask.user.toString() !== userId.toString()) {
+         const restorer = await (await import('../models/User.js')).default.findById(userId);
+         await NotificationService.notifyVitalTaskRestored(vitalTask, restorer, [vitalTask.user]);
+      }
 
       return {
         vitalTask,
