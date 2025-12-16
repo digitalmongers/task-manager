@@ -140,6 +140,19 @@ router.delete(
   asyncHandler(AuthController.deleteAvatar.bind(AuthController))
 );
 
+// Export user data
+router.get(
+  "/export-data",
+  protect,
+  // Rate limit specifically for heavy export operations (e.g., 5 per hour)
+  rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    message: { success: false, message: "Too many export requests, please try again later" }
+  }),
+  asyncHandler(AuthController.exportUserData.bind(AuthController))
+);
+
 // Change password (authenticated users)
 router.post(
   "/change-password",

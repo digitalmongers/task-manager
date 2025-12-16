@@ -3,6 +3,8 @@ import WebSocketService from '../config/websocket.js';
 import Logger from '../config/logger.js';
 import TeamMember from '../models/TeamMember.js';
 
+const CLIENT_URL = process.env.REDIRECT_URL || process.env.FRONTEND_URL?.split(',')[0] || 'http://localhost:3000';
+
 class NotificationService {
   /**
    * Create and send notification
@@ -171,7 +173,7 @@ class NotificationService {
       title: '🎉 New Team Member Joined',
       message: `${newMember.firstName} ${newMember.lastName} has joined your team`,
       team: teamMember._id,
-      actionUrl: `/teams/${teamMember._id}`,
+      actionUrl: `/teams/${teamMember.owner}`,
       priority: 'high',
       metadata: {
         memberEmail: newMember.email,
@@ -196,7 +198,7 @@ class NotificationService {
       title: '👋 Team Member Left',
       message: `${leftMember.firstName} ${leftMember.lastName} has left the team`,
       team: teamMember._id,
-      actionUrl: `/teams/${teamMember._id}`,
+      actionUrl: `/teams/${teamMember.owner}`,
       priority: 'medium',
     }));
 
@@ -219,7 +221,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `/tasks/${task._id}`,
+      actionUrl: `${CLIENT_URL}/user`,
       priority: task.priority?.name === 'High' ? 'high' : 'medium',
       metadata: {
         taskTitle: task.title,
@@ -250,7 +252,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `/tasks/${task._id}`,
+      actionUrl: `${CLIENT_URL}/user`,
       priority: 'low',
       metadata: {
         taskTitle: task.title,
@@ -281,7 +283,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `/tasks/${task._id}`,
+      actionUrl: `${CLIENT_URL}/user`,
       priority: 'medium',
       metadata: {
         taskTitle: task.title,
@@ -305,7 +307,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `/tasks/${task._id}`,
+      actionUrl: `${CLIENT_URL}/user`,
       priority: 'high',
       metadata: {
         taskTitle: task.title,
@@ -331,7 +333,7 @@ class NotificationService {
         entityType: 'VitalTask',
         entityId: vitalTask._id,
       },
-      actionUrl: `/vital-tasks/${vitalTask._id}`,
+      actionUrl: `${CLIENT_URL}/user/vital`,
       priority: 'urgent',
       metadata: {
         taskTitle: vitalTask.title,
@@ -362,7 +364,7 @@ class NotificationService {
         entityType: 'VitalTask',
         entityId: vitalTask._id,
       },
-      actionUrl: `/vital-tasks/${vitalTask._id}`,
+      actionUrl: `${CLIENT_URL}/user/vital`,
       priority: 'high',
       metadata: {
         taskTitle: vitalTask.title,
@@ -389,7 +391,7 @@ class NotificationService {
         entityType: isVitalTask ? 'VitalTask' : 'Task',
         entityId: task._id,
       },
-      actionUrl: isVitalTask ? `/vital-tasks/${task._id}` : `/tasks/${task._id}`,
+      actionUrl: isVitalTask ? `${CLIENT_URL}/vital-tasks/${task._id}` : `${CLIENT_URL}/tasks/${task._id}`,
       priority: isVitalTask ? 'high' : 'medium',
       metadata: {
         taskTitle: task.title,
@@ -411,6 +413,7 @@ class NotificationService {
         entityType: isVitalTask ? 'VitalTask' : 'Task',
         entityId: task._id,
       },
+      actionUrl: isVitalTask ? `${CLIENT_URL}/user/vital` : `${CLIENT_URL}/user`,
       priority: 'medium',
       metadata: {
         taskTitle: task.title,
@@ -483,7 +486,7 @@ class NotificationService {
       title: '👮 Team Role Updated',
       message: `${updater.firstName} updated your role to "${teamMember.role}"`,
       team: teamMember.owner,
-      actionUrl: `/teams/${teamMember.owner}`,
+      actionUrl: `${CLIENT_URL}/user`,
       priority: 'medium',
       metadata: {
         newRole: teamMember.role,
@@ -524,7 +527,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `/tasks/${task._id}`,
+      actionUrl: `${CLIENT_URL}/user`,
       priority: 'medium',
     }));
 
@@ -545,7 +548,7 @@ class NotificationService {
         entityType: 'VitalTask',
         entityId: vitalTask._id,
       },
-      actionUrl: `/vital-tasks/${vitalTask._id}`,
+      actionUrl: `${CLIENT_URL}/user/vital`,
       priority: 'high',
     }));
 
@@ -566,7 +569,7 @@ class NotificationService {
         entityType: 'VitalTask',
         entityId: vitalTask._id,
       },
-      actionUrl: `/vital-tasks/${vitalTask._id}`,
+      actionUrl: `${CLIENT_URL}/user/vital`,
       priority: 'urgent',
       metadata: {
         taskTitle: vitalTask.title,
@@ -587,6 +590,7 @@ class NotificationService {
       title: '🗑️ Vital Task Deleted',
       message: `${deletedBy.firstName} deleted vital task: "${taskTitle}"`,
       priority: 'high',
+      actionUrl: `${CLIENT_URL}/user/vital`,
       metadata: {
         taskTitle: taskTitle,
       },
@@ -609,7 +613,7 @@ class NotificationService {
         entityType: 'VitalTask',
         entityId: vitalTask._id,
       },
-      actionUrl: `/vital-tasks/${vitalTask._id}`,
+      actionUrl: `${CLIENT_URL}/user/vital`,
       priority: 'high',
     }));
 

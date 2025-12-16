@@ -4,6 +4,7 @@ import ApiError from "../utils/ApiError.js";
 import { HTTP_STATUS } from "../config/constants.js";
 import passport from "../config/passport.js";
 import Logger from "../config/logger.js";
+import ExportService from "../services/exportService.js";
 
 class AuthController {
 
@@ -417,6 +418,20 @@ class AuthController {
     );
 
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
+  }
+
+  /**
+   * Export all user data to PDF
+   * GET /api/auth/export-data
+   */
+  async exportUserData(req, res) {
+    const userId = req.user._id;
+
+    // Set headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=user-data-${Date.now()}.pdf`);
+
+    await ExportService.generateUserDataPdf(userId, res);
   }
 }
 
