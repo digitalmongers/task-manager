@@ -165,6 +165,19 @@ const vitalTaskSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+
+    // Review Workflow
+    reviewRequestedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    
+    reviewRequestedAt: {
+      type: Date,
+      default: null,
+      index: true, // Useful for sorting pending reviews
+    },
   },
   {
     timestamps: true,
@@ -186,6 +199,10 @@ vitalTaskSchema.index({ shareToken: 1, shareTokenExpires: 1 });
 vitalTaskSchema.virtual('isOverdue').get(function() {
   if (!this.dueDate || this.isCompleted) return false;
   return new Date() > this.dueDate;
+});
+
+vitalTaskSchema.virtual('isUnderReview').get(function() {
+  return !!(this.reviewRequestedBy && !this.isCompleted);
 });
 
 // ========== MIDDLEWARE ==========
@@ -268,6 +285,7 @@ vitalTaskSchema.statics.findByUser = function(userId, filters = {}) {
     .populate('category', 'title color')
     .populate('status', 'name color')
     .populate('priority', 'name color')
+    .populate('reviewRequestedBy', 'firstName lastName email avatar')
     .sort(filters.sort || '-createdAt');
 };
 
@@ -308,7 +326,8 @@ vitalTaskSchema.statics.getSharedTasks = async function(userId) {
       { path: 'category', select: 'title color' },
       { path: 'status', select: 'name color' },
       { path: 'priority', select: 'name color' },
-      { path: 'user', select: 'firstName lastName email avatar' }
+      { path: 'user', select: 'firstName lastName email avatar' },
+      { path: 'reviewRequestedBy', select: 'firstName lastName email avatar' }
     ]
   });
   

@@ -140,6 +140,17 @@ class TaskService {
         }))
       ];
 
+      // Populate reviewRequestedBy for all tasks manually or ensure repository does it
+      // Since repository returns Mongoose docs (usually) or plain objects depending on implementation.
+      // sharedTasks already mapped. ownedTasksResult comes from repo. 
+      // It's cleaner to ensure the repository populates it, OR we populate it here if the docs are still mongoose documents.
+      // But ownedTasksResult.tasks might be docs.
+      // Let's modify the response construction to ensure the field is present if populated.
+      // Actually, standard `findByUser` in repo likely doesn't populate `reviewRequestedBy`.
+      // We should probably rely on the fact that `TaskRepository.findByUser` uses `Task.findByUser` static method?
+      // Let's check `Task.findByUser` in models/Task.js.
+
+
       // Sort by most recent
       allTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -197,7 +208,9 @@ class TaskService {
           .populate('category', 'title color')
           .populate('status', 'name color')
           .populate('priority', 'name color')
-          .populate('user', 'firstName lastName email avatar');
+          .populate('priority', 'name color')
+          .populate('user', 'firstName lastName email avatar')
+          .populate('reviewRequestedBy', 'firstName lastName email avatar');
         
         isOwner = false;
         userRole = access.role;
@@ -255,6 +268,15 @@ class TaskService {
           throw ApiError.forbidden('You do not have permission to edit this task');
         }
         task = await Task.findById(taskId);
+      
+        if (updateData.isCompleted) {
+           if (access.role === 'viewer' || access.role === 'assignee') {
+               throw ApiError.forbidden('You cannot complete this task directly. Please request a review.');
+           }
+           // If completing, clear review flags
+           task.reviewRequestedBy = null;
+           task.reviewRequestedAt = null;
+        }
       }
 
       if (!task) {
@@ -433,7 +455,7 @@ class TaskService {
       // If not owner, check collaborator access
       if (!task) {
         const access = await CollaborationRepository.canUserAccessTask(taskId, userId);
-        if (!access.canAccess || access.role === 'viewer') {
+        if (access.role === 'viewer') {
           throw ApiError.forbidden('You do not have permission to modify this task');
         }
         
@@ -444,9 +466,25 @@ class TaskService {
         }
         
         if (task.isCompleted) {
+          // If already completed, anyone with edit access (editor/owner) can uncomplete?
+          // Requirement says specific workflow for completion. Let's assume uncompletion is less strict or restricted to editors/owners too?
+          // For consistency with "Viewer/Assignee cannot mark as complete", we should probably restrict them from changing completion status at all?
+          // "viewer or assignee direct task complete mark ni kr skta" -> implies they can't toggle from false to true.
+          // What about true to false? Safest to restrict both for Assignee/Viewer if they are only supposed to "Request Review".
+          if (access.role === 'assignee') {
+               throw ApiError.forbidden('You cannot change completion status directly. Please request a review.');
+          }
           await task.markIncomplete();
         } else {
+          // Attempting to mark complete
+           if (access.role === 'assignee') {
+               throw ApiError.forbidden('You cannot complete this task directly. Please request a review.');
+           }
           await task.markComplete();
+          // Clear review flags
+          task.reviewRequestedBy = null;
+          task.reviewRequestedAt = null;
+          await task.save();
         }
         
         await task.populate([
@@ -768,6 +806,66 @@ class TaskService {
       };
     } catch (error) {
       Logger.error('Error in convertToVitalTask service', {
+        error: error.message,
+        userId,
+        taskId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Request review for a task
+   */
+  async requestTaskReview(taskId, userId) {
+    try {
+      const access = await CollaborationRepository.canUserAccessTask(taskId, userId);
+      
+      // Only Viewer and Assignee need to request review. 
+      // Owner and Editor can just complete it.
+      if (!access.canAccess) {
+         throw ApiError.notFound('Task not found or you do not have access');
+      }
+
+      const task = await Task.findById(taskId);
+      if (!task) throw ApiError.notFound('Task not found');
+      
+      if (task.isCompleted) {
+        throw ApiError.badRequest('Task is already completed');
+      }
+
+      // Update task with review request
+      task.reviewRequestedBy = userId;
+      task.reviewRequestedAt = new Date();
+      await task.save();
+
+      // Notify Owner and Editors
+      // Get all collaborators with role 'editor'
+      const collaborators = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
+      const editors = collaborators.filter(c => c.role === 'editor').map(c => c.collaborator._id);
+      
+      const recipients = [...editors];
+      
+      // Add Owner
+      if (task.user && !recipients.some(id => id.toString() === task.user.toString())) {
+         recipients.push(task.user);
+      }
+      
+      // Filter out requester
+      const finalRecipients = recipients.filter(id => id.toString() !== userId.toString());
+
+      if (finalRecipients.length > 0) {
+         const requester = await (await import('../models/User.js')).default.findById(userId);
+         await NotificationService.notifyTaskReviewRequested(task, requester, finalRecipients);
+      }
+
+      return {
+        message: 'Review requested successfully',
+        task
+      };
+
+    } catch (error) {
+      Logger.error('Error in requestTaskReview service', {
         error: error.message,
         userId,
         taskId,

@@ -173,4 +173,14 @@ router.post(
   asyncHandler(TaskController.convertToVitalTask.bind(TaskController))
 );
 
+// ========== REQUEST REVIEW ==========
+router.post(
+  '/:id/review',
+  taskLimiter,
+  canAccessTask, 
+  validate(taskValidation.getTask), // Reusing getTask validation as it just checks params.id
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.requestReview.bind(TaskController))
+);
+
 export default router;

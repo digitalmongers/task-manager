@@ -291,6 +291,30 @@ class NotificationService {
     return this.createBulkNotifications(notifications);
   }
 
+  /**
+   * Notify when review is requested for a task
+   */
+  async notifyTaskReviewRequested(task, requester, recipients) {
+    const notifications = recipients.map(recipientId => ({
+      recipient: recipientId,
+      sender: requester._id,
+      type: 'task_review_requested',
+      title: '👀 Review Requested',
+      message: `${requester.firstName} requested review for task: "${task.title}"`,
+      relatedEntity: {
+        entityType: 'Task',
+        entityId: task._id,
+      },
+      actionUrl: `/tasks/${task._id}`,
+      priority: 'high',
+      metadata: {
+        taskTitle: task.title,
+      },
+    }));
+
+    return this.createBulkNotifications(notifications);
+  }
+
   // ========== VITAL TASK NOTIFICATIONS ==========
 
   /**
@@ -523,6 +547,30 @@ class NotificationService {
       },
       actionUrl: `/vital-tasks/${vitalTask._id}`,
       priority: 'high',
+    }));
+
+    return this.createBulkNotifications(notifications);
+  }
+
+  /**
+   * Notify when review is requested for a vital task
+   */
+  async notifyVitalTaskReviewRequested(vitalTask, requester, recipients) {
+    const notifications = recipients.map(recipientId => ({
+      recipient: recipientId,
+      sender: requester._id,
+      type: 'vital_task_review_requested',
+      title: '👀 Vital Task Review Requested',
+      message: `${requester.firstName} requested review for VITAL task: "${vitalTask.title}"`,
+      relatedEntity: {
+        entityType: 'VitalTask',
+        entityId: vitalTask._id,
+      },
+      actionUrl: `/vital-tasks/${vitalTask._id}`,
+      priority: 'urgent',
+      metadata: {
+        taskTitle: vitalTask.title,
+      },
     }));
 
     return this.createBulkNotifications(notifications);

@@ -64,6 +64,7 @@ class TaskRepository {
         .populate('category', 'title color')
         .populate('status', 'name color')
         .populate('priority', 'name color')
+        .populate('reviewRequestedBy', 'firstName lastName email avatar')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit));
@@ -106,7 +107,8 @@ class TaskRepository {
       })
         .populate('category', 'title color')
         .populate('status', 'name color')
-        .populate('priority', 'name color');
+        .populate('priority', 'name color')
+        .populate('reviewRequestedBy', 'firstName lastName email avatar');
 
       if (!task) {
         Logger.warn('Task not found or unauthorized', {

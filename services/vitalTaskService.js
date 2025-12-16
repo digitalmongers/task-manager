@@ -193,7 +193,9 @@ class VitalTaskService {
           .populate('category', 'title color')
           .populate('status', 'name color')
           .populate('priority', 'name color')
-          .populate('user', 'firstName lastName email avatar');
+          .populate('priority', 'name color')
+          .populate('user', 'firstName lastName email avatar')
+          .populate('reviewRequestedBy', 'firstName lastName email avatar');
         
         isOwner = false;
         userRole = access.role;
@@ -247,10 +249,19 @@ class VitalTaskService {
       } else {
         // Check collaborator access
         const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
-        if (!access.canAccess || access.role === 'viewer') {
+        if (access.role === 'viewer') {
           throw ApiError.forbidden('You do not have permission to edit this vital task');
         }
         vitalTask = await VitalTask.findById(taskId);
+
+        if (updateData.isCompleted) {
+           if (access.role === 'viewer' || access.role === 'assignee') {
+               throw ApiError.forbidden('You cannot complete this vital task directly. Please request a review.');
+           }
+           // If completing, clear review flags
+           vitalTask.reviewRequestedBy = null;
+           vitalTask.reviewRequestedAt = null;
+        }
       }
 
       if (!vitalTask) {
@@ -407,7 +418,7 @@ class VitalTaskService {
       // If not owner, check collaborator access
       if (!vitalTask) {
         const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
-        if (!access.canAccess || access.role === 'viewer') {
+        if (access.role === 'viewer') {
           throw ApiError.forbidden('You do not have permission to modify this vital task');
         }
         
@@ -418,9 +429,19 @@ class VitalTaskService {
         }
         
         if (vitalTask.isCompleted) {
+           if (access.role === 'assignee') {
+               throw ApiError.forbidden('You cannot change completion status directly. Please request a review.');
+           }
           await vitalTask.markIncomplete();
         } else {
+           if (access.role === 'assignee') {
+               throw ApiError.forbidden('You cannot complete this vital task directly. Please request a review.');
+           }
           await vitalTask.markComplete();
+          // Clear review flags
+          vitalTask.reviewRequestedBy = null;
+          vitalTask.reviewRequestedAt = null;
+          await vitalTask.save();
         }
         
         await vitalTask.populate([
@@ -697,6 +718,63 @@ class VitalTaskService {
       };
     } catch (error) {
       Logger.error('Error in convertToRegularTask service', {
+        error: error.message,
+        userId,
+        taskId,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Request review for a vital task
+   */
+  async requestReview(taskId, userId) {
+    try {
+      const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
+      
+      if (!access.canAccess) {
+         throw ApiError.notFound('Vital task not found or you do not have access');
+      }
+
+      const vitalTask = await VitalTask.findById(taskId);
+      if (!vitalTask) throw ApiError.notFound('Vital task not found');
+      
+      if (vitalTask.isCompleted) {
+        throw ApiError.badRequest('Vital task is already completed');
+      }
+
+      // Update vital task with review request
+      vitalTask.reviewRequestedBy = userId;
+      vitalTask.reviewRequestedAt = new Date();
+      await vitalTask.save();
+
+      // Notify Owner and Editors
+      const collaborators = await CollaborationRepository.getVitalTaskCollaborators(taskId, 'active');
+      const editors = collaborators.filter(c => c.role === 'editor').map(c => c.collaborator._id);
+      
+      const recipients = [...editors];
+      
+      // Add Owner
+      if (vitalTask.user && !recipients.some(id => id.toString() === vitalTask.user.toString())) {
+         recipients.push(vitalTask.user);
+      }
+      
+      // Filter out requester
+      const finalRecipients = recipients.filter(id => id.toString() !== userId.toString());
+
+      if (finalRecipients.length > 0) {
+         const requester = await (await import('../models/User.js')).default.findById(userId);
+         await NotificationService.notifyVitalTaskReviewRequested(vitalTask, requester, finalRecipients);
+      }
+
+      return {
+        message: 'Review requested successfully',
+        vitalTask
+      };
+
+    } catch (error) {
+      Logger.error('Error in requestReview service', {
         error: error.message,
         userId,
         taskId,

@@ -218,6 +218,21 @@ class TaskController {
       vitalTask: result.vitalTask,
     });
   }
+
+  /**
+   * Request review for a task
+   * POST /api/tasks/:id/review
+   */
+  async requestReview(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await TaskService.requestTaskReview(taskId, userId);
+
+    ApiResponse.success(res, 200, result.message, {
+      task: result.task,
+    });
+  }
 }
 
 export default new TaskController();

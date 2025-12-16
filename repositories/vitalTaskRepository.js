@@ -56,6 +56,7 @@ class VitalTaskRepository {
         .populate('category', 'title color')
         .populate('status', 'name color')
         .populate('priority', 'name color')
+        .populate('reviewRequestedBy', 'firstName lastName email avatar')
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
@@ -80,7 +81,8 @@ class VitalTaskRepository {
     return VitalTask.findOne({ _id: taskId, user: userId, isDeleted: false })
       .populate('category', 'title color')
       .populate('status', 'name color')
-      .populate('priority', 'name color');
+      .populate('priority', 'name color')
+      .populate('reviewRequestedBy', 'firstName lastName email avatar');
   }
 
   /**

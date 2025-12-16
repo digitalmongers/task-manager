@@ -203,4 +203,19 @@ router.post(
   asyncHandler(VitalTaskController.convertToRegularTask)
 );
 
+
+/**
+ * @route   POST /api/vital-tasks/:id/review
+ * @desc    Request review for vital task
+ * @access  Private
+ */
+router.post(
+  '/:id/review',
+  vitalTaskLimiter,
+  canAccessVitalTask,
+  // Invalidate all caches for this user
+  invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
+  asyncHandler(VitalTaskController.requestReview)
+);
+
 export default router;

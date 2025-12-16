@@ -165,6 +165,18 @@ const taskSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+
+    // Review Workflow
+    reviewRequestedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    
+    reviewRequestedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -186,6 +198,10 @@ taskSchema.index({ shareToken: 1, shareTokenExpires: 1 });
 taskSchema.virtual('isOverdue').get(function() {
   if (!this.dueDate || this.isCompleted) return false;
   return new Date() > this.dueDate;
+});
+
+taskSchema.virtual('isUnderReview').get(function() {
+  return !!(this.reviewRequestedBy && !this.isCompleted);
 });
 
 // ========== MIDDLEWARE ==========
@@ -270,6 +286,7 @@ taskSchema.statics.findByUser = function(userId, filters = {}) {
     .populate('category', 'title color')
     .populate('status', 'name color')
     .populate('priority', 'name color')
+    .populate('reviewRequestedBy', 'firstName lastName email avatar')
     .sort(filters.sort || '-createdAt');
 };
 
@@ -310,7 +327,8 @@ taskSchema.statics.getSharedTasks = async function(userId) {
       { path: 'category', select: 'title color' },
       { path: 'status', select: 'name color' },
       { path: 'priority', select: 'name color' },
-      { path: 'user', select: 'firstName lastName email avatar' }
+      { path: 'user', select: 'firstName lastName email avatar' },
+      { path: 'reviewRequestedBy', select: 'firstName lastName email avatar' }
     ]
   });
   

@@ -56,7 +56,13 @@ const notificationSchema = new mongoose.Schema(
         // Invitation notifications
         'task_invitation_received',
         'vital_task_invitation_received',
+        'task_invitation_received',
+        'vital_task_invitation_received',
         'team_invitation_received',
+        
+        // Review notifications
+        'task_review_requested',
+        'vital_task_review_requested',
       ],
       required: true,
       index: true,
