@@ -2586,8 +2586,8 @@ async sendTaskSharedNotification(task, teamMember, owner) {
  */
 async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
   const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
-  const acceptUrl = `${frontendUrl}/vital-task-collaborations/accept/${invitation.invitationToken}`;
-  const declineUrl = `${frontendUrl}/vital-task-collaborations/decline/${invitation.invitationToken}`;
+  const acceptUrl = `${frontendUrl}/vitalcollaborations/accept/${invitation.invitationToken}`;
+  const declineUrl = `${frontendUrl}/vitalcollaborations/decline/${invitation.invitationToken}`;
   
   const roleDescriptions = {
     owner: 'Full control - manage vital task, invite others, delete',
@@ -2929,7 +2929,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
  */
 async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
   const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
-  const vitalTaskUrl = `${frontendUrl}/vital-tasks/${vitalTask._id}`;
+  const vitalTaskUrl = `${frontendUrl}/vitaltasks/${vitalTask._id}`;
 
   const html = `
     <!DOCTYPE html>
