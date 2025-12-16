@@ -314,12 +314,14 @@ taskSchema.statics.getSharedTasks = async function(userId) {
     ]
   });
   
-  return collaborations.map(c => ({
-    ...c.task.toObject(),
-    userRole: c.role,
-    sharedBy: c.taskOwner,
-    sharedAt: c.createdAt
-  }));
+  return collaborations
+    .filter(c => c.task)
+    .map(c => ({
+      ...c.task.toObject(),
+      userRole: c.role,
+      sharedBy: c.taskOwner,
+      sharedAt: c.createdAt
+    }));
 };
 
 

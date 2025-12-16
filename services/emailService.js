@@ -321,7 +321,7 @@ class EmailService {
               
               <div class="feature">
                 <strong>✓ Create and manage tasks</strong>
-                <p>Organize your work efficiently with our intuitive task management system.</p>
+                <p>Organize your work efficiently with our intuitive Tasskr.</p>
               </div>
               
               <div class="feature">
