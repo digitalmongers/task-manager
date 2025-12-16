@@ -667,6 +667,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>✅ Password Changed Successfully</h1>
           </div>
           <div class="content">
@@ -2043,6 +2044,7 @@ async sendTaskInvitation(invitation, task, inviter) {
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>🤝 Task Collaboration Invitation</h1>
             <p>You've been invited to collaborate on a task</p>
           </div>
@@ -2398,6 +2400,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>👥 Team Invitation</h1>
             <p>Join a collaborative workspace</p>
           </div>
