@@ -679,7 +679,7 @@ class VitalTaskCollaborationService {
       await vitalTask.save();
 
       const frontendUrl = (process.env.REDIRECT_URL || process.env.FRONTEND_URL).split(',')[0].trim();
-      const shareLink = `${frontendUrl}/vital-tasks/shared/${shareToken}`;
+      const shareLink = `${frontendUrl}/user/vital/${shareToken}`;
 
       return {
         shareLink,

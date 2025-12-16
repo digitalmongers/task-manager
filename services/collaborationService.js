@@ -666,7 +666,7 @@ class CollaborationService {
       await task.save();
 
       const frontendUrl = (process.env.REDIRECT_URL || process.env.FRONTEND_URL).split(',')[0].trim();
-      const shareLink = `${frontendUrl}/tasks/shared/${shareToken}`;
+      const shareLink = `${frontendUrl}/user/tasks/${shareToken}`;
 
       return {
         shareLink,

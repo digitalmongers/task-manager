@@ -1,5 +1,34 @@
 import sgMail from '@sendgrid/mail';
 import Logger from '../config/logger.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Read logo file for embedding
+const logoPath = path.join(__dirname, '../public/task.ico');
+let logoAttachment = null;
+
+try {
+  if (fs.existsSync(logoPath)) {
+    const logoContent = fs.readFileSync(logoPath).toString('base64');
+    logoAttachment = {
+      content: logoContent,
+      filename: 'task.ico',
+      type: 'image/x-icon',
+      disposition: 'inline',
+      content_id: 'tasskr_logo'
+    };
+  } else {
+    Logger.warn('Logo file not found at ' + logoPath);
+  }
+} catch (error) {
+  Logger.error('Failed to read logo file:', error);
+}
+
+const LOGO_URL = 'cid:tasskr_logo';
 
 class EmailService {
   constructor() {
@@ -21,11 +50,12 @@ class EmailService {
         to,
         from: {
           email: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM,
-          name: process.env.SENDGRID_FROM_NAME || 'Taaskr',
+          name: process.env.SENDGRID_FROM_NAME || 'Tasskr',
         },
         subject,
         text,
         html,
+        attachments: logoAttachment ? [logoAttachment] : [],
       };
 
       const response = await sgMail.send(msg);
@@ -87,7 +117,7 @@ class EmailService {
               box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             }
             .header { 
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white; 
               padding: 40px 30px; 
               text-align: center; 
@@ -117,7 +147,7 @@ class EmailService {
             .button { 
               display: inline-block; 
               padding: 15px 40px; 
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white !important; 
               text-decoration: none; 
               border-radius: 5px; 
@@ -140,7 +170,7 @@ class EmailService {
               font-size: 14px;
             }
             .link-box a {
-              color: #667eea;
+              color: #FF6B6B;
               text-decoration: none;
             }
             .warning { 
@@ -168,11 +198,12 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h1>🎉 Welcome to Taaskr!</h1>
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>🎉 Welcome to Tasskr!</h1>
             </div>
             <div class="content">
               <h2>Hello ${user.firstName} ${user.lastName},</h2>
-              <p>Thank you for registering with Taaskr. To complete your registration and start using our platform, please verify your email address by clicking the button below.</p>
+              <p>Thank you for registering with Tasskr. To complete your registration and start using our platform, please verify your email address by clicking the button below.</p>
               
               <div class="button-container">
                 <a href="${verificationUrl}" class="button">Verify Email Address</a>
@@ -184,13 +215,13 @@ class EmailService {
               </div>
               
               <div class="warning">
-                <strong>⚠️ Important:</strong> This verification link will expire in 24 hours. If you did not create an account with Taaskr, please ignore this email.
+                <strong>⚠️ Important:</strong> This verification link will expire in 24 hours. If you did not create an account with Tasskr, please ignore this email.
               </div>
               
-              <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
+              <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
               <p>This is an automated email. Please do not reply to this message.</p>
             </div>
           </div>
@@ -199,7 +230,7 @@ class EmailService {
     `;
 
     const text = `
-      Welcome to Taaskr!
+      Welcome to Tasskr!
       
       Hello ${user.firstName} ${user.lastName},
       
@@ -211,12 +242,12 @@ class EmailService {
       If you did not create an account, please ignore this email.
       
       Best regards,
-      The Taaskr Team
+      The Tasskr Team
     `;
 
     return await this.sendEmail({
       to: user.email,
-      subject: 'Verify Your Email - Taaskr',
+      subject: 'Verify Your Email - Tasskr',
       html,
       text,
     });
@@ -235,7 +266,7 @@ class EmailService {
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Welcome to Taaskr</title>
+          <title>Welcome to Tasskr</title>
           <style>
             body { 
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -254,7 +285,7 @@ class EmailService {
               box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             }
             .header { 
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white; 
               padding: 40px 30px; 
               text-align: center; 
@@ -276,11 +307,11 @@ class EmailService {
               background: #f8f9fa; 
               padding: 20px; 
               margin: 15px 0; 
-              border-left: 4px solid #667eea; 
+              border-left: 4px solid #FF6B6B; 
               border-radius: 5px; 
             }
             .feature strong {
-              color: #667eea;
+              color: #FF6B6B;
               font-size: 16px;
             }
             .feature p {
@@ -294,7 +325,7 @@ class EmailService {
             .button { 
               display: inline-block; 
               padding: 15px 40px; 
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white !important; 
               text-decoration: none; 
               border-radius: 5px; 
@@ -313,11 +344,12 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
+              <img src="${LOGO_URL}" alt="Tasskr">
               <h1>🎉 Email Verified Successfully!</h1>
             </div>
             <div class="content">
               <h2>Welcome aboard, ${user.firstName}!</h2>
-              <p>Your email has been verified successfully. You can now access all features of Taaskr.</p>
+              <p>Your email has been verified successfully. You can now access all features of Tasskr.</p>
               
               <div class="feature">
                 <strong>✓ Create and manage tasks</strong>
@@ -340,10 +372,10 @@ class EmailService {
               
               <p style="margin-top: 30px;">If you have any questions, feel free to reach out to our support team.</p>
               
-              <p>Best regards,<br><strong>The Taaskr Team</strong></p>
+              <p>Best regards,<br><strong>The Tasskr Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -359,12 +391,12 @@ class EmailService {
       ${loginUrl}
       
       Best regards,
-      The Taaskr Team
+      The Tasskr Team
     `;
 
     return await this.sendEmail({
       to: user.email,
-      subject: 'Welcome to Taaskr - Email Verified',
+      subject: 'Welcome to Tasskr - Email Verified',
       html,
       text,
     });
@@ -403,7 +435,7 @@ class EmailService {
               box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             }
             .header { 
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white; 
               padding: 40px 30px; 
               text-align: center; 
@@ -418,7 +450,7 @@ class EmailService {
             .button { 
               display: inline-block; 
               padding: 15px 40px; 
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white !important; 
               text-decoration: none; 
               border-radius: 5px; 
@@ -458,11 +490,12 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
+              <img src="${LOGO_URL}" alt="Tasskr">
               <h1>🔐 Password Reset Request</h1>
             </div>
             <div class="content">
               <h2>Hello ${user.firstName},</h2>
-              <p>We received a request to reset your password for your Taaskr account.</p>
+              <p>We received a request to reset your password for your Tasskr account.</p>
               
               <div class="button-container">
                 <a href="${resetUrl}" class="button">Reset Password</a>
@@ -470,7 +503,7 @@ class EmailService {
               
               <div class="link-box">
                 <p><strong>Or copy and paste this link into your browser:</strong></p>
-                <p style="color: #667eea;">${resetUrl}</p>
+                <p style="color: #FF6B6B;">${resetUrl}</p>
               </div>
               
               <div class="warning">
@@ -484,10 +517,10 @@ class EmailService {
                 <li>Enable two-factor authentication if available</li>
               </ul>
               
-              <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
+              <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
               <p>This is an automated email. Please do not reply.</p>
             </div>
           </div>
@@ -508,12 +541,12 @@ class EmailService {
       If you did not request this, please ignore this email.
       
       Best regards,
-      The Taaskr Team
+      The Tasskr Team
     `;
 
     return await this.sendEmail({
       to: user.email,
-      subject: 'Reset Your Password - Taaskr',
+      subject: 'Reset Your Password - Tasskr',
       html,
       text,
     });
@@ -552,10 +585,19 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -602,7 +644,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
           .button { 
             display: inline-block; 
             padding: 15px 40px; 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white !important; 
             text-decoration: none; 
             border-radius: 5px; 
@@ -651,15 +693,15 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
             <p><strong>Security Tips:</strong></p>
             <ul>
               <li>Never share your password with anyone</li>
-              <li>Use a unique password for your Taaskr account</li>
+              <li>Use a unique password for your Tasskr account</li>
               <li>Enable two-factor authentication if available</li>
               <li>Regularly update your password</li>
             </ul>
             
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
             <p>This is an automated security notification.</p>
           </div>
         </div>
@@ -685,12 +727,12 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
     Support: ${supportUrl}
     
     Best regards,
-    The Taaskr Team
+    The Tasskr Team
   `;
 
   return await this.sendEmail({
     to: user.email,
-    subject: 'Password Changed Successfully - Taaskr',
+    subject: 'Password Changed Successfully - Tasskr',
     html,
     text,
   });
@@ -725,7 +767,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
               box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             }
             .header { 
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white; 
               padding: 40px 30px; 
               text-align: center; 
@@ -756,11 +798,12 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
         <body>
           <div class="container">
             <div class="header">
+              <img src="${LOGO_URL}" alt="Tasskr">
               <h1>🔐 New Login Detected</h1>
             </div>
             <div class="content">
               <h2>Hello ${user.firstName},</h2>
-              <p>We detected a new login to your Taaskr account.</p>
+              <p>We detected a new login to your Tasskr account.</p>
               
               <div class="info-box">
                 <p><strong>📅 Login Details:</strong></p>
@@ -772,10 +815,10 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
               <p>If this was you, you can safely ignore this email.</p>
               <p><strong>If you did not log in, please change your password immediately and contact our support team.</strong></p>
               
-              <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
+              <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
             </div>
           </div>
         </body>
@@ -796,12 +839,12 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
       If this wasn't you, please change your password immediately.
       
       Best regards,
-      The Taaskr Team
+      The Tasskr Team
     `;
 
     return await this.sendEmail({
       to: user.email,
-      subject: 'New Login Detected - Taaskr',
+      subject: 'New Login Detected - Tasskr',
       html,
       text,
     });
@@ -816,7 +859,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
         to: recipient.email,
         from: {
           email: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM,
-          name: process.env.SENDGRID_FROM_NAME || 'Taaskr',
+          name: process.env.SENDGRID_FROM_NAME || 'Tasskr',
         },
         subject,
         text,
@@ -871,10 +914,19 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -891,14 +943,14 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
           }
           .info-section {
             background: #f8f9fa;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #FF6B6B;
             padding: 20px;
             margin: 20px 0;
             border-radius: 5px;
           }
           .info-section h2 {
             margin: 0 0 15px 0;
-            color: #667eea;
+            color: #FF6B6B;
             font-size: 18px;
             font-weight: 600;
           }
@@ -951,7 +1003,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
           .reply-button {
             display: inline-block;
             padding: 12px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white !important;
             text-decoration: none;
             border-radius: 5px;
@@ -980,13 +1032,23 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
             font-weight: 600;
             margin-left: 10px;
           }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>📩 New Contact Form Submission</h1>
-            <p>Taaskr Support</p>
+            <p>Tasskr Support</p>
           </div>
           
           <div class="content">
@@ -999,7 +1061,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
               <div class="info-row">
                 <div class="info-label">Email:</div>
                 <div class="info-value">
-                  <a href="mailto:${email}" style="color: #667eea; text-decoration: none;">
+                  <a href="mailto:${email}" style="color: #FF6B6B; text-decoration: none;">
                     ${email}
                   </a>
                 </div>
@@ -1043,8 +1105,8 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
           </div>
           
           <div class="footer">
-            <p><strong>Taaskr Support Team</strong></p>
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p><strong>Tasskr Support Team</strong></p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
             <p>This is an automated notification from the contact form system.</p>
           </div>
         </div>
@@ -1054,7 +1116,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
 
   const text = `
     NEW CONTACT FORM SUBMISSION
-    Taaskr Support 
+    Tasskr Support 
     
     ========================================
     CONTACT INFORMATION
@@ -1080,8 +1142,8 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
     Reply directly to: ${email}
     
     ---
-    Taaskr Support Team
-    © ${new Date().getFullYear()} Taaskr
+    Tasskr Support Team
+    © ${new Date().getFullYear()} Tasskr
   `;
 
   return await this.sendEmail({
@@ -1128,10 +1190,19 @@ async sendContactConfirmation(contactData) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -1153,14 +1224,14 @@ async sendContactConfirmation(contactData) {
           }
           .info-box {
             background: #f0fdf4;
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #FF6B6B;
             padding: 20px;
             margin: 25px 0;
             border-radius: 5px;
           }
           .info-box p {
             margin: 8px 0;
-            color: #065f46;
+            color: #FF6B6B;
           }
           .timeline {
             background: #f8f9fa;
@@ -1174,7 +1245,7 @@ async sendContactConfirmation(contactData) {
             align-items: flex-start;
           }
           .timeline-icon {
-            background: #10b981;
+            background: #FF6B6B;
             color: white;
             width: 30px;
             height: 30px;
@@ -1193,7 +1264,7 @@ async sendContactConfirmation(contactData) {
           .button {
             display: inline-block;
             padding: 14px 35px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white !important;
             text-decoration: none;
             border-radius: 5px;
@@ -1220,7 +1291,7 @@ async sendContactConfirmation(contactData) {
           
           <div class="content">
             <h2>Hello ${name},</h2>
-            <p>Thank you for contacting Taaskr Support. We've successfully received your message and our team will review it shortly.</p>
+            <p>Thank you for contacting Tasskr Support. We've successfully received your message and our team will review it shortly.</p>
             
             <div class="info-box">
               <p><strong>📋 Your Submission Details:</strong></p>
@@ -1240,13 +1311,13 @@ async sendContactConfirmation(contactData) {
               </p>
             </div>
 
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Support Team</strong></p>
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Support Team</strong></p>
           </div>
           
           <div class="footer">
-            <p><strong>Taaskr</strong></p>
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
-            <p>Need immediate help? Visit our <a href="${frontendUrl}/help" style="color: #667eea;">Help Center</a></p>
+            <p><strong>Tasskr</strong></p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+            <p>Need immediate help? Visit our <a href="${frontendUrl}/help" style="color: #FF6B6B;">Help Center</a></p>
           </div>
         </div>
       </body>
@@ -1258,7 +1329,7 @@ async sendContactConfirmation(contactData) {
 
     Hello ${name},
 
-    Thank you for contacting Taaskr Support. We've received your message.
+    Thank you for contacting Tasskr Support. We've received your message.
 
     Your Submission Details:
     - Subject: ${subject}
@@ -1269,10 +1340,10 @@ async sendContactConfirmation(contactData) {
     
 
     Best regards,
-    The Taaskr Support Team
+    The Tasskr Support Team
 
     ---
-    © ${new Date().getFullYear()} Taaskr
+    © ${new Date().getFullYear()} Tasskr
   `;
 
   return await this.sendEmail({
@@ -1317,10 +1388,19 @@ async sendSuggestionEmail(suggestionData) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -1337,14 +1417,14 @@ async sendSuggestionEmail(suggestionData) {
           }
           .info-section {
             background: #fffbeb;
-            border-left: 4px solid #f59e0b;
+            border-left: 4px solid #FF6B6B;
             padding: 20px;
             margin: 20px 0;
             border-radius: 5px;
           }
           .info-section h2 {
             margin: 0 0 15px 0;
-            color: #d97706;
+            color: #FF6B6B;
             font-size: 18px;
             font-weight: 600;
           }
@@ -1359,7 +1439,7 @@ async sendSuggestionEmail(suggestionData) {
           }
           .info-label {
             font-weight: 600;
-            color: #92400e;
+            color: #FF6B6B;
             min-width: 120px;
           }
           .info-value {
@@ -1368,14 +1448,14 @@ async sendSuggestionEmail(suggestionData) {
           }
           .suggestion-box {
             background: #ffffff;
-            border: 2px solid #fbbf24;
+            border: 2px solid #FF6B6B;
             border-radius: 8px;
             padding: 25px;
             margin: 25px 0;
           }
           .suggestion-box h3 {
             margin: 0 0 10px 0;
-            color: #92400e;
+            color: #FF6B6B;
             font-size: 20px;
             font-weight: 600;
           }
@@ -1398,7 +1478,7 @@ async sendSuggestionEmail(suggestionData) {
           }
           .suggestion-message {
             background: #ffffff;
-            border: 1px solid #fbbf24;
+            border: 1px solid #FF6B6B;
             border-radius: 5px;
             padding: 20px;
             margin: 15px 0;
@@ -1422,7 +1502,7 @@ async sendSuggestionEmail(suggestionData) {
           .reply-button {
             display: inline-block;
             padding: 12px 30px;
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white !important;
             text-decoration: none;
             border-radius: 5px;
@@ -1435,7 +1515,7 @@ async sendSuggestionEmail(suggestionData) {
             padding: 20px 30px;
             background: #f8f9fa;
             color: #6c757d; 
-            font-size: 12px; 
+            font-size: 13px; 
             border-top: 1px solid #dee2e6;
           }
           .footer p {
@@ -1443,7 +1523,7 @@ async sendSuggestionEmail(suggestionData) {
           }
           .badge {
             display: inline-block;
-            background: #fbbf24;
+            background: #FF6B6B;
             color: #78350f;
             padding: 5px 12px;
             border-radius: 12px;
@@ -1456,8 +1536,9 @@ async sendSuggestionEmail(suggestionData) {
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>💡 New User Suggestion</h1>
-            <p>Taaskr - User Feedback System</p>
+            <p>Tasskr - User Feedback System</p>
           </div>
           
           <div class="content">
@@ -1470,7 +1551,7 @@ async sendSuggestionEmail(suggestionData) {
               <div class="info-row">
                 <div class="info-label">Email:</div>
                 <div class="info-value">
-                  <a href="mailto:${userEmail}" style="color: #d97706; text-decoration: none;">
+                  <a href="mailto:${userEmail}" style="color: #FF6B6B; text-decoration: none;">
                     ${userEmail}
                   </a>
                 </div>
@@ -1523,8 +1604,8 @@ async sendSuggestionEmail(suggestionData) {
           </div>
           
           <div class="footer">
-            <p><strong>Taaskr Support Team</strong></p>
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p><strong>Tasskr Support Team</strong></p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
             <p>This is an automated notification from the user suggestion system.</p>
           </div>
         </div>
@@ -1534,7 +1615,7 @@ async sendSuggestionEmail(suggestionData) {
 
   const text = `
     NEW USER SUGGESTION
-    Taaskr - User Feedback System
+    Tasskr - User Feedback System
     
     ========================================
     USER INFORMATION
@@ -1567,8 +1648,8 @@ async sendSuggestionEmail(suggestionData) {
     Reply to user: ${userEmail}
     
     ---
-    Taaskr Support Team
-    © ${new Date().getFullYear()} Taaskr
+    Tasskr Support Team
+    © ${new Date().getFullYear()} Tasskr
   `;
 
   return await this.sendEmail({
@@ -1613,10 +1694,19 @@ async sendSuggestionConfirmation(suggestionData) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -1638,14 +1728,14 @@ async sendSuggestionConfirmation(suggestionData) {
           }
           .info-box {
             background: #f0fdf4;
-            border-left: 4px solid #10b981;
+            border-left: 4px solid #FF6B6B;
             padding: 20px;
             margin: 25px 0;
             border-radius: 5px;
           }
           .info-box p {
             margin: 8px 0;
-            color: #065f46;
+            color: #FF6B6B;
           }
           .footer { 
             text-align: center; 
@@ -1667,7 +1757,7 @@ async sendSuggestionConfirmation(suggestionData) {
           
           <div class="content">
             <h2>Hello ${userName},</h2>
-            <p>Thank you for taking the time to share your suggestion with us! We truly value your feedback and ideas for improving Taaskr.</p>
+            <p>Thank you for taking the time to share your suggestion with us! We truly value your feedback and ideas for improving Tasskr.</p>
             
             <div class="info-box">
               <p><strong>📋 Your Suggestion:</strong></p>
@@ -1675,7 +1765,7 @@ async sendSuggestionConfirmation(suggestionData) {
               <p><strong>Submitted:</strong> ${new Date(submittedAt).toLocaleString()}</p>
             </div>
 
-            <p>Our team will carefully review your suggestion and consider it for future updates. We're committed to making Taaskr better based on user feedback like yours.</p>
+            <p>Our team will carefully review your suggestion and consider it for future updates. We're committed to making Tasskr better based on user feedback like yours.</p>
 
             <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin: 25px 0; border-radius: 4px;">
               <p style="margin: 0; color: #0c4a6e;">
@@ -1683,13 +1773,13 @@ async sendSuggestionConfirmation(suggestionData) {
               </p>
             </div>
 
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Taaskr Team</strong></p>
+            <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
           </div>
           
           <div class="footer">
-            <p><strong>Taaskr</strong></p>
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
-            <p>Continue improving with us! Visit <a href="${frontendUrl}" style="color: #667eea;">Taaskr</a></p>
+            <p><strong>Tasskr</strong></p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+            <p>Continue improving with us! Visit <a href="${frontendUrl}" style="color: #FF6B6B;">Tasskr</a></p>
           </div>
         </div>
       </body>
@@ -1710,10 +1800,10 @@ async sendSuggestionConfirmation(suggestionData) {
     Our team will review your suggestion and consider it for future updates.
 
     Best regards,
-    The Taaskr Team
+    The Tasskr Team
 
     ---
-    © ${new Date().getFullYear()} Taaskr
+    © ${new Date().getFullYear()} Tasskr
   `;
 
   return await this.sendEmail({
@@ -1766,10 +1856,19 @@ async sendTaskInvitation(invitation, task, inviter) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -1795,7 +1894,7 @@ async sendTaskInvitation(invitation, task, inviter) {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1816,7 +1915,7 @@ async sendTaskInvitation(invitation, task, inviter) {
           }
           .task-card {
             background: #ffffff;
-            border: 2px solid #667eea;
+            border: 2px solid #FF6B6B;
             border-radius: 8px;
             padding: 25px;
             margin: 25px 0;
@@ -1849,7 +1948,7 @@ async sendTaskInvitation(invitation, task, inviter) {
             font-size: 14px;
           }
           .role-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white;
             padding: 8px 20px;
             border-radius: 20px;
@@ -1888,25 +1987,34 @@ async sendTaskInvitation(invitation, task, inviter) {
             text-align: center;
             margin: 30px 0;
             display: flex;
-            gap: 15px;
+            gap: 20px;
             justify-content: center;
+            flex-wrap: wrap;
           }
           .button {
             display: inline-block;
-            padding: 15px 40px;
+            padding: 12px 30px;
             text-decoration: none;
             border-radius: 5px;
             font-weight: 600;
             font-size: 16px;
-            transition: transform 0.2s;
+            transition: all 0.2s ease;
+            min-width: 160px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .button-accept {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white !important;
+            border: 2px solid transparent;
           }
           .button-decline {
-            background: #6c757d;
-            color: white !important;
+            background: #ffffff;
+            color: #FF6B6B !important;
+            border: 2px solid #FF6B6B;
+          }
+          .button-decline:hover {
+            background: #fff0eb;
           }
           .button:hover {
             transform: translateY(-2px);
@@ -1947,7 +2055,7 @@ async sendTaskInvitation(invitation, task, inviter) {
               <div class="inviter-details">
                 <h3>${inviter.firstName} ${inviter.lastName || ''}</h3>
                 <p>${inviter.email}</p>
-                <p style="color: #667eea; font-weight: 600; margin-top: 5px;">wants to collaborate with you</p>
+                <p style="color: #FF6B6B; font-weight: 600; margin-top: 5px;">wants to collaborate with you</p>
               </div>
             </div>
 
@@ -2015,7 +2123,7 @@ async sendTaskInvitation(invitation, task, inviter) {
           </div>
           
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
             <p>This invitation was sent to ${invitation.inviteeEmail}</p>
           </div>
         </div>
@@ -2042,7 +2150,7 @@ async sendTaskInvitation(invitation, task, inviter) {
     This invitation expires on ${new Date(invitation.expiresAt).toLocaleString()}
     
     ---
-    Taaskr
+    Tasskr
     © ${new Date().getFullYear()}
   `;
 
@@ -2095,10 +2203,19 @@ async sendTeamMemberInvitation(teamMember, owner) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -2124,7 +2241,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2146,7 +2263,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
           }
           .team-card {
             background: #ffffff;
-            border: 2px solid #667eea;
+            border: 2px solid #FF6B6B;
             border-radius: 8px;
             padding: 25px;
             margin: 25px 0;
@@ -2175,7 +2292,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
             color: #212529;
           }
           .role-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white;
             padding: 8px 20px;
             border-radius: 20px;
@@ -2234,26 +2351,34 @@ async sendTeamMemberInvitation(teamMember, owner) {
             text-align: center;
             margin: 30px 0;
             display: flex;
-            gap: 15px;
+            gap: 20px;
             justify-content: center;
             flex-wrap: wrap;
           }
           .button {
             display: inline-block;
-            padding: 15px 40px;
+            padding: 12px 30px;
             text-decoration: none;
             border-radius: 5px;
             font-weight: 600;
             font-size: 16px;
-            transition: transform 0.2s;
+            transition: all 0.2s ease;
+            min-width: 160px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .button-accept {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white !important;
+            border: 2px solid transparent;
           }
           .button-decline {
-            background: #6c757d;
-            color: white !important;
+            background: #ffffff;
+            color: #FF6B6B !important;
+            border: 2px solid #FF6B6B;
+          }
+          .button-decline:hover {
+            background: #fff0eb;
           }
           .button:hover {
             transform: translateY(-2px);
@@ -2285,7 +2410,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
               <div class="inviter-details">
                 <h3>${owner.firstName} ${owner.lastName || ''}</h3>
                 <p>${owner.email}</p>
-                <p style="color: #667eea; font-weight: 600; margin-top: 5px;">invited you to join their team</p>
+                <p style="color: #FF6B6B; font-weight: 600; margin-top: 5px;">invited you to join their team</p>
               </div>
             </div>
 
@@ -2353,8 +2478,8 @@ async sendTeamMemberInvitation(teamMember, owner) {
           </div>
           
           <div class="footer">
-            <p><strong>Taaskr</strong></p>
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p><strong>Tasskr</strong></p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
             <p>This invitation was sent to ${teamMember.memberEmail}</p>
           </div>
         </div>
@@ -2365,7 +2490,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
   const text = `
     Team Invitation
     
-    ${owner.firstName} ${owner.lastName || ''} (${owner.email}) has invited you to join their team on Taaskr.
+    ${owner.firstName} ${owner.lastName || ''} (${owner.email}) has invited you to join their team on Tasskr.
     
     Your Role: ${teamMember.role}
     Permissions: ${roleDescriptions[teamMember.role] || 'Team member with assigned permissions'}
@@ -2382,13 +2507,13 @@ async sendTeamMemberInvitation(teamMember, owner) {
     Decline invitation: ${declineUrl}
     
     ---
-    Taaskr
+    Tasskr
     © ${new Date().getFullYear()}
   `;
 
   return await this.sendEmail({
     to: teamMember.memberEmail,
-    subject: `${owner.firstName} invited you to join their team on Taaskr`,
+    subject: `${owner.firstName} invited you to join their team on Tasskr`,
     html,
     text,
   });
@@ -2412,11 +2537,26 @@ async sendInvitationReminder(invitation, task, inviter) {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
-          .button { display: inline-block; padding: 15px 40px; background: #667eea; color: white !important; text-decoration: none; border-radius: 5px; }
+          .button { 
+            display: inline-block; 
+            padding: 12px 30px; 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+            color: white !important; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            font-weight: 600;
+            min-width: 160px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 2px solid transparent;
+          }
         </style>
       </head>
       <body>
         <div class="container">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${LOGO_URL}" alt="Tasskr" style="width: 50px; height: 50px;">
+          </div>
           <h2>⏰ Reminder: Task Collaboration Invitation</h2>
           <p>Hi there,</p>
           <p>This is a friendly reminder that ${inviter.firstName} invited you to collaborate on the task "<strong>${task.title}</strong>".</p>
@@ -2424,7 +2564,7 @@ async sendInvitationReminder(invitation, task, inviter) {
           <div style="text-align: center; margin: 30px 0;">
             <a href="${acceptUrl}" class="button">Accept Invitation Now</a>
           </div>
-          <p>Best regards,<br>Taaskr Team</p>
+          <p>Best regards,<br>Tasskr Team</p>
         </div>
       </body>
     </html>
@@ -2454,17 +2594,20 @@ async sendInvitationAcceptedNotification(invitation, task, acceptedBy) {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
-          .success { background: #d1fae5; border-left: 4px solid #10b981; padding: 15px; border-radius: 4px; }
+          .success { background: #ffebe0; border-left: 4px solid #FF6B6B; padding: 15px; border-radius: 4px; }
         </style>
       </head>
       <body>
         <div class="container">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${LOGO_URL}" alt="Tasskr" style="width: 50px; height: 50px;">
+          </div>
           <h2>✅ Invitation Accepted!</h2>
           <div class="success">
             <p><strong>${acceptedBy.firstName} ${acceptedBy.lastName}</strong> has accepted your invitation to collaborate on "<strong>${task.title}</strong>".</p>
           </div>
           <p>They can now access and collaborate on this task based on their assigned role.</p>
-          <p><a href="${taskUrl}" style="color: #667eea;">View Task →</a></p>
+          <p><a href="${taskUrl}" style="color: #FF6B6B;">View Task →</a></p>
         </div>
       </body>
     </html>
@@ -2491,11 +2634,14 @@ async sendCollaboratorRemovedNotification(task, removedUser, removedBy) {
       </head>
       <body>
         <div style="max-width: 600px; margin: 30px auto; padding: 40px; background: white;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${LOGO_URL}" alt="Tasskr" style="width: 50px; height: 50px;">
+          </div>
           <h2>📌 Task Access Removed</h2>
           <p>Hi ${removedUser.firstName},</p>
           <p>You have been removed from the task "<strong>${task.title}</strong>" by ${removedBy.firstName} ${removedBy.lastName}.</p>
           <p>You no longer have access to this task.</p>
-          <p>Best regards,<br>Taaskr Team</p>
+          <p>Best regards,<br>Tasskr Team</p>
         </div>
       </body>
     </html>
@@ -2514,7 +2660,7 @@ async sendCollaboratorRemovedNotification(task, removedUser, removedBy) {
  */
 async sendTaskSharedNotification(task, teamMember, owner) {
   const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
-  const taskUrl = `${frontendUrl}/tasks/${task._id}`;
+  const taskUrl = `${frontendUrl}/user`;
 
   const html = `
     <!DOCTYPE html>
@@ -2525,18 +2671,20 @@ async sendTaskSharedNotification(task, teamMember, owner) {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
-          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; margin: -40px -40px 30px; }
-          .task-card { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea; }
-          .button { display: inline-block; padding: 15px 40px; background: #667eea; color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
+          .header { background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; margin: -40px -40px 30px; }
+          .header img { width: 50px; height: 50px; margin-bottom: 15px; background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          .task-card { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FF6B6B; }
+          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>📋 Task Shared With You</h1>
           </div>
           <h2>Hello ${teamMember.firstName},</h2>
-          <p>${owner.firstName} ${owner.lastName} has shared a task with you from their Taaskr.</p>
+          <p>${owner.firstName} ${owner.lastName} has shared a task with you from their Tasskr.</p>
           
           <div class="task-card">
             <h3>${task.title}</h3>
@@ -2549,7 +2697,7 @@ async sendTaskSharedNotification(task, teamMember, owner) {
           </div>
           
           <p>You can now collaborate on this task based on your assigned role.</p>
-          <p>Best regards,<br><strong>Taaskr Team</strong></p>
+          <p>Best regards,<br><strong>Tasskr Team</strong></p>
         </div>
       </body>
     </html>
@@ -2568,7 +2716,7 @@ async sendTaskSharedNotification(task, teamMember, owner) {
     View task: ${taskUrl}
     
     Best regards,
-    Taaskr Team
+    Tasskr Team
   `;
 
   return await this.sendEmail({
@@ -2621,10 +2769,19 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -2650,7 +2807,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -2671,7 +2828,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
           }
           .task-card {
             background: #ffffff;
-            border: 2px solid #dc2626;
+            border: 2px solid #FF6B6B;
             border-radius: 8px;
             padding: 25px;
             margin: 25px 0;
@@ -2683,7 +2840,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
             margin: 0 0 15px 0;
           }
           .vital-badge {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white;
             padding: 5px 15px;
             border-radius: 15px;
@@ -2716,7 +2873,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
             font-size: 14px;
           }
           .role-badge {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white;
             padding: 8px 20px;
             border-radius: 20px;
@@ -2729,14 +2886,14 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
           }
           .role-description {
             background: #fee2e2;
-            border-left: 4px solid #dc2626;
+            border-left: 4px solid #FF6B6B;
             padding: 15px;
             margin: 15px 0;
             border-radius: 4px;
           }
           .role-description p {
             margin: 0;
-            color: #991b1b;
+            color: #FF6B6B;
             font-size: 14px;
           }
           .message-box {
@@ -2755,25 +2912,34 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
             text-align: center;
             margin: 30px 0;
             display: flex;
-            gap: 15px;
+            gap: 20px;
             justify-content: center;
+            flex-wrap: wrap;
           }
           .button {
             display: inline-block;
-            padding: 15px 40px;
+            padding: 12px 30px;
             text-decoration: none;
             border-radius: 5px;
             font-weight: 600;
             font-size: 16px;
-            transition: transform 0.2s;
+            transition: all 0.2s ease;
+            min-width: 160px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .button-accept {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white !important;
+            border: 2px solid transparent;
           }
           .button-decline {
-            background: #6c757d;
-            color: white !important;
+            background: #ffffff;
+            color: #FF6B6B !important;
+            border: 2px solid #FF6B6B;
+          }
+          .button-decline:hover {
+            background: #fff0eb;
           }
           .button:hover {
             transform: translateY(-2px);
@@ -2802,6 +2968,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>🔴 Vital Task Collaboration Invitation</h1>
             <p>You've been invited to collaborate on a vital task</p>
           </div>
@@ -2814,7 +2981,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
               <div class="inviter-details">
                 <h3>${inviter.firstName} ${inviter.lastName || ''}</h3>
                 <p>${inviter.email}</p>
-                <p style="color: #dc2626; font-weight: 600; margin-top: 5px;">wants to collaborate with you</p>
+                <p style="color: #FF6B6B; font-weight: 600; margin-top: 5px;">wants to collaborate with you</p>
               </div>
             </div>
 
@@ -2885,7 +3052,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
           </div>
           
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
             <p>This invitation was sent to ${invitation.inviteeEmail}</p>
           </div>
         </div>
@@ -2912,7 +3079,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
     This invitation expires on ${new Date(invitation.expiresAt).toLocaleString()}
     
     ---
-    Taaskr
+    Tasskr
     © ${new Date().getFullYear()}
   `;
 
@@ -2929,7 +3096,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
  */
 async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
   const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
-  const vitalTaskUrl = `${frontendUrl}/vitaltasks/${vitalTask._id}`;
+  const vitalTaskUrl = `${frontendUrl}/user/vital`;
 
   const html = `
     <!DOCTYPE html>
@@ -2956,10 +3123,19 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
+          }
+          .header img {
+            width: 50px;
+            height: 50px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
           }
           .header h1 {
             margin: 0;
@@ -2971,13 +3147,13 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
           }
           .task-card {
             background: #ffffff;
-            border: 2px solid #dc2626;
+            border: 2px solid #FF6B6B;
             border-radius: 8px;
             padding: 25px;
             margin: 25px 0;
           }
           .vital-badge {
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white;
             padding: 5px 15px;
             border-radius: 15px;
@@ -2990,7 +3166,7 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
           .button {
             display: inline-block;
             padding: 15px 40px;
-            background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
             color: white !important;
             text-decoration: none;
             border-radius: 5px;
@@ -3010,6 +3186,7 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>🔴 Vital Task Shared With You</h1>
           </div>
           
@@ -3031,7 +3208,7 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
           </div>
           
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -3051,7 +3228,7 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
     View vital task: ${vitalTaskUrl}
 
     ---
-    Taaskr
+    Tasskr
     © ${new Date().getFullYear()}
   `;
 
@@ -3092,7 +3269,7 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header { 
-            background: linear-gradient(135deg, #6c757d 0%, #495057 100%); 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
             padding: 40px 30px; 
             text-align: center; 
@@ -3112,6 +3289,7 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
       <body>
         <div class="container">
           <div class="header">
+            <img src="${LOGO_URL}" alt="Tasskr">
             <h1>Removed from Vital Task</h1>
           </div>
           
@@ -3122,7 +3300,7 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
           </div>
           
           <div class="footer">
-            <p>© ${new Date().getFullYear()} Taaskr. All rights reserved.</p>
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -3139,7 +3317,7 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
     You no longer have access to this vital task.
 
     ---
-    Taaskr
+    Tasskr
     © ${new Date().getFullYear()}
   `;
 

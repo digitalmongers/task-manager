@@ -173,7 +173,7 @@ class NotificationService {
       title: '🎉 New Team Member Joined',
       message: `${newMember.firstName} ${newMember.lastName} has joined your team`,
       team: teamMember._id,
-      actionUrl: `/teams/${teamMember.owner}`,
+      actionUrl: `/user/${teamMember.owner}`,
       priority: 'high',
       metadata: {
         memberEmail: newMember.email,
@@ -198,7 +198,7 @@ class NotificationService {
       title: '👋 Team Member Left',
       message: `${leftMember.firstName} ${leftMember.lastName} has left the team`,
       team: teamMember._id,
-      actionUrl: `/teams/${teamMember.owner}`,
+      actionUrl: `/user/${teamMember.owner}`,
       priority: 'medium',
     }));
 
@@ -221,7 +221,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `${CLIENT_URL}/user`,
+      actionUrl: `${CLIENT_URL}/user/tasks`,
       priority: task.priority?.name === 'High' ? 'high' : 'medium',
       metadata: {
         taskTitle: task.title,
@@ -252,7 +252,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `${CLIENT_URL}/user`,
+      actionUrl: `${CLIENT_URL}/user/tasks`,
       priority: 'low',
       metadata: {
         taskTitle: task.title,
@@ -283,7 +283,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `${CLIENT_URL}/user`,
+      actionUrl: `${CLIENT_URL}/user/tasks`,
       priority: 'medium',
       metadata: {
         taskTitle: task.title,
@@ -307,7 +307,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `${CLIENT_URL}/user`,
+      actionUrl: `${CLIENT_URL}/user/tasks`,
       priority: 'high',
       metadata: {
         taskTitle: task.title,
@@ -391,7 +391,7 @@ class NotificationService {
         entityType: isVitalTask ? 'VitalTask' : 'Task',
         entityId: task._id,
       },
-      actionUrl: isVitalTask ? `${CLIENT_URL}/vital-tasks/${task._id}` : `${CLIENT_URL}/tasks/${task._id}`,
+      actionUrl: isVitalTask ? `${CLIENT_URL}/vital-tasks/${task._id}` : `${CLIENT_URL}/user/tasks${task._id}`,
       priority: isVitalTask ? 'high' : 'medium',
       metadata: {
         taskTitle: task.title,
@@ -413,7 +413,7 @@ class NotificationService {
         entityType: isVitalTask ? 'VitalTask' : 'Task',
         entityId: task._id,
       },
-      actionUrl: isVitalTask ? `${CLIENT_URL}/user/vital` : `${CLIENT_URL}/user`,
+      actionUrl: isVitalTask ? `${CLIENT_URL}/user/vital` : `${CLIENT_URL}/user/tasks`,
       priority: 'medium',
       metadata: {
         taskTitle: task.title,
@@ -469,6 +469,7 @@ class NotificationService {
       message: `${remover.firstName} removed you from the team`,
       team: teamMember.owner, // teamMember.owner is the Team Owner ID usually used as team identifier in this app
       priority: 'high',
+      actionUrl: `${CLIENT_URL}/user/tasks`,
       metadata: {
         teamName: 'Your Team', // We might need to fetch team details if not available
       },
@@ -486,7 +487,7 @@ class NotificationService {
       title: '👮 Team Role Updated',
       message: `${updater.firstName} updated your role to "${teamMember.role}"`,
       team: teamMember.owner,
-      actionUrl: `${CLIENT_URL}/user`,
+      actionUrl: `${CLIENT_URL}/user/tasks`,
       priority: 'medium',
       metadata: {
         newRole: teamMember.role,
@@ -505,6 +506,7 @@ class NotificationService {
       title: '🗑️ Task Deleted',
       message: `${deletedBy.firstName} deleted task: "${taskTitle}"`,
       priority: 'medium',
+      actionUrl: `${CLIENT_URL}/user/tasks`,
       metadata: {
         taskTitle: taskTitle,
       },
@@ -527,7 +529,7 @@ class NotificationService {
         entityType: 'Task',
         entityId: task._id,
       },
-      actionUrl: `${CLIENT_URL}/user`,
+      actionUrl: `${CLIENT_URL}/user/tasks`,
       priority: 'medium',
     }));
 

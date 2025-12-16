@@ -56,6 +56,13 @@ app.use(cookieParser());
 // Apply CORS first - this handles all preflight requests
 app.use(cors(corsOptions));
 
+// Serve static files
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/public', express.static(path.join(__dirname, 'public')));
+
 app.use(passport.initialize());
 
 // Apply other security measures
