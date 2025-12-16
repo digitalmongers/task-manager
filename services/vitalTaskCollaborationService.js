@@ -19,9 +19,9 @@ class VitalTaskCollaborationService {
   async inviteToVitalTask(vitalTaskId, inviterUserId, inviteeEmail, role = 'editor', message = null) {
     try {
       // Check if vital task exists and inviter has permission
-      const vitalTask = await VitalTaskRepository.findByIdAndUser(vitalTaskId, inviterUserId);
+      const vitalTask = await VitalTaskRepository.findById(vitalTaskId);
       if (!vitalTask) {
-        throw ApiError.notFound('Vital task not found or you do not have permission');
+        throw ApiError.notFound('Vital task not found');
       }
 
       // Check if inviter is owner or has editor rights
@@ -104,9 +104,15 @@ class VitalTaskCollaborationService {
   async shareVitalTaskWithTeamMembers(vitalTaskId, ownerId, memberIds) {
     try {
       // Verify vital task ownership
-      const vitalTask = await VitalTaskRepository.findByIdAndUser(vitalTaskId, ownerId);
+      const vitalTask = await VitalTaskRepository.findById(vitalTaskId);
       if (!vitalTask) {
-        throw ApiError.notFound('Vital task not found or you do not have permission');
+        throw ApiError.notFound('Vital task not found');
+      }
+
+      // Check permission (Owner or Editor)
+      const access = await CollaborationRepository.canUserAccessVitalTask(vitalTaskId, ownerId);
+      if (!access.canAccess || (access.role !== 'owner' && access.role !== 'editor')) {
+        throw ApiError.forbidden('You do not have permission to share this vital task');
       }
 
       // Verify all memberIds are valid team members

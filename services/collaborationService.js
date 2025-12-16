@@ -101,10 +101,16 @@ class CollaborationService {
    */
   async shareTaskWithTeamMembers(taskId, ownerId, memberIds) {
     try {
-      // Verify task ownership
-      const task = await TaskRepository.findByIdAndUser(taskId, ownerId);
+      // Verify task existence
+      const task = await TaskRepository.findById(taskId);
       if (!task) {
-        throw ApiError.notFound('Task not found or you do not have permission');
+        throw ApiError.notFound('Task not found');
+      }
+
+      // Check permission (Owner or Editor)
+      const access = await CollaborationRepository.canUserAccessTask(taskId, ownerId);
+      if (!access.canAccess || (access.role !== 'owner' && access.role !== 'editor')) {
+        throw ApiError.forbidden('You do not have permission to share this task');
       }
 
       // Verify all memberIds are valid team members
