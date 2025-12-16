@@ -331,12 +331,14 @@ vitalTaskSchema.statics.getSharedTasks = async function(userId) {
     ]
   });
   
-  return collaborations.map(c => ({
-    ...c.vitalTask.toObject(),
-    userRole: c.role,
-    sharedBy: c.taskOwner,
-    sharedAt: c.createdAt
-  }));
+  return collaborations
+    .filter(c => c.vitalTask)
+    .map(c => ({
+      ...c.vitalTask.toObject(),
+      userRole: c.role,
+      sharedBy: c.taskOwner,
+      sharedAt: c.createdAt
+    }));
 };
 
 const VitalTask = mongoose.model('VitalTask', vitalTaskSchema);
