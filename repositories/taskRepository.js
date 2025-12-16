@@ -130,6 +130,27 @@ class TaskRepository {
   }
 
   /**
+   * Find task by ID (generic)
+   */
+  async findById(taskId) {
+    try {
+      const task = await Task.findById(taskId)
+        .populate('category', 'title color')
+        .populate('status', 'name color')
+        .populate('priority', 'name color')
+        .populate('reviewRequestedBy', 'firstName lastName email avatar');
+
+      return task;
+    } catch (error) {
+      Logger.error('Error finding task by ID', {
+        error: error.message,
+        taskId,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Update task
    */
   async updateTask(taskId, userId, updateData) {

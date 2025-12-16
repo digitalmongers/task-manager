@@ -86,6 +86,17 @@ class VitalTaskRepository {
   }
 
   /**
+   * Find vital task by ID (generic)
+   */
+  async findById(taskId) {
+    return VitalTask.findOne({ _id: taskId, isDeleted: false })
+      .populate('category', 'title color')
+      .populate('status', 'name color')
+      .populate('priority', 'name color')
+      .populate('reviewRequestedBy', 'firstName lastName email avatar');
+  }
+
+  /**
    * Update vital task
    */
   async updateVitalTask(taskId, userId, updateData) {
