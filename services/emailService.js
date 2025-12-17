@@ -119,13 +119,31 @@ class EmailService {
             .header { 
               background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white; 
-              padding: 40px 30px; 
+              padding: 25px 20px; 
               text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
             }
             .header h1 {
               margin: 0;
-              font-size: 28px;
-              font-weight: 600;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
             }
             .content { 
               padding: 40px 30px;
@@ -198,8 +216,10 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>🎉 Welcome to Tasskr!</h1>
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>🎉 Welcome to Tasskr!</h1>
+              </div>
             </div>
             <div class="content">
               <h2>Hello ${user.firstName} ${user.lastName},</h2>
@@ -287,13 +307,31 @@ class EmailService {
             .header { 
               background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white; 
-              padding: 40px 30px; 
+              padding: 25px 20px; 
               text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
             }
             .header h1 {
               margin: 0;
-              font-size: 28px;
-              font-weight: 600;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
             }
             .content { 
               padding: 40px 30px;
@@ -344,8 +382,10 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>🎉 Email Verified Successfully!</h1>
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>🎉 Email Verified Successfully!</h1>
+              </div>
             </div>
             <div class="content">
               <h2>Welcome aboard, ${user.firstName}!</h2>
@@ -437,8 +477,31 @@ class EmailService {
             .header { 
               background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white; 
-              padding: 40px 30px; 
+              padding: 25px 20px; 
               text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
             }
             .content { 
               padding: 40px 30px;
@@ -490,8 +553,10 @@ class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>🔐 Password Reset Request</h1>
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>🔐 Password Reset Request</h1>
+              </div>
             </div>
             <div class="content">
               <h2>Hello ${user.firstName},</h2>
@@ -666,10 +731,12 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>✅ Password Changed Successfully</h1>
-          </div>
+            <div class="header">
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>✅ Password Changed Successfully</h1>
+              </div>
+            </div>
           <div class="content">
             <h2>Hello ${user.firstName},</h2>
             <p>Your password has been changed successfully.</p>
@@ -770,8 +837,31 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
             .header { 
               background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
               color: white; 
-              padding: 40px 30px; 
+              padding: 25px 20px; 
               text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
             }
             .content { 
               padding: 40px 30px;
@@ -799,8 +889,10 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
         <body>
           <div class="container">
             <div class="header">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>🔐 New Login Detected</h1>
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>🔐 New Login Detected</h1>
+              </div>
             </div>
             <div class="content">
               <h2>Hello ${user.firstName},</h2>
@@ -1046,11 +1138,13 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>📩 New Contact Form Submission</h1>
-            <p>Tasskr Support</p>
-          </div>
+            <div class="header">
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>📩 New Submission</h1>
+              </div>
+              <p>Tasskr Contact Form</p>
+            </div>
           
           <div class="content">
             <div class="info-section">
@@ -1536,11 +1630,13 @@ async sendSuggestionEmail(suggestionData) {
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>💡 New User Suggestion</h1>
-            <p>Tasskr - User Feedback System</p>
-          </div>
+            <div class="header">
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>💡 New User Suggestion</h1>
+              </div>
+              <p>Tasskr - User Feedback System</p>
+            </div>
           
           <div class="content">
             <div class="info-section">
@@ -1700,10 +1796,17 @@ async sendSuggestionConfirmation(suggestionData) {
             padding: 40px 30px; 
             text-align: center; 
           }
+          .header-branding {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 0; /* Adjusted for header-branding */
+          }
           .header img {
             width: 50px;
             height: 50px;
-            margin-bottom: 15px;
+            margin-bottom: 0; /* Adjusted for header-branding */
             background: rgba(255, 255, 255, 0.2);
             padding: 8px;
             border-radius: 12px;
@@ -1752,9 +1855,12 @@ async sendSuggestionConfirmation(suggestionData) {
       </head>
       <body>
         <div class="container">
-          <div class="header">
-            <h1>💡 Suggestion Received!</h1>
-          </div>
+            <div class="header">
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>💡 Suggestion Received!</h1>
+              </div>
+            </div>
           
           <div class="content">
             <h2>Hello ${userName},</h2>
@@ -1859,26 +1965,37 @@ async sendTaskInvitation(invitation, task, inviter) {
           .header { 
             background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
-            padding: 40px 30px; 
+            padding: 25px 20px; 
             text-align: center; 
           }
+          .header-branding {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 8px;
+          }
           .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
+            width: 48px;
+            height: 48px;
             background: rgba(255, 255, 255, 0.2);
             padding: 8px;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0;
+            flex-shrink: 0;
           }
           .header h1 {
             margin: 0;
-            font-size: 28px;
-            font-weight: 600;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.2;
           }
           .header p {
-            margin: 10px 0 0 0;
+            margin: 0;
             opacity: 0.95;
+            font-size: 15px;
+            font-weight: 500;
           }
           .content { 
             padding: 40px 30px;
@@ -1903,6 +2020,8 @@ async sendTaskInvitation(invitation, task, inviter) {
             font-size: 24px;
             font-weight: 600;
             margin-right: 15px;
+            flex-shrink: 0;
+            line-height: 1;
           }
           .inviter-details h3 {
             margin: 0 0 5px 0;
@@ -2044,8 +2163,10 @@ async sendTaskInvitation(invitation, task, inviter) {
       <body>
         <div class="container">
           <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>🤝 Task Collaboration Invitation</h1>
+            <div class="header-branding">
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>🤝 Task Collaboration Invitation</h1>
+            </div>
             <p>You've been invited to collaborate on a task</p>
           </div>
           
@@ -2207,26 +2328,37 @@ async sendTeamMemberInvitation(teamMember, owner) {
           .header { 
             background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
-            padding: 40px 30px; 
+            padding: 25px 20px; 
             text-align: center; 
           }
+          .header-branding {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 8px;
+          }
           .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
+            width: 48px;
+            height: 48px;
             background: rgba(255, 255, 255, 0.2);
             padding: 8px;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0;
+            flex-shrink: 0;
           }
           .header h1 {
             margin: 0;
-            font-size: 28px;
-            font-weight: 600;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.2;
           }
           .header p {
-            margin: 10px 0 0 0;
+            margin: 0;
             opacity: 0.95;
+            font-size: 15px;
+            font-weight: 500;
           }
           .content { 
             padding: 40px 30px;
@@ -2252,6 +2384,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
             font-weight: 600;
             margin-right: 15px;
             flex-shrink: 0;
+            line-height: 1;
           }
           .inviter-details h3 {
             margin: 0 0 5px 0;
@@ -2353,7 +2486,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
             text-align: center;
             margin: 30px 0;
             display: flex;
-            gap: 20px;
+            gap: 40px;
             justify-content: center;
             flex-wrap: wrap;
           }
@@ -2361,13 +2494,13 @@ async sendTeamMemberInvitation(teamMember, owner) {
             display: inline-block;
             padding: 12px 30px;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 4px;
             font-weight: 600;
             font-size: 16px;
             transition: all 0.2s ease;
             min-width: 160px;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 2px rgba(0,0,0,0.1);
           }
           .button-accept {
             background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
@@ -2400,8 +2533,10 @@ async sendTeamMemberInvitation(teamMember, owner) {
       <body>
         <div class="container">
           <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>👥 Team Invitation</h1>
+            <div class="header-branding">
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>Team Invitation</h1>
+            </div>
             <p>Join a collaborative workspace</p>
           </div>
           
@@ -2537,40 +2672,86 @@ async sendInvitationReminder(invitation, task, inviter) {
       <head>
         <meta charset="utf-8">
         <title>Invitation Reminder</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
-          .button { 
-            display: inline-block; 
-            padding: 12px 30px; 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white !important; 
-            text-decoration: none; 
-            border-radius: 5px; 
-            font-weight: 600;
-            min-width: 160px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 2px solid transparent;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${LOGO_URL}" alt="Tasskr" style="width: 50px; height: 50px;">
+            .header { 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+              color: white; 
+              padding: 25px 20px; 
+              text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
+            }
+            .content { padding: 40px 30px; }
+            .button { 
+              display: inline-block; 
+              padding: 12px 30px; 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+              color: white !important; 
+              text-decoration: none; 
+              border-radius: 5px; 
+              font-weight: 600;
+              min-width: 160px;
+              text-align: center;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              border: 2px solid transparent;
+            }
+            .footer { 
+              text-align: center; 
+              padding: 20px 30px;
+              background: #f8f9fa;
+              color: #6c757d; 
+              font-size: 13px; 
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>⏰ Invitation Reminder</h1>
+              </div>
+            </div>
+            <div class="content">
+              <h2>Hi there,</h2>
+              <p>This is a friendly reminder that ${inviter.firstName} invited you to collaborate on the task "<strong>${task.title}</strong>".</p>
+              
+              <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                <p style="margin: 0; color: #991b1b;">
+                  <strong>⚠️ This invitation expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}!</strong>
+                </p>
+              </div>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${acceptUrl}" class="button">Accept Invitation Now</a>
+              </div>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+            </div>
           </div>
-          <h2>⏰ Reminder: Task Collaboration Invitation</h2>
-          <p>Hi there,</p>
-          <p>This is a friendly reminder that ${inviter.firstName} invited you to collaborate on the task "<strong>${task.title}</strong>".</p>
-          <p><strong>⚠️ This invitation expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}!</strong></p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${acceptUrl}" class="button">Accept Invitation Now</a>
-          </div>
-          <p>Best regards,<br>Tasskr Team</p>
-        </div>
-      </body>
-    </html>
+        </body>
+      </html>
   `;
 
   return await this.sendEmail({
@@ -2594,26 +2775,69 @@ async sendInvitationAcceptedNotification(invitation, task, acceptedBy) {
       <head>
         <meta charset="utf-8">
         <title>Invitation Accepted</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
-          .success { background: #ffebe0; border-left: 4px solid #FF6B6B; padding: 15px; border-radius: 4px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${LOGO_URL}" alt="Tasskr" style="width: 50px; height: 50px;">
+            .header { 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+              color: white; 
+              padding: 25px 20px; 
+              text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
+            }
+            .content { padding: 40px 30px; }
+            .success { background: #ffebe0; border-left: 4px solid #FF6B6B; padding: 15px; border-radius: 4px; margin: 20px 0; }
+            .footer { 
+              text-align: center; 
+              padding: 20px 30px;
+              background: #f8f9fa;
+              color: #6c757d; 
+              font-size: 13px; 
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>✅ Invitation Accepted!</h1>
+              </div>
+            </div>
+            <div class="content">
+              <div class="success">
+                <p><strong>${acceptedBy.firstName} ${acceptedBy.lastName}</strong> has accepted your invitation to collaborate on "<strong>${task.title}</strong>".</p>
+              </div>
+              <p>They can now access and collaborate on this task based on their assigned role.</p>
+              <p style="text-align: center; margin-top: 30px;">
+                <a href="${taskUrl}" style="color: #FF6B6B; font-weight: 600; text-decoration: none;">View Task →</a>
+              </p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+            </div>
           </div>
-          <h2>✅ Invitation Accepted!</h2>
-          <div class="success">
-            <p><strong>${acceptedBy.firstName} ${acceptedBy.lastName}</strong> has accepted your invitation to collaborate on "<strong>${task.title}</strong>".</p>
-          </div>
-          <p>They can now access and collaborate on this task based on their assigned role.</p>
-          <p><a href="${taskUrl}" style="color: #FF6B6B;">View Task →</a></p>
-        </div>
-      </body>
-    </html>
+        </body>
+      </html>
   `;
 
   return await this.sendEmail({
@@ -2631,20 +2855,78 @@ async sendCollaboratorRemovedNotification(task, removedUser, removedBy) {
   const html = `
     <!DOCTYPE html>
     <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Removed from Task</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 30px auto; 
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+            color: white; 
+            padding: 25px 20px; 
+            text-align: center; 
+          }
+          .header-branding {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 8px;
+          }
+          .header img {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0;
+            flex-shrink: 0;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.2;
+          }
+          .content { padding: 40px 30px; }
+          .footer { 
+            text-align: center; 
+            padding: 20px 30px;
+            background: #f8f9fa;
+            color: #6c757d; 
+            font-size: 13px; 
+          }
+        </style>
       </head>
       <body>
-        <div style="max-width: 600px; margin: 30px auto; padding: 40px; background: white;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <img src="${LOGO_URL}" alt="Tasskr" style="width: 50px; height: 50px;">
+        <div class="container">
+          <div class="header">
+            <div class="header-branding">
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>📌 Task Access Removed</h1>
+            </div>
           </div>
-          <h2>📌 Task Access Removed</h2>
-          <p>Hi ${removedUser.firstName},</p>
-          <p>You have been removed from the task "<strong>${task.title}</strong>" by ${removedBy.firstName} ${removedBy.lastName}.</p>
-          <p>You no longer have access to this task.</p>
-          <p>Best regards,<br>Tasskr Team</p>
+          <div class="content">
+            <p>Hi ${removedUser.firstName},</p>
+            <p>You have been removed from the task "<strong>${task.title}</strong>" by ${removedBy.firstName} ${removedBy.lastName}.</p>
+            <p>You no longer have access to this task.</p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+          </div>
         </div>
       </body>
     </html>
@@ -2674,18 +2956,47 @@ async sendTaskSharedNotification(task, teamMember, owner) {
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
-          .header { background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; margin: -40px -40px 30px; }
-          .header img { width: 50px; height: 50px; margin-bottom: 15px; background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          .task-card { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FF6B6B; }
-          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>📋 Task Shared With You</h1>
-          </div>
+            .header { 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+              color: white; 
+              padding: 25px 20px; 
+              text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
+            }
+            .task-card { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FF6B6B; }
+            .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>📋 Task Shared With You</h1>
+              </div>
+            </div>
           <h2>Hello ${teamMember.firstName},</h2>
           <p>${owner.firstName} ${owner.lastName} has shared a task with you from their Tasskr.</p>
           
@@ -2771,54 +3082,67 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 40px 30px; 
-            text-align: center; 
-          }
-          .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-          }
-          .header p {
-            margin: 10px 0 0 0;
-            opacity: 0.95;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .inviter-info {
-            display: flex;
-            align-items: center;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-          }
-          .inviter-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            font-weight: 600;
-            margin-right: 15px;
-          }
+            .header { 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+              color: white; 
+              padding: 25px 20px; 
+              text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
+            }
+            .header p {
+              margin: 0;
+              opacity: 0.95;
+              font-size: 15px;
+              font-weight: 500;
+            }
+            .content { 
+              padding: 40px 30px;
+            }
+            .inviter-info {
+              display: flex;
+              align-items: center;
+              background: #f8f9fa;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .inviter-avatar {
+              width: 60px;
+              height: 60px;
+              border-radius: 50%;
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-size: 24px;
+              font-weight: 600;
+              margin-right: 15px;
+              flex-shrink: 0;
+              line-height: 1;
+            }
           .inviter-details h3 {
             margin: 0 0 5px 0;
             color: #333;
@@ -2971,8 +3295,10 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
       <body>
         <div class="container">
           <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>🔴 Vital Task Collaboration Invitation</h1>
+            <div class="header-branding">
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>🔴 Vital Task Invitation</h1>
+            </div>
             <p>You've been invited to collaborate on a vital task</p>
           </div>
           
@@ -3125,26 +3451,35 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 40px 30px; 
-            text-align: center; 
-          }
-          .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-          }
+            .header { 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+              color: white; 
+              padding: 25px 20px; 
+              text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
+            }
           .content { 
             padding: 40px 30px;
           }
@@ -3189,8 +3524,10 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
       <body>
         <div class="container">
           <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>🔴 Vital Task Shared With You</h1>
+            <div class="header-branding">
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>🔴 Vital Task Shared</h1>
+            </div>
           </div>
           
           <div class="content">
@@ -3274,8 +3611,31 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
           .header { 
             background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
             color: white; 
-            padding: 40px 30px; 
+            padding: 25px 20px; 
             text-align: center; 
+          }
+          .header-branding {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 8px;
+          }
+          .header img {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0;
+            flex-shrink: 0;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.2;
           }
           .content { 
             padding: 40px 30px;
@@ -3292,8 +3652,10 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
       <body>
         <div class="container">
           <div class="header">
-            <img src="${LOGO_URL}" alt="Tasskr">
-            <h1>Removed from Vital Task</h1>
+            <div class="header-branding">
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>🔴 Removed from Vital Task</h1>
+            </div>
           </div>
           
           <div class="content">
