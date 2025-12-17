@@ -15,6 +15,11 @@ class VitalTaskRepository {
       { path: 'category', select: 'title color' },
       { path: 'status', select: 'name color' },
       { path: 'priority', select: 'name color' },
+      { 
+        path: 'collaborators', 
+        select: 'collaborator role',
+        populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+      }
     ]);
   }
 
@@ -57,6 +62,11 @@ class VitalTaskRepository {
         .populate('status', 'name color')
         .populate('priority', 'name color')
         .populate('reviewRequestedBy', 'firstName lastName email avatar')
+        .populate({
+          path: 'collaborators',
+          select: 'collaborator role',
+          populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+        })
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit)),
@@ -82,7 +92,12 @@ class VitalTaskRepository {
       .populate('category', 'title color')
       .populate('status', 'name color')
       .populate('priority', 'name color')
-      .populate('reviewRequestedBy', 'firstName lastName email avatar');
+      .populate('reviewRequestedBy', 'firstName lastName email avatar')
+      .populate({
+        path: 'collaborators',
+        select: 'collaborator role',
+        populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+      });
   }
 
   /**
@@ -93,7 +108,12 @@ class VitalTaskRepository {
       .populate('category', 'title color')
       .populate('status', 'name color')
       .populate('priority', 'name color')
-      .populate('reviewRequestedBy', 'firstName lastName email avatar');
+      .populate('reviewRequestedBy', 'firstName lastName email avatar')
+      .populate({
+        path: 'collaborators',
+        select: 'collaborator role',
+        populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+      });
   }
 
   /**
@@ -107,7 +127,12 @@ class VitalTaskRepository {
     )
       .populate('category', 'title color')
       .populate('status', 'name color')
-      .populate('priority', 'name color');
+      .populate('priority', 'name color')
+      .populate({
+        path: 'collaborators',
+        select: 'collaborator role',
+        populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+      });
 
     return vitalTask;
   }

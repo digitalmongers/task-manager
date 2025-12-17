@@ -205,6 +205,14 @@ vitalTaskSchema.virtual('isUnderReview').get(function() {
   return !!(this.reviewRequestedBy && !this.isCompleted);
 });
 
+vitalTaskSchema.virtual('collaborators', {
+  ref: 'VitalTaskCollaborator',
+  localField: '_id',
+  foreignField: 'vitalTask',
+  match: { status: 'active' },
+  options: { sort: { createdAt: -1 } },
+});
+
 // ========== MIDDLEWARE ==========
 vitalTaskSchema.pre('save', function() {
   if (this.isModified('isCompleted')) {
@@ -286,6 +294,11 @@ vitalTaskSchema.statics.findByUser = function(userId, filters = {}) {
     .populate('status', 'name color')
     .populate('priority', 'name color')
     .populate('reviewRequestedBy', 'firstName lastName email avatar')
+    .populate({
+      path: 'collaborators',
+      select: 'collaborator role',
+      populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+    })
     .sort(filters.sort || '-createdAt');
 };
 
@@ -309,7 +322,13 @@ vitalTaskSchema.statics.findByShareToken = function(token) {
     { path: 'category', select: 'title color' },
     { path: 'status', select: 'name color' },
     { path: 'priority', select: 'name color' },
+    { path: 'priority', select: 'name color' },
     { path: 'user', select: 'firstName lastName email avatar' },
+    { 
+      path: 'collaborators', 
+      select: 'collaborator role',
+       populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+    }
   ]);
 };
 
@@ -327,7 +346,12 @@ vitalTaskSchema.statics.getSharedTasks = async function(userId) {
       { path: 'status', select: 'name color' },
       { path: 'priority', select: 'name color' },
       { path: 'user', select: 'firstName lastName email avatar' },
-      { path: 'reviewRequestedBy', select: 'firstName lastName email avatar' }
+      { path: 'reviewRequestedBy', select: 'firstName lastName email avatar' },
+      { 
+        path: 'collaborators', 
+        select: 'collaborator role',
+        populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+      }
     ]
   });
   

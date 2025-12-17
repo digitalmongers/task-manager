@@ -204,6 +204,15 @@ taskSchema.virtual('isUnderReview').get(function() {
   return !!(this.reviewRequestedBy && !this.isCompleted);
 });
 
+// Virtual for collaborators
+taskSchema.virtual('collaborators', {
+  ref: 'TaskCollaborator',
+  localField: '_id',
+  foreignField: 'task',
+  match: { status: 'active' },
+  options: { sort: { createdAt: -1 } }, 
+});
+
 // ========== MIDDLEWARE ==========
 taskSchema.pre('save', function() {
   if (this.isModified('isCompleted')) {
@@ -287,6 +296,11 @@ taskSchema.statics.findByUser = function(userId, filters = {}) {
     .populate('status', 'name color')
     .populate('priority', 'name color')
     .populate('reviewRequestedBy', 'firstName lastName email avatar')
+    .populate({
+      path: 'collaborators',
+      select: 'collaborator role',
+      populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+    })
     .sort(filters.sort || '-createdAt');
 };
 
@@ -311,6 +325,11 @@ taskSchema.statics.findByShareToken = function(token) {
     { path: 'status', select: 'name color' },
     { path: 'priority', select: 'name color' },
     { path: 'user', select: 'firstName lastName email avatar' },
+    { 
+      path: 'collaborators', 
+      select: 'collaborator role',
+       populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+    }
   ]);
 };
 
@@ -328,7 +347,12 @@ taskSchema.statics.getSharedTasks = async function(userId) {
       { path: 'status', select: 'name color' },
       { path: 'priority', select: 'name color' },
       { path: 'user', select: 'firstName lastName email avatar' },
-      { path: 'reviewRequestedBy', select: 'firstName lastName email avatar' }
+      { path: 'reviewRequestedBy', select: 'firstName lastName email avatar' },
+      { 
+        path: 'collaborators', 
+        select: 'collaborator role',
+        populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+      }
     ]
   });
   

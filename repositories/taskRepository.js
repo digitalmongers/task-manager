@@ -16,6 +16,11 @@ class TaskRepository {
         { path: 'category', select: 'title color' },
         { path: 'status', select: 'name color' },
         { path: 'priority', select: 'name color' },
+        { 
+          path: 'collaborators', 
+          select: 'collaborator role',
+          populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+        }
       ]);
 
       Logger.info('Task created successfully', {
@@ -65,6 +70,11 @@ class TaskRepository {
         .populate('status', 'name color')
         .populate('priority', 'name color')
         .populate('reviewRequestedBy', 'firstName lastName email avatar')
+        .populate({
+          path: 'collaborators',
+          select: 'collaborator role',
+          populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+        })
         .sort(sort)
         .skip(skip)
         .limit(parseInt(limit));
@@ -108,7 +118,12 @@ class TaskRepository {
         .populate('category', 'title color')
         .populate('status', 'name color')
         .populate('priority', 'name color')
-        .populate('reviewRequestedBy', 'firstName lastName email avatar');
+        .populate('reviewRequestedBy', 'firstName lastName email avatar')
+        .populate({
+          path: 'collaborators',
+          select: 'collaborator role',
+          populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+        });
 
       if (!task) {
         Logger.warn('Task not found or unauthorized', {
@@ -138,7 +153,12 @@ class TaskRepository {
         .populate('category', 'title color')
         .populate('status', 'name color')
         .populate('priority', 'name color')
-        .populate('reviewRequestedBy', 'firstName lastName email avatar');
+        .populate('reviewRequestedBy', 'firstName lastName email avatar')
+        .populate({
+          path: 'collaborators',
+          select: 'collaborator role',
+          populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+        });
 
       return task;
     } catch (error) {
@@ -165,7 +185,12 @@ class TaskRepository {
       )
         .populate('category', 'title color')
         .populate('status', 'name color')
-        .populate('priority', 'name color');
+        .populate('priority', 'name color')
+        .populate({
+          path: 'collaborators',
+          select: 'collaborator role',
+          populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
+        });
 
       if (!task) {
         Logger.warn('Task not found for update', {
