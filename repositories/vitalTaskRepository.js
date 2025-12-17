@@ -286,6 +286,165 @@ class VitalTaskRepository {
 
     return vitalTask.restore();
   }
+
+  /**
+   * Get comprehensive vital task insights statistics
+   */
+  async getInsightsStats(userId) {
+    try {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const lastWeekStart = new Date(sevenDaysAgo.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      const stats = await VitalTask.aggregate([
+        {
+          $match: {
+            user: userId,
+            isDeleted: false,
+          },
+        },
+        {
+          $facet: {
+            overview: [
+              {
+                $group: {
+                  _id: null,
+                  total: { $sum: 1 },
+                  completed: { $sum: { $cond: ['$isCompleted', 1, 0] } },
+                  overdue: {
+                    $sum: {
+                      $cond: [
+                        {
+                          $and: [
+                            { $ne: ['$isCompleted', true] },
+                            { $ne: ['$dueDate', null] },
+                            { $lt: ['$dueDate', now] },
+                          ],
+                        },
+                        1,
+                        0,
+                      ],
+                    },
+                  },
+                  totalCompletionTime: {
+                    $sum: {
+                      $cond: [
+                        { $and: ['$isCompleted', { $ne: ['$completedAt', null] }] },
+                        { $subtract: ['$completedAt', '$createdAt'] },
+                        0,
+                      ],
+                    },
+                  },
+                  completedCount: { $sum: { $cond: ['$isCompleted', 1, 0] } },
+                },
+              },
+            ],
+            byStatus: [
+              {
+                $group: {
+                  _id: '$status',
+                  count: { $sum: 1 },
+                },
+              },
+              {
+                $lookup: {
+                  from: 'taskstatuses',
+                  localField: '_id',
+                  foreignField: '_id',
+                  as: 'statusInfo',
+                },
+              },
+              {
+                $unwind: {
+                  path: '$statusInfo',
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
+              {
+                $project: {
+                  name: { $ifNull: ['$statusInfo.name', 'No Status'] },
+                  color: { $ifNull: ['$statusInfo.color', '#cccccc'] },
+                  count: 1,
+                },
+              },
+            ],
+            byPriority: [
+              {
+                $group: {
+                  _id: '$priority',
+                  count: { $sum: 1 },
+                },
+              },
+              {
+                $lookup: {
+                  from: 'taskpriorities',
+                  localField: '_id',
+                  foreignField: '_id',
+                  as: 'priorityInfo',
+                },
+              },
+              {
+                $unwind: {
+                  path: '$priorityInfo',
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
+              {
+                $project: {
+                  name: { $ifNull: ['$priorityInfo.name', 'No Priority'] },
+                  color: { $ifNull: ['$priorityInfo.color', '#cccccc'] },
+                  count: 1,
+                },
+              },
+            ],
+            weeklyProgress: [
+              {
+                $match: {
+                  isCompleted: true,
+                  completedAt: { $gte: sevenDaysAgo },
+                },
+              },
+              {
+                $group: {
+                  _id: {
+                    $dateToString: { format: '%Y-%m-%d', date: '$completedAt' },
+                  },
+                  count: { $sum: 1 },
+                },
+              },
+              { $sort: { _id: 1 } },
+            ],
+            lastWeekCompleted: [
+               {
+                 $match: {
+                   isCompleted: true,
+                   completedAt: { $gte: lastWeekStart, $lt: sevenDaysAgo }
+                 }
+               },
+               { $count: "count" }
+            ],
+            thisWeekCompleted: [
+               {
+                 $match: {
+                   isCompleted: true,
+                   completedAt: { $gte: sevenDaysAgo }
+                 }
+               },
+               { $count: "count" }
+            ]
+          },
+        },
+      ]);
+
+      return stats[0];
+    } catch (error) {
+      Logger.error('Error getting vital task insights stats', {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
 }
 
 export default new VitalTaskRepository();

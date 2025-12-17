@@ -32,6 +32,7 @@ import collaborationRoutes from "./routes/collaborationRoutes.js";
 import vitalTaskCollaborationRoutes from "./routes/vitalTaskCollaborationRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
+import insightsRoutes from "./routes/insightsRoutes.js";
 import { testConnection as testOpenAI } from './config/openai.js';
 
 
@@ -135,6 +136,7 @@ app.use("/api/collaboration", collaborationRoutes);
 app.use("/api/vital-task-collaboration", vitalTaskCollaborationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/insights", insightsRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFound);

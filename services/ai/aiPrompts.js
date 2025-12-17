@@ -140,6 +140,24 @@ Provide weekly plan in JSON format:
   "summary": "brief explanation of the planning strategy"
 }
 `,
+
+  ANALYZE_COMPREHENSIVE_INSIGHTS: (stats) => `
+Analyze the following user productivity statistics for the Dashboard Insights:
+${JSON.stringify(stats, null, 2)}
+
+Provide a comprehensive analysis in JSON format:
+{
+  "analysis": "Brief analysis of performance (completion rates, speed, etc.)",
+  "productivityScoreAnalysis": "Explanation of the calculated productivity score",
+  "recommendations": [
+    "Specific actionable tip 1 based on data",
+    "Specific actionable tip 2 based on data",
+    "Specific actionable tip 3 based on data"
+  ],
+  "motivationalMessage": "Short encouraging message",
+  "focusArea": "One key area to focus on next week (e.g., 'Clear overdue tasks', 'Maintain momentum')"
+}
+`,
 };
 
 export const SIMILARITY_PROMPTS = {
