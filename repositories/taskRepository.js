@@ -67,7 +67,6 @@ class TaskRepository {
 
       const tasks = await Task.find(query)
         .populate('category', 'title color')
-        .populate('status', 'name color')
         .populate('priority', 'name color')
         .populate('reviewRequestedBy', 'firstName lastName email avatar')
         .populate({
@@ -116,7 +115,6 @@ class TaskRepository {
         user: userId,
       })
         .populate('category', 'title color')
-        .populate('status', 'name color')
         .populate('priority', 'name color')
         .populate('reviewRequestedBy', 'firstName lastName email avatar')
         .populate({
@@ -151,7 +149,6 @@ class TaskRepository {
     try {
       const task = await Task.findById(taskId)
         .populate('category', 'title color')
-        .populate('status', 'name color')
         .populate('priority', 'name color')
         .populate('reviewRequestedBy', 'firstName lastName email avatar')
         .populate({
@@ -184,7 +181,6 @@ class TaskRepository {
         }
       )
         .populate('category', 'title color')
-        .populate('status', 'name color')
         .populate('priority', 'name color')
         .populate({
           path: 'collaborators',
@@ -308,7 +304,6 @@ class TaskRepository {
         { new: true, runValidators: true }
       )
         .populate('category', 'title color')
-        .populate('status', 'name color')
         .populate('priority', 'name color');
 
       if (!task) {
@@ -348,7 +343,6 @@ class TaskRepository {
         { new: true }
       )
         .populate('category', 'title color')
-        .populate('status', 'name color')
         .populate('priority', 'name color');
 
       if (!task) {
@@ -595,23 +589,8 @@ class TaskRepository {
                 },
               },
               {
-                $lookup: {
-                  from: 'taskstatuses',
-                  localField: '_id',
-                  foreignField: '_id',
-                  as: 'statusInfo',
-                },
-              },
-              {
-                $unwind: {
-                  path: '$statusInfo',
-                  preserveNullAndEmptyArrays: true,
-                },
-              },
-              {
                 $project: {
-                  name: { $ifNull: ['$statusInfo.name', 'No Status'] },
-                  color: { $ifNull: ['$statusInfo.color', '#cccccc'] },
+                  name: { $ifNull: ['$_id', 'No Status'] },
                   count: 1,
                 },
               },

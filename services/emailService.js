@@ -2165,7 +2165,7 @@ async sendTaskInvitation(invitation, task, inviter) {
           <div class="header">
             <div class="header-branding">
               <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>🤝 Task Collaboration Invitation</h1>
+              <h1>Task Collaboration Invitation</h1>
             </div>
             <p>You've been invited to collaborate on a task</p>
           </div>
@@ -2729,7 +2729,7 @@ async sendInvitationReminder(invitation, task, inviter) {
             <div class="header">
               <div class="header-branding">
                 <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>⏰ Invitation Reminder</h1>
+                <h1> Invitation Reminder</h1>
               </div>
             </div>
             <div class="content">
@@ -2820,7 +2820,7 @@ async sendInvitationAcceptedNotification(invitation, task, acceptedBy) {
             <div class="header">
               <div class="header-branding">
                 <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>✅ Invitation Accepted!</h1>
+                <h1> Invitation Accepted!</h1>
               </div>
             </div>
             <div class="content">
@@ -2994,7 +2994,7 @@ async sendTaskSharedNotification(task, teamMember, owner) {
             <div class="header">
               <div class="header-branding">
                 <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>📋 Task Shared With You</h1>
+                <h1>Task Shared With You</h1>
               </div>
             </div>
           <h2>Hello ${teamMember.firstName},</h2>
@@ -3297,7 +3297,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
           <div class="header">
             <div class="header-branding">
               <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>🔴 Vital Task Invitation</h1>
+              <h1> Vital Task Invitation</h1>
             </div>
             <p>You've been invited to collaborate on a vital task</p>
           </div>
@@ -3526,7 +3526,7 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
           <div class="header">
             <div class="header-branding">
               <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>🔴 Vital Task Shared</h1>
+              <h1> Vital Task Shared</h1>
             </div>
           </div>
           
@@ -3654,7 +3654,7 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
           <div class="header">
             <div class="header-branding">
               <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>🔴 Removed from Vital Task</h1>
+              <h1> Removed from Vital Task</h1>
             </div>
           </div>
           

@@ -1,6 +1,5 @@
 import TaskRepository from '../repositories/taskRepository.js';
 import CategoryRepository from '../repositories/categoryRepository.js';
-import TaskStatusRepository from '../repositories/taskStatusRepository.js';
 import TaskPriorityRepository from '../repositories/taskPriorityRepository.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
@@ -26,13 +25,6 @@ class TaskService {
         }
       }
 
-      // Verify status belongs to user (if provided)
-      if (status) {
-        const statusExists = await TaskStatusRepository.findByIdAndUser(status, userId);
-        if (!statusExists) {
-          throw ApiError.badRequest('Invalid status or status does not belong to you');
-        }
-      }
 
       // Verify priority belongs to user (if provided)
       if (priority) {
@@ -49,7 +41,7 @@ class TaskService {
           description: description || null,
           dueDate: dueDate || null,
           priority: priority || null,
-          status: status || null,
+          status: status || 'Not Started',
           category: category || null,
           isCompleted: isCompleted || false,
         },
@@ -114,7 +106,7 @@ class TaskService {
       }
       if (filters.status) {
         filteredSharedTasks = filteredSharedTasks.filter(t => 
-          t.status && t.status._id.toString() === filters.status
+          t.status === filters.status
         );
       }
       if (filters.priority) {
@@ -206,7 +198,6 @@ class TaskService {
         // User is collaborator, fetch task
         task = await Task.findById(taskId)
           .populate('category', 'title color')
-          .populate('status', 'name color')
           .populate('priority', 'name color')
           .populate('priority', 'name color')
           .populate('user', 'firstName lastName email avatar')
@@ -294,16 +285,6 @@ class TaskService {
         }
       }
 
-      // Verify status belongs to task owner (if being updated)
-      if (updateData.status) {
-        const statusExists = await TaskStatusRepository.findByIdAndUser(
-          updateData.status,
-          task.user
-        );
-        if (!statusExists) {
-          throw ApiError.badRequest('Invalid status or status does not belong to task owner');
-        }
-      }
 
       // Verify priority belongs to task owner (if being updated)
       if (updateData.priority) {
@@ -314,6 +295,11 @@ class TaskService {
         if (!priorityExists) {
           throw ApiError.badRequest('Invalid priority or priority does not belong to task owner');
         }
+      }
+
+      // Auto-update status based on isCompleted
+      if (updateData.isCompleted !== undefined) {
+        updateData.status = updateData.isCompleted ? 'Completed' : 'In Progress';
       }
 
       // Update task
@@ -332,7 +318,6 @@ class TaskService {
         await this.handleImageUpload(userId, taskId, file);
         task = await Task.findById(taskId)
           .populate('category', 'title color')
-          .populate('status', 'name color')
           .populate('priority', 'name color');
       }
 
@@ -690,7 +675,6 @@ class TaskService {
   async getDropdownOptions(userId) {
     try {
       const categories = await CategoryRepository.findByUser(userId);
-      const statuses = await TaskStatusRepository.findByUser(userId);
       const priorities = await TaskPriorityRepository.findByUser(userId);
 
       return {
@@ -699,11 +683,11 @@ class TaskService {
           title: c.title,
           color: c.color,
         })),
-        statuses: statuses.map(s => ({
-          _id: s._id,
-          name: s.name,
-          color: s.color,
-        })),
+        statuses: [
+          { name: 'Not Started', value: 'Not Started' },
+          { name: 'In Progress', value: 'In Progress' },
+          { name: 'Completed', value: 'Completed' },
+        ],
         priorities: priorities.map(p => ({
           _id: p._id,
           name: p.name,
