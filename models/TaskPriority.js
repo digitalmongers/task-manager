@@ -56,8 +56,15 @@ const taskPrioritySchema = new mongoose.Schema(
 );
 
 // ========== INDEXES ==========
-// Compound index: user + name should be unique (one user can't have duplicate priority names)
-taskPrioritySchema.index({ user: 1, name: 1 }, { unique: true });
+// Partial unique index: user + name should be unique for non-deleted priorities only
+// This allows reusing names after soft deletion
+taskPrioritySchema.index(
+  { user: 1, name: 1 }, 
+  { 
+    unique: true,
+    partialFilterExpression: { isDeleted: { $ne: true } }
+  }
+);
 
 // Index for fetching active priorities
 taskPrioritySchema.index({ user: 1, isDeleted: 1 });
