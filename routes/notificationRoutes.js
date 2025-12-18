@@ -42,6 +42,28 @@ router.get(
 );
 
 /**
+ * @route   PATCH /api/notifications/settings/websocket
+ * @desc    Toggle WebSocket notifications
+ * @access  Private
+ */
+router.patch(
+  '/settings/websocket',
+  notificationLimiter,
+  asyncHandler(async (req, res, next) => {
+    const { toggleWebSocketNotificationsSchema } = await import('../validators/notificationValidation.js');
+    const { error } = toggleWebSocketNotificationsSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.details[0].message,
+      });
+    }
+    next();
+  }),
+  asyncHandler(NotificationController.toggleWebSocketNotifications.bind(NotificationController))
+);
+
+/**
  * @route   PATCH /api/notifications/read-all
  * @desc    Mark all notifications as read
  * @access  Private

@@ -90,6 +90,32 @@ class NotificationController {
 
     ApiResponse.success(res, 200, 'All notifications deleted successfully', result);
   }
+
+  /**
+   * Toggle WebSocket notifications
+   * PATCH /api/notifications/settings/websocket
+   */
+  async toggleWebSocketNotifications(req, res) {
+    const userId = req.user._id;
+    const { enabled } = req.body;
+
+    const User = (await import('../models/User.js')).default;
+    
+    // Update user's WebSocket notification setting
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { websocketNotificationsEnabled: enabled },
+      { new: true, select: 'websocketNotificationsEnabled' }
+    );
+
+    if (!user) {
+      return ApiResponse.error(res, 404, 'User not found');
+    }
+
+    ApiResponse.success(res, 200, 'WebSocket notification settings updated', {
+      websocketNotificationsEnabled: user.websocketNotificationsEnabled,
+    });
+  }
 }
 
 export default new NotificationController();
