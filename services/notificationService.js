@@ -18,11 +18,17 @@ class NotificationService {
         { path: 'team', select: 'teamName' },
       ]);
 
-      // Send real-time notification via WebSocket
-      WebSocketService.sendToUser(data.recipient, 'notification:new', {
-        notification: notification.toObject(),
-        unreadCount: await Notification.getUnreadCount(data.recipient),
-      });
+      // Check if user has WebSocket notifications enabled
+      const User = (await import('../models/User.js')).default;
+      const recipient = await User.findById(data.recipient).select('websocketNotificationsEnabled');
+      
+      // Send real-time notification via WebSocket only if enabled
+      if (recipient?.websocketNotificationsEnabled) {
+        WebSocketService.sendToUser(data.recipient, 'notification:new', {
+          notification: notification.toObject(),
+          unreadCount: await Notification.getUnreadCount(data.recipient),
+        });
+      }
 
       // Send push notification for offline/background users
       await PushService.sendPushToUser(data.recipient, {
@@ -40,6 +46,7 @@ class NotificationService {
         notificationId: notification._id,
         recipient: data.recipient,
         type: data.type,
+        websocketSent: recipient?.websocketNotificationsEnabled || false,
       });
 
       return notification;
@@ -56,20 +63,75 @@ class NotificationService {
     try {
       const created = await Notification.insertMany(notifications);
       
-      // Send real-time notifications
+      // Get all unique recipient IDs
+      const recipientIds = [...new Set(created.map(n => n.recipient.toString()))];
+      
+      // Fetch WebSocket preferences for all recipients
+      const User = (await import('../models/User.js')).default;
+      const users = await User.find(
+        { _id: { $in: recipientIds } },
+        'websocketNotificationsEnabled pushEnabled'
+      );
+      
+      // Create a map of userId -> websocketEnabled
+      const websocketEnabledMap = new Map(
+        users.map(u => [u._id.toString(), u.websocketNotificationsEnabled])
+      );
+      
+      // Create a map of userId -> pushEnabled
+      const pushEnabledMap = new Map(
+        users.map(u => [u._id.toString(), u.pushEnabled])
+      );
+      
+      // Send real-time notifications only to users with WebSocket enabled
       for (const notification of created) {
         await notification.populate([
           { path: 'sender', select: 'firstName lastName email avatar' },
           { path: 'team', select: 'teamName' },
         ]);
 
-        WebSocketService.sendToUser(notification.recipient, 'notification:new', {
-          notification: notification.toObject(),
-          unreadCount: await Notification.getUnreadCount(notification.recipient),
-        });
+        const recipientId = notification.recipient.toString();
+        const websocketEnabled = websocketEnabledMap.get(recipientId);
+        
+        if (websocketEnabled) {
+          WebSocketService.sendToUser(notification.recipient, 'notification:new', {
+            notification: notification.toObject(),
+            unreadCount: await Notification.getUnreadCount(notification.recipient),
+          });
+        }
       }
 
-      Logger.info('Bulk notifications created', { count: created.length });
+      // Send push notifications to all recipients with push enabled
+      const pushNotificationPromises = created.map(async (notification) => {
+        const recipientId = notification.recipient.toString();
+        const pushEnabled = pushEnabledMap.get(recipientId);
+        
+        if (pushEnabled) {
+          // Get the original notification data to access title, message, and actionUrl
+          const originalNotification = notifications.find(
+            n => n.recipient.toString() === recipientId && n.type === notification.type
+          );
+          
+          await PushService.sendPushToUser(notification.recipient, {
+            title: originalNotification?.title || notification.title || 'Task Manager',
+            body: originalNotification?.message || notification.message || 'You have a new notification',
+            url: originalNotification?.actionUrl || notification.actionUrl || CLIENT_URL,
+            icon: '/icon-192x192.png',
+            data: {
+              notificationId: notification._id,
+              type: notification.type,
+            },
+          });
+        }
+      });
+
+      await Promise.all(pushNotificationPromises);
+
+      Logger.info('Bulk notifications created', { 
+        count: created.length,
+        websocketSent: users.filter(u => u.websocketNotificationsEnabled).length,
+        pushSent: users.filter(u => u.pushEnabled).length,
+      });
       return created;
     } catch (error) {
       Logger.error('Error creating bulk notifications', { error: error.message });
@@ -113,11 +175,17 @@ class NotificationService {
       await notification.markAsRead();
       const unreadCount = await Notification.getUnreadCount(userId);
 
-      // Send updated count via WebSocket
-      WebSocketService.sendToUser(userId, 'notification:read', {
-        notificationId,
-        unreadCount,
-      });
+      // Check if user has WebSocket notifications enabled
+      const User = (await import('../models/User.js')).default;
+      const user = await User.findById(userId).select('websocketNotificationsEnabled');
+      
+      // Send updated count via WebSocket only if enabled
+      if (user?.websocketNotificationsEnabled) {
+        WebSocketService.sendToUser(userId, 'notification:read', {
+          notificationId,
+          unreadCount,
+        });
+      }
 
       return { notification, unreadCount };
     } catch (error) {
@@ -133,10 +201,16 @@ class NotificationService {
     try {
       await Notification.markAllAsRead(userId);
       
-      // Send updated count via WebSocket
-      WebSocketService.sendToUser(userId, 'notifications:all-read', {
-        unreadCount: 0,
-      });
+      // Check if user has WebSocket notifications enabled
+      const User = (await import('../models/User.js')).default;
+      const user = await User.findById(userId).select('websocketNotificationsEnabled');
+      
+      // Send updated count via WebSocket only if enabled
+      if (user?.websocketNotificationsEnabled) {
+        WebSocketService.sendToUser(userId, 'notifications:all-read', {
+          unreadCount: 0,
+        });
+      }
 
       return { success: true, unreadCount: 0 };
     } catch (error) {
@@ -161,10 +235,17 @@ class NotificationService {
 
       const unreadCount = await Notification.getUnreadCount(userId);
 
-      WebSocketService.sendToUser(userId, 'notification:deleted', {
-        notificationId,
-        unreadCount,
-      });
+      // Check if user has WebSocket notifications enabled
+      const User = (await import('../models/User.js')).default;
+      const user = await User.findById(userId).select('websocketNotificationsEnabled');
+      
+      // Send update via WebSocket only if enabled
+      if (user?.websocketNotificationsEnabled) {
+        WebSocketService.sendToUser(userId, 'notification:deleted', {
+          notificationId,
+          unreadCount,
+        });
+      }
 
       return { success: true, unreadCount };
     } catch (error) {
@@ -180,10 +261,17 @@ class NotificationService {
     try {
       const result = await Notification.deleteMany({ recipient: userId });
 
-      WebSocketService.sendToUser(userId, 'notifications:all-deleted', {
-        deletedCount: result.deletedCount,
-        unreadCount: 0,
-      });
+      // Check if user has WebSocket notifications enabled
+      const User = (await import('../models/User.js')).default;
+      const user = await User.findById(userId).select('websocketNotificationsEnabled');
+      
+      // Send update via WebSocket only if enabled
+      if (user?.websocketNotificationsEnabled) {
+        WebSocketService.sendToUser(userId, 'notifications:all-deleted', {
+          deletedCount: result.deletedCount,
+          unreadCount: 0,
+        });
+      }
 
       Logger.info('All notifications deleted', {
         userId,
