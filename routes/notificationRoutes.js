@@ -64,6 +64,17 @@ router.patch(
 );
 
 /**
+ * @route   DELETE /api/notifications/all
+ * @desc    Delete all notifications
+ * @access  Private
+ */
+router.delete(
+  '/all',
+  notificationLimiter,
+  asyncHandler(NotificationController.deleteAllNotifications.bind(NotificationController))
+);
+
+/**
  * @route   DELETE /api/notifications/:id
  * @desc    Delete notification
  * @access  Private

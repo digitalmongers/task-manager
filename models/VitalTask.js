@@ -206,7 +206,10 @@ vitalTaskSchema.pre('save', function() {
       this.status = 'Completed';
     } else {
       this.completedAt = null;
-      this.status = 'In Progress';
+      // Only set status to 'In Progress' if user hasn't explicitly set a status
+      if (!this.isModified('status')) {
+        this.status = 'In Progress';
+      }
     }
   }
 });

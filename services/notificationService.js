@@ -1,5 +1,6 @@
 import Notification from '../models/Notification.js';
 import WebSocketService from '../config/websocket.js';
+import PushService from './pushService.js';
 import Logger from '../config/logger.js';
 import TeamMember from '../models/TeamMember.js';
 
@@ -21,6 +22,18 @@ class NotificationService {
       WebSocketService.sendToUser(data.recipient, 'notification:new', {
         notification: notification.toObject(),
         unreadCount: await Notification.getUnreadCount(data.recipient),
+      });
+
+      // Send push notification for offline/background users
+      await PushService.sendPushToUser(data.recipient, {
+        title: data.title,
+        body: data.message,
+        url: data.actionUrl || CLIENT_URL,
+        icon: '/icon-192x192.png',
+        data: {
+          notificationId: notification._id,
+          type: data.type,
+        },
       });
 
       Logger.info('Notification created and sent', {
@@ -156,6 +169,30 @@ class NotificationService {
       return { success: true, unreadCount };
     } catch (error) {
       Logger.error('Error deleting notification', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Delete all notifications for a user
+   */
+  async deleteAllNotifications(userId) {
+    try {
+      const result = await Notification.deleteMany({ recipient: userId });
+
+      WebSocketService.sendToUser(userId, 'notifications:all-deleted', {
+        deletedCount: result.deletedCount,
+        unreadCount: 0,
+      });
+
+      Logger.info('All notifications deleted', {
+        userId,
+        deletedCount: result.deletedCount,
+      });
+
+      return { success: true, deletedCount: result.deletedCount, unreadCount: 0 };
+    } catch (error) {
+      Logger.error('Error deleting all notifications', { error: error.message });
       throw error;
     }
   }

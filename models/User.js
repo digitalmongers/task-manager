@@ -159,6 +159,12 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // Push notification preference
+    pushEnabled: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

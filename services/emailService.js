@@ -218,7 +218,7 @@ class EmailService {
             <div class="header">
               <div class="header-branding">
                 <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>🎉 Welcome to Tasskr!</h1>
+                <h1> Welcome to Tasskr!</h1>
               </div>
             </div>
             <div class="content">
@@ -384,7 +384,7 @@ class EmailService {
             <div class="header">
               <div class="header-branding">
                 <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>🎉 Email Verified Successfully!</h1>
+                <h1> Email Verified Successfully!</h1>
               </div>
             </div>
             <div class="content">

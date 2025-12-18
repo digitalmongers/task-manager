@@ -31,9 +31,11 @@ import teamRoutes from "./routes/teamRoutes.js";
 import collaborationRoutes from "./routes/collaborationRoutes.js";
 import vitalTaskCollaborationRoutes from "./routes/vitalTaskCollaborationRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import pushRoutes from "./routes/pushRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import insightsRoutes from "./routes/insightsRoutes.js";
 import { testConnection as testOpenAI } from './config/openai.js';
+import './config/webPush.js'; // Initialize web-push with VAPID
 
 
 const app = express();
@@ -135,6 +137,7 @@ app.use("/api/teams", teamRoutes);
 app.use("/api/collaboration", collaborationRoutes);
 app.use("/api/vital-task-collaboration", vitalTaskCollaborationRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/push", pushRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/insights", insightsRoutes);
 

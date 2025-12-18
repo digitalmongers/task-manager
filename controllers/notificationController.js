@@ -78,6 +78,18 @@ class NotificationController {
 
     ApiResponse.success(res, 200, 'Notification deleted', result);
   }
+
+  /**
+   * Delete all notifications
+   * DELETE /api/notifications/all
+   */
+  async deleteAllNotifications(req, res) {
+    const userId = req.user._id;
+
+    const result = await NotificationService.deleteAllNotifications(userId);
+
+    ApiResponse.success(res, 200, 'All notifications deleted successfully', result);
+  }
 }
 
 export default new NotificationController();
