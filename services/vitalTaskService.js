@@ -1,6 +1,5 @@
 import VitalTaskRepository from '../repositories/vitalTaskRepository.js';
 import CategoryRepository from '../repositories/categoryRepository.js';
-import TaskStatusRepository from '../repositories/taskStatusRepository.js';
 import TaskPriorityRepository from '../repositories/taskPriorityRepository.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
@@ -26,13 +25,6 @@ class VitalTaskService {
         }
       }
 
-      // Verify status belongs to user (if provided)
-      if (status) {
-        const statusExists = await TaskStatusRepository.findByIdAndUser(status, userId);
-        if (!statusExists) {
-          throw ApiError.badRequest('Invalid status or status does not belong to you');
-        }
-      }
 
       // Verify priority belongs to user (if provided)
       if (priority) {
@@ -49,7 +41,7 @@ class VitalTaskService {
           description: description || null,
           dueDate: dueDate || null,
           priority: priority || null,
-          status: status || null,
+          status: status || 'Not Started',
           category: category || null,
           isCompleted: isCompleted || false,
         },
@@ -111,7 +103,7 @@ class VitalTaskService {
       }
       if (filters.status) {
         filteredSharedTasks = filteredSharedTasks.filter(t => 
-          t.status && t.status._id.toString() === filters.status
+          t.status === filters.status
         );
       }
       if (filters.priority) {
@@ -191,7 +183,6 @@ class VitalTaskService {
         // User is collaborator, fetch vital task
         vitalTask = await VitalTask.findById(taskId)
           .populate('category', 'title color')
-          .populate('status', 'name color')
           .populate('priority', 'name color')
           .populate('priority', 'name color')
           .populate('user', 'firstName lastName email avatar')
@@ -279,16 +270,6 @@ class VitalTaskService {
         }
       }
 
-      // Verify status belongs to task owner (if being updated)
-      if (updateData.status) {
-        const statusExists = await TaskStatusRepository.findByIdAndUser(
-          updateData.status,
-          vitalTask.user
-        );
-        if (!statusExists) {
-          throw ApiError.badRequest('Invalid status or status does not belong to task owner');
-        }
-      }
 
       // Verify priority belongs to task owner (if being updated)
       if (updateData.priority) {
@@ -299,6 +280,11 @@ class VitalTaskService {
         if (!priorityExists) {
           throw ApiError.badRequest('Invalid priority or priority does not belong to task owner');
         }
+      }
+
+      // Auto-update status based on isCompleted
+      if (updateData.isCompleted !== undefined) {
+        updateData.status = updateData.isCompleted ? 'Completed' : 'In Progress';
       }
 
       // Update vital task
@@ -317,7 +303,6 @@ class VitalTaskService {
         await this.handleImageUpload(userId, taskId, file);
         vitalTask = await VitalTask.findById(taskId)
           .populate('category', 'title color')
-          .populate('status', 'name color')
           .populate('priority', 'name color');
       }
 

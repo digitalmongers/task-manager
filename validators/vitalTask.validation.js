@@ -30,10 +30,10 @@ export const createVitalTaskSchema = Joi.object({
     }),
 
   status: Joi.string()
-    .pattern(/^[0-9a-fA-F]{24}$/)
+    .valid('Not Started', 'In Progress', 'Completed')
     .allow(null)
     .messages({
-      'string.pattern.base': 'Invalid status ID format',
+      'any.only': 'Status must be one of: Not Started, In Progress, Completed',
     }),
 
   category: Joi.string()
@@ -76,10 +76,10 @@ export const updateVitalTaskSchema = Joi.object({
     }),
 
   status: Joi.string()
-    .pattern(/^[0-9a-fA-F]{24}$/)
+    .valid('Not Started', 'In Progress', 'Completed')
     .allow(null)
     .messages({
-      'string.pattern.base': 'Invalid status ID format',
+      'any.only': 'Status must be one of: Not Started, In Progress, Completed',
     }),
 
   category: Joi.string()

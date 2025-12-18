@@ -55,26 +55,11 @@ const vitalTaskSchema = new mongoose.Schema(
       },
     },
 
-    
+    // Status - static enum values
     status: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'TaskStatus',
-      default: null,
-      validate: {
-        validator: async function(value) {
-          if (!value) return true;
-          const user = this.user || (typeof this.getQuery === 'function' ? this.getQuery().user : null);
-          if (!user) return true; // Skip validation if user context is missing (handled by service)
-
-          const TaskStatus = mongoose.model('TaskStatus');
-          const status = await TaskStatus.findOne({ 
-            _id: value, 
-            user: user 
-          });
-          return !!status;
-        },
-        message: 'Invalid status or status does not belong to you',
-      },
+      type: String,
+      enum: ['Not Started', 'In Progress', 'Completed'],
+      default: 'Not Started',
     },
 
     
@@ -218,8 +203,10 @@ vitalTaskSchema.pre('save', function() {
   if (this.isModified('isCompleted')) {
     if (this.isCompleted) {
       this.completedAt = new Date();
+      this.status = 'Completed';
     } else {
       this.completedAt = null;
+      this.status = 'In Progress';
     }
   }
 });

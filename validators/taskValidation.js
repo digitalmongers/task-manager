@@ -38,10 +38,10 @@ export const taskValidation = {
         }),
       
       status: Joi.string()
-        .regex(/^[0-9a-fA-F]{24}$/)
+        .valid('Not Started', 'In Progress', 'Completed')
         .allow(null, '')
         .messages({
-          'string.pattern.base': 'Invalid status ID format',
+          'any.only': 'Status must be one of: Not Started, In Progress, Completed',
         }),
       
       category: Joi.string()
@@ -101,10 +101,10 @@ export const taskValidation = {
         }),
       
       status: Joi.string()
-        .regex(/^[0-9a-fA-F]{24}$/)
+        .valid('Not Started', 'In Progress', 'Completed')
         .allow(null, '')
         .messages({
-          'string.pattern.base': 'Invalid status ID format',
+          'any.only': 'Status must be one of: Not Started, In Progress, Completed',
         }),
       
       category: Joi.string()
@@ -157,9 +157,9 @@ export const taskValidation = {
         }),
       
       status: Joi.string()
-        .regex(/^[0-9a-fA-F]{24}$/)
+        .valid('Not Started', 'In Progress', 'Completed')
         .messages({
-          'string.pattern.base': 'Invalid status ID format',
+          'any.only': 'Status must be one of: Not Started, In Progress, Completed',
         }),
       
       priority: Joi.string()
