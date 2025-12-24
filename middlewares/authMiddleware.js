@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import AuthRepository from '../repositories/authRepository.js';
+import SessionService from '../services/sessionService.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 
@@ -30,6 +31,30 @@ export const protect = async (req, res, next) => {
         throw ApiError.unauthorized('Your session has expired. Please login again');
       }
       throw ApiError.unauthorized('Invalid authentication token');
+    }
+
+    // Extract sessionId from token (if present)
+    const sessionId = decoded.sid;
+
+    // Validate session in Redis (if sessionId exists)
+    // This allows immediate enforcement of remote logouts
+    if (sessionId) {
+      const isValidSession = await SessionService.validateSession(
+        decoded.userId,
+        sessionId
+      );
+
+      if (!isValidSession) {
+        Logger.logSecurity('INVALID_SESSION_ATTEMPT', {
+          userId: decoded.userId,
+          sessionId: sessionId.substring(0, 8) + '...',
+          ip: req.ip,
+        });
+        throw ApiError.unauthorized('Your session has been terminated. Please login again');
+      }
+
+      // Attach sessionId to request for use in controllers
+      req.sessionId = sessionId;
     }
 
     // Get user from token

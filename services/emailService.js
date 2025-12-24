@@ -807,7 +807,228 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
 }
 
   /**
-   * Send login alert email
+   * Send new device login alert email
+   */
+  async sendNewDeviceLoginEmail(user, deviceInfo) {
+    const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
+    const securityUrl = `${frontendUrl}/security`;
+    const changePasswordUrl = `${frontendUrl}/settings/security`;
+
+    const { deviceType, browser, os, city, country, ipAddress, loginTime } = deviceInfo;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Device Login Detected</title>
+          <style>
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+              line-height: 1.6; 
+              color: #333;
+              background-color: #f4f4f4;
+              margin: 0;
+              padding: 0;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 30px auto; 
+              background: white;
+              border-radius: 10px;
+              overflow: hidden;
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .header { 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+              color: white; 
+              padding: 25px 20px; 
+              text-align: center; 
+            }
+            .header-branding {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            .header img {
+              width: 48px;
+              height: 48px;
+              background: rgba(255, 255, 255, 0.2);
+              padding: 8px;
+              border-radius: 12px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              margin: 0;
+              flex-shrink: 0;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+              font-weight: 700;
+              line-height: 1.2;
+            }
+            .content { 
+              padding: 40px 30px;
+            }
+            .content h2 {
+              color: #333;
+              font-size: 24px;
+              margin-bottom: 20px;
+            }
+            .content p {
+              margin-bottom: 15px;
+              color: #555;
+            }
+            .info-box { 
+              background: #f8f9fa; 
+              padding: 20px; 
+              margin: 20px 0; 
+              border-radius: 8px; 
+              border-left: 4px solid #FF6B6B; 
+            }
+            .info-box p {
+              margin: 10px 0;
+              color: #555;
+              display: flex;
+              align-items: center;
+            }
+            .info-box strong {
+              min-width: 120px;
+              color: #333;
+            }
+            .warning { 
+              background: #fff3cd; 
+              border-left: 4px solid #ffc107; 
+              padding: 15px; 
+              margin: 20px 0;
+              border-radius: 4px;
+            }
+            .warning strong {
+              color: #856404;
+            }
+            .button-container {
+              text-align: center;
+              margin: 30px 0;
+            }
+            .button { 
+              display: inline-block; 
+              padding: 15px 30px; 
+              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
+              color: white !important; 
+              text-decoration: none; 
+              border-radius: 5px; 
+              font-weight: 600;
+              font-size: 16px;
+              margin: 5px;
+            }
+            .button-secondary { 
+              background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
+            }
+            .footer { 
+              text-align: center; 
+              padding: 20px 30px;
+              background: #f8f9fa;
+              color: #6c757d; 
+              font-size: 13px; 
+            }
+            .footer p {
+              margin: 5px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <div class="header-branding">
+                <img src="${LOGO_URL}" alt="Tasskr">
+                <h1>🔐 New Device Login Detected</h1>
+              </div>
+            </div>
+            <div class="content">
+              <h2>Hello ${user.firstName},</h2>
+              <p>We detected a login to your Tasskr account from a new device or location.</p>
+              
+              <div class="info-box">
+                <p><strong>📅 Time:</strong> ${loginTime || new Date().toLocaleString()}</p>
+                <p><strong>💻 Device:</strong> ${deviceType || 'Unknown'}</p>
+                <p><strong>🌐 Browser:</strong> ${browser || 'Unknown'}</p>
+                <p><strong>⚙️ OS:</strong> ${os || 'Unknown'}</p>
+                <p><strong>📍 Location:</strong> ${city || 'Unknown'}, ${country || 'Unknown'}</p>
+                <p><strong>🔢 IP Address:</strong> ${ipAddress || 'Unknown'}</p>
+              </div>
+              
+              <p><strong>Was this you?</strong></p>
+              <p>If you recognize this activity, you can safely ignore this email. Your account remains secure.</p>
+              
+              <div class="warning">
+                <strong>⚠️ Security Alert:</strong><br>
+                If you did NOT log in from this device, your account may be compromised. Please take immediate action to secure your account.
+              </div>
+              
+              <div class="button-container">
+                <a href="${securityUrl}" class="button">View Login Activity</a>
+                <a href="${changePasswordUrl}" class="button button-secondary">Change Password</a>
+              </div>
+              
+              <p><strong>Security Recommendations:</strong></p>
+              <ul>
+                <li>Review your recent login activity</li>
+                <li>Change your password if you don't recognize this login</li>
+                <li>Enable two-factor authentication for added security</li>
+                <li>Log out from all devices if needed</li>
+              </ul>
+              
+              <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+              <p>This is an automated security notification. Please do not reply.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+      New Device Login Detected
+      
+      Hello ${user.firstName},
+      
+      We detected a login to your account from a new device or location.
+      
+      Login Details:
+      Time: ${loginTime || new Date().toLocaleString()}
+      Device: ${deviceType || 'Unknown'}
+      Browser: ${browser || 'Unknown'}
+      OS: ${os || 'Unknown'}
+      Location: ${city || 'Unknown'}, ${country || 'Unknown'}
+      IP Address: ${ipAddress || 'Unknown'}
+      
+      Was this you?
+      If you recognize this activity, you can safely ignore this email.
+      
+      ⚠️ SECURITY ALERT: If you did NOT log in from this device, please:
+      1. Change your password immediately: ${changePasswordUrl}
+      2. Review your login activity: ${securityUrl}
+      3. Enable two-factor authentication
+      4. Log out from all devices if needed
+      
+      Best regards,
+      The Tasskr Team
+    `;
+
+    return await this.sendEmail({
+      to: user.email,
+      subject: '🔐 New Device Login Detected - Tasskr',
+      html,
+      text,
+    });
+  }
+
+  /**
+   * Send login alert email (legacy - kept for backward compatibility)
    */
   async sendLoginAlert(user, ip, userAgent) {
     const html = `

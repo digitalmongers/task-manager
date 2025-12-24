@@ -583,6 +583,39 @@ class AuthRepository {
     }
   }
 
+
+
+  // ========== 2FA METHODS ==========
+  /**
+   * Find user with 2FA secret exposed
+   */
+  async findByIdWith2FASecret(userId) {
+    try {
+      return await User.findById(userId).select('+twoFactorSecret');
+    } catch (error) {
+      Logger.error('Error finding user with 2FA secret', { error: error.message, userId });
+      throw error;
+    }
+  }
+
+  /**
+   * Mark a backup code as used
+   */
+  async markBackupCodeAsUsed(userId, codeId) {
+    try {
+      return await User.findOneAndUpdate(
+        { _id: userId, 'backupCodes._id': codeId },
+        { 
+          $set: { 'backupCodes.$.usedAt': new Date() } 
+        },
+        { new: true }
+      );
+    } catch (error) {
+      Logger.error('Error marking backup code as used', { error: error.message, userId });
+      throw error;
+    }
+  }
+
   /**
    * Clean up old password history entries (maintenance)
    */

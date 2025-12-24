@@ -38,7 +38,15 @@ class AuthController {
     // Pass invitationToken if present
     const result = await AuthService.login(req.body, req);
 
-    
+    // Check for 2FA requirement
+    if (result.requires2FA) {
+      return ApiResponse.success(res, HTTP_STATUS.OK, "Two-factor authentication required", {
+        requires2FA: true,
+        tempAuthToken: result.tempAuthToken,
+        authProvider: result.authProvider || 'local'
+      });
+    }
+
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", // HTTPS only in production
@@ -274,7 +282,15 @@ class AuthController {
             return res.redirect(errorUrl);
           }
 
-          const result = await AuthService.handleGoogleCallback(user, true);
+          const result = await AuthService.handleGoogleCallback(user, req, true);
+
+          // Check for 2FA requirement
+          if (result.requires2FA) {
+             const redirectBase = this.getRedirectUrl();
+             // Redirect to 2FA verification page
+             const twoFactorUrl = `${redirectBase}/auth/2fa/verify?tempToken=${result.tempAuthToken}&requires2FA=true`;
+             return res.redirect(twoFactorUrl);
+          }
 
           const cookieOptions = {
             httpOnly: true,
@@ -372,7 +388,15 @@ class AuthController {
             return res.redirect(errorUrl);
           }
 
-          const result = await AuthService.handleFacebookCallback(user, true);
+          const result = await AuthService.handleFacebookCallback(user, req, true);
+
+          // Check for 2FA requirement
+          if (result.requires2FA) {
+             const redirectBase = this.getRedirectUrl();
+             // Redirect to 2FA verification page
+             const twoFactorUrl = `${redirectBase}/auth/2fa/verify?tempToken=${result.tempAuthToken}&requires2FA=true`;
+             return res.redirect(twoFactorUrl);
+          }
 
           const cookieOptions = {
             httpOnly: true,

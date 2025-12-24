@@ -4,25 +4,40 @@ import EmailService from "../services/emailService.js";
 import ApiError from "../utils/ApiError.js";
 import Logger from "../config/logger.js";
 import { HTTP_STATUS } from "../config/constants.js";
+import SessionService from "./sessionService.js";
+import SecurityService from "./securityService.js";
+import RequestInfoService from "./requestInfoService.js";
 
 class AuthService {
   /**
-   * Generate JWT token
+   * Generate JWT token with session ID
    */
-  generateToken(userId, rememberMe = false) {
+  generateToken(userId, sessionId, rememberMe = false) {
     const expiresIn = rememberMe ? "30d" : "7d";
 
-    return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn });
+    return jwt.sign(
+      { userId, sid: sessionId },
+      process.env.JWT_SECRET,
+      { expiresIn }
+    );
   }
 
-  /**
-   * Generate refresh token
-   */
   generateRefreshToken(userId) {
     return jwt.sign(
       { userId, type: "refresh" },
       process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
       { expiresIn: "30d" }
+    );
+  }
+
+  /**
+   * Generate temporary 2FA token (short-lived)
+   */
+  generateTempToken(userId, initialMethod = 'password') {
+    return jwt.sign(
+      { userId, type: "2fa-temp", initialMethod },
+      process.env.JWT_SECRET,
+      { expiresIn: "5m" }
     );
   }
 
@@ -267,6 +282,21 @@ class AuthService {
     const user = await AuthRepository.findByEmailWithPassword(email);
 
     if (!user) {
+      // Record failed login attempt (User not found)
+      await SecurityService.recordLoginAttempt({
+        userId: null,
+        sessionId: null,
+        authMethod: 'password',
+        twoFactorUsed: false,
+        status: 'failed',
+        failureReason: 'User not found',
+        req,
+      }).catch(error => {
+        Logger.error('Failed to record failed login activity (not found)', {
+          error: error.message,
+        });
+      });
+
       // Log failed login attempt
       Logger.logSecurity("FAILED_LOGIN_ATTEMPT", {
         email,
@@ -333,6 +363,22 @@ class AuthService {
       // Increment login attempts
       await user.incLoginAttempts();
 
+      // Record failed login activity
+      await SecurityService.recordLoginAttempt({
+        userId: user._id,
+        sessionId: null,
+        authMethod: 'password',
+        twoFactorUsed: false,
+        status: 'failed',
+        failureReason: 'Invalid password',
+        req,
+      }).catch(error => {
+        Logger.error('Failed to record failed login activity', {
+          userId: user._id,
+          error: error.message,
+        });
+      });
+
       Logger.logSecurity("FAILED_LOGIN_ATTEMPT", {
         userId: user._id,
         email: user.email,
@@ -345,11 +391,58 @@ class AuthService {
     }
 
     // Reset login attempts on successful login
-    await user.resetLoginAttempts();
+    await user.resetLoginAttempts(); // We reset it here, but if 2FA fails? 
+    // Ideally we reset AFTER 2FA. But traditional password auth passed.
+    // If we only reset after 2FA, password brute force + 2FA could lock account?
+    // Enterprise standard: Password verified = success for password part. 2FA is separate layer.
+    // So we reset login attempts here.
+    
+    // Check if 2FA is enabled
+    if (user.twoFactorEnabled) {
+        const tempToken = this.generateTempToken(user._id, 'password');
+        
+        Logger.logAuth("LOGIN_2FA_REQUIRED", user._id, {
+            email: user.email,
+            ip: req.ip
+        });
+        
+        return {
+            requires2FA: true,
+            tempAuthToken: tempToken,
+            message: 'Two-factor authentication required'
+        };
+    }
 
     // Generate tokens
-    const token = this.generateToken(user._id, rememberMe);
+    // Create session first
+    const requestInfo = RequestInfoService.extractRequestInfo(req);
+    const sessionId = await SessionService.createSession(user._id.toString(), {
+      deviceType: requestInfo.deviceType,
+      browser: requestInfo.browser,
+      os: requestInfo.os,
+      ipAddress: requestInfo.ipAddress,
+      country: requestInfo.country,
+      city: requestInfo.city,
+    });
+
+    const token = this.generateToken(user._id, sessionId, rememberMe);
     const refreshToken = this.generateRefreshToken(user._id);
+
+    // Record login activity
+    await SecurityService.recordLoginAttempt({
+      userId: user._id,
+      sessionId,
+      authMethod: 'password',
+      twoFactorUsed: false,
+      status: 'success',
+      req,
+    }).catch(error => {
+      // Don't block login if activity recording fails
+      Logger.error('Failed to record login activity', {
+        userId: user._id,
+        error: error.message,
+      });
+    });
 
     // ALWAYS handle pending invitations (both token-based and email-based)
     // This ensures users who accepted invitations before login get linked
@@ -361,6 +454,7 @@ class AuthService {
       ip: req.ip,
       userAgent: req.get("user-agent"),
       rememberMe,
+      sessionId: sessionId.substring(0, 8) + '...',
     });
 
     // Send login alert email (optional, don't await)
@@ -380,6 +474,8 @@ class AuthService {
     delete userResponse.password;
     delete userResponse.emailVerificationToken;
     delete userResponse.emailVerificationExpires;
+    delete userResponse.twoFactorSecret; // Ensure secret is not returned
+    delete userResponse.backupCodes;
 
     return {
       user: userResponse,
@@ -1078,11 +1174,47 @@ class AuthService {
   /**
    * Handle Google OAuth callback success
    */
-  async handleGoogleCallback(user, rememberMe = true) {
+  async handleGoogleCallback(user, req, rememberMe = true) {
     try {
-      // Generate tokens
-      const token = this.generateToken(user._id, rememberMe);
+      // Check 2FA
+      if (user.twoFactorEnabled) {
+          const tempToken = this.generateTempToken(user._id, 'google-oauth');
+          return {
+              requires2FA: true,
+              tempAuthToken: tempToken,
+              authProvider: "google"
+          };
+      }
+
+      // Create session
+      const requestInfo = RequestInfoService.extractRequestInfo(req);
+      const sessionId = await SessionService.createSession(user._id.toString(), {
+        deviceType: requestInfo.deviceType,
+        browser: requestInfo.browser,
+        os: requestInfo.os,
+        ipAddress: requestInfo.ipAddress,
+        country: requestInfo.country,
+        city: requestInfo.city,
+      });
+
+      // Generate tokens with sessionId
+      const token = this.generateToken(user._id, sessionId, rememberMe);
       const refreshToken = this.generateRefreshToken(user._id);
+
+      // Record login activity
+      await SecurityService.recordLoginAttempt({
+        userId: user._id,
+        sessionId,
+        authMethod: 'google-oauth',
+        twoFactorUsed: false,
+        status: 'success',
+        req,
+      }).catch(error => {
+        Logger.error('Failed to record Google OAuth login activity', {
+          userId: user._id,
+          error: error.message,
+        });
+      });
 
       // Remove sensitive fields
       const userResponse = user.toObject();
@@ -1093,6 +1225,8 @@ class AuthService {
       delete userResponse.emailVerificationExpires;
       delete userResponse.passwordResetToken;
       delete userResponse.passwordResetExpires;
+      delete userResponse.twoFactorSecret;
+      delete userResponse.backupCodes;
 
       return {
         user: userResponse,
@@ -1186,10 +1320,46 @@ class AuthService {
   /**
    * Handle Facebook OAuth callback success
    */
-  async handleFacebookCallback(user, rememberMe = true) {
+  async handleFacebookCallback(user, req, rememberMe = true) {
     try {
-      const token = this.generateToken(user._id, rememberMe);
+      // Check 2FA
+      if (user.twoFactorEnabled) {
+          const tempToken = this.generateTempToken(user._id, 'facebook-oauth');
+          return {
+              requires2FA: true,
+              tempAuthToken: tempToken,
+              authProvider: "facebook"
+          };
+      }
+
+      // Create session
+      const requestInfo = RequestInfoService.extractRequestInfo(req);
+      const sessionId = await SessionService.createSession(user._id.toString(), {
+        deviceType: requestInfo.deviceType,
+        browser: requestInfo.browser,
+        os: requestInfo.os,
+        ipAddress: requestInfo.ipAddress,
+        country: requestInfo.country,
+        city: requestInfo.city,
+      });
+
+      const token = this.generateToken(user._id, sessionId, rememberMe);
       const refreshToken = this.generateRefreshToken(user._id);
+
+      // Record login activity
+      await SecurityService.recordLoginAttempt({
+        userId: user._id,
+        sessionId,
+        authMethod: 'facebook-oauth',
+        twoFactorUsed: false,
+        status: 'success',
+        req,
+      }).catch(error => {
+        Logger.error('Failed to record Facebook OAuth login activity', {
+          userId: user._id,
+          error: error.message,
+        });
+      });
 
       const userResponse = user.toObject();
       delete userResponse.password;
@@ -1200,6 +1370,8 @@ class AuthService {
       delete userResponse.emailVerificationExpires;
       delete userResponse.passwordResetToken;
       delete userResponse.passwordResetExpires;
+      delete userResponse.twoFactorSecret;
+      delete userResponse.backupCodes;
 
       return {
         user: userResponse,

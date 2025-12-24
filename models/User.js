@@ -171,6 +171,42 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // ========== 2FA FIELDS ==========
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    // Encrypted TOTP secret
+    twoFactorSecret: {
+      type: String,
+      select: false, // Never return by default
+    },
+    twoFactorConfirmedAt: {
+      type: Date,
+    },
+    twoFactorLastVerifiedAt: {
+      type: Date,
+    },
+    // Backup codes (hashed)
+    backupCodes: [
+      {
+        codeHash: {
+          type: String,
+          required: true,
+        },
+        usedAt: {
+          type: Date,
+          default: null,
+        },
+      },
+    ],
+
+    // Token version for global logout
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

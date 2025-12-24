@@ -20,6 +20,7 @@ import errorHandler from "./middlewares/errorHandler.js";
 import notFound from "./middlewares/notFound.js";
 import uploadRoutes from './routes/upload.routes.js';
 import authRoutes from './routes/authRoutes.js';
+import twofaRoutes from './routes/twofaRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
 import suggestionRoutes from './routes/suggestionRoutes.js';
 import categoryRoutes from "./routes/categoryRoutes.js";
@@ -34,6 +35,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import pushRoutes from "./routes/pushRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import insightsRoutes from "./routes/insightsRoutes.js";
+import securityRoutes from "./routes/securityRoutes.js";
 import { testConnection as testOpenAI } from './config/openai.js';
 import './config/webPush.js'; // Initialize web-push with VAPID
 
@@ -126,6 +128,7 @@ app.get("/", (req, res) => {
 // Application routes
 app.use('/api/v1/upload', uploadRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/auth/2fa", twofaRoutes);
 app.use("/api/contact",contactRoutes)
 app.use("/api/suggestion", suggestionRoutes);
 app.use("/api/categories", categoryRoutes);
@@ -140,6 +143,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/push", pushRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/insights", insightsRoutes);
+app.use("/api/security", securityRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFound);
