@@ -49,6 +49,12 @@ export const toggleReaction = async (req, res) => {
   ApiResponse.success(res, 200, 'Reaction updated successfully', reactions);
 };
 
+export const markAsRead = async (req, res) => {
+  const { taskId } = req.params;
+  await chatService.markAsRead(taskId, req.user._id);
+  ApiResponse.success(res, 200, 'Messages marked as read');
+};
+
 export const editMessage = async (req, res) => {
   const { taskId, messageId } = req.params;
   const { content } = req.body;

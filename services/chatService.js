@@ -162,6 +162,35 @@ class ChatService {
   }
 
   /**
+   * Mark messages as read for a task
+   */
+  async markAsRead(taskId, userId) {
+    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+    if (!access.canAccess) throw ApiError.forbidden('Access denied');
+
+    // Update all unread messages in this task for this user
+    await TaskMessage.updateMany(
+      { 
+        task: taskId, 
+        sender: { $ne: userId },
+        'readBy.user': { $ne: userId }
+      },
+      { 
+        $push: { readBy: { user: userId, readAt: new Date() } } 
+      }
+    );
+
+    // Notify room about read status update
+    WebSocketService.sendToChatRoom(taskId, 'chat:seen', {
+      taskId,
+      userId,
+      readAt: new Date()
+    });
+
+    return true;
+  }
+
+  /**
    * Toggle emoji reaction
    */
   async toggleReaction(taskId, messageId, userId, emoji) {

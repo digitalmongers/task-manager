@@ -14,6 +14,7 @@ router.get('/:taskId/members', asyncHandler(chatController.getMembers));
 router.get('/:taskId/pinned', asyncHandler(chatController.getPinned));
 router.get('/:taskId/search', asyncHandler(chatController.search));
 router.post('/:taskId/send', asyncHandler(chatController.sendMessage));
+router.patch('/:taskId/read', asyncHandler(chatController.markAsRead));
 router.patch('/:taskId/messages/:messageId', asyncHandler(chatController.editMessage));
 router.delete('/:taskId/messages/:messageId', asyncHandler(chatController.deleteMessage));
 router.post('/:taskId/messages/:messageId/pin', asyncHandler(chatController.togglePin));
