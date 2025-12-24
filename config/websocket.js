@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import Logger from './logger.js';
+import TaskCollaborator from '../models/TaskCollaborator.js';
 
 class WebSocketService {
   constructor() {
@@ -34,6 +35,11 @@ class WebSocketService {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.userId = decoded.id;
         socket.userEmail = decoded.email;
+
+        // Fetch user details for richer real-time info (like full name in typing)
+        const User = mongoose.model('User');
+        const user = await User.findById(decoded.id).select('firstName lastName');
+        socket.userName = user ? `${user.firstName} ${user.lastName}` : decoded.email;
         
         Logger.info('WebSocket authentication successful', {
           userId: socket.userId,
@@ -103,6 +109,52 @@ class WebSocketService {
     socket.on('notifications:read-all', () => {
       Logger.info('All notifications marked as read', { userId });
     });
+
+    // Handle Chat Events
+    this.handleChatEvents(socket);
+  }
+
+  /**
+   * Handle Task Chat specific events
+   */
+  handleChatEvents(socket) {
+    const userId = socket.userId;
+
+    // Join a specific task chat room
+    socket.on('chat:join', async (taskId) => {
+      try {
+        const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+        if (!access.canAccess) {
+          return socket.emit('chat:error', { message: 'Access denied to this task chat' });
+        }
+
+        socket.join(`chat:${taskId}`);
+        Logger.info('User joined chat room', { userId, taskId });
+        
+        socket.emit('chat:joined', { taskId });
+      } catch (error) {
+        socket.emit('chat:error', { message: 'Failed to join chat' });
+      }
+    });
+
+    // Leave a specific task chat room
+    socket.on('chat:leave', (taskId) => {
+      socket.leave(`chat:${taskId}`);
+      Logger.info('User left chat room', { userId, taskId });
+    });
+
+    // Handle typing indicators
+    socket.on('chat:typing', (taskId) => {
+      socket.to(`chat:${taskId}`).emit('chat:typing', { 
+        userId, 
+        taskId,
+        userName: socket.userName
+      });
+    });
+
+    socket.on('chat:stop_typing', (taskId) => {
+      socket.to(`chat:${taskId}`).emit('chat:stop_typing', { userId, taskId });
+    });
   }
 
   /**
@@ -160,6 +212,15 @@ class WebSocketService {
       this.sendToUser(userId, event, data);
     });
 
+    return true;
+  }
+
+  /**
+   * Send event to a specific task chat room
+   */
+  sendToChatRoom(taskId, event, data) {
+    if (!this.io) return false;
+    this.io.to(`chat:${taskId}`).emit(event, data);
     return true;
   }
 

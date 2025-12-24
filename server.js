@@ -36,6 +36,7 @@ import pushRoutes from "./routes/pushRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
 import insightsRoutes from "./routes/insightsRoutes.js";
 import securityRoutes from "./routes/securityRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
 import { testConnection as testOpenAI } from './config/openai.js';
 import './config/webPush.js'; // Initialize web-push with VAPID
 
@@ -144,6 +145,7 @@ app.use("/api/push", pushRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/insights", insightsRoutes);
 app.use("/api/security", securityRoutes);
+app.use("/api/chat", chatRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFound);

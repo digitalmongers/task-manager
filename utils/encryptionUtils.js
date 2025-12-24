@@ -9,21 +9,20 @@ const KEY_LENGTH = 32;
 const ITERATIONS = 100000;
 
 // Get key from env or throw error
-const getEncryptionKey = () => {
-    const secret = process.env.TWO_FACTOR_ENCRYPTION_KEY;
+const getEncryptionKey = (customKey) => {
+    const secret = customKey || process.env.CHAT_ENCRYPTION_KEY || process.env.TWO_FACTOR_ENCRYPTION_KEY;
     if (!secret) {
-        throw new Error('TWO_FACTOR_ENCRYPTION_KEY is not defined in environment variables');
+        throw new Error('Encryption key (CHAT_ENCRYPTION_KEY or TWO_FACTOR_ENCRYPTION_KEY) is not defined');
     }
     // ensure key is 32 bytes (256 bits)
-    // If the key in env is a string, we can hash it to ensure 32 bytes
     return crypto.createHash('sha256').update(secret).digest();
 };
 
-export const encrypt = (text) => {
+export const encrypt = (text, customKey) => {
     try {
         if (!text) return null;
         
-        const key = getEncryptionKey();
+        const key = getEncryptionKey(customKey);
         const iv = crypto.randomBytes(IV_LENGTH);
         const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
         
@@ -39,11 +38,11 @@ export const encrypt = (text) => {
     }
 };
 
-export const decrypt = (text) => {
+export const decrypt = (text, customKey) => {
     try {
         if (!text) return null;
         
-        const key = getEncryptionKey();
+        const key = getEncryptionKey(customKey);
         const parts = text.split(':');
         
         if (parts.length !== 3) {
