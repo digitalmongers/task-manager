@@ -1,7 +1,9 @@
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 import Logger from './logger.js';
 import TaskCollaborator from '../models/TaskCollaborator.js';
+import VitalTaskCollaborator from '../models/VitalTaskCollaborator.js';
 
 class WebSocketService {
   constructor() {
@@ -121,17 +123,22 @@ class WebSocketService {
     const userId = socket.userId;
 
     // Join a specific task chat room
-    socket.on('chat:join', async (taskId) => {
+    socket.on('chat:join', async (data) => {
       try {
-        const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+        const { taskId, isVital } = typeof data === 'string' ? { taskId: data, isVital: false } : data;
+        
+        const access = isVital 
+          ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+          : await TaskCollaborator.canUserAccessTask(taskId, userId);
+          
         if (!access.canAccess) {
-          return socket.emit('chat:error', { message: 'Access denied to this task chat' });
+          return socket.emit('chat:error', { message: `Access denied to this ${isVital ? 'vital ' : ''}task chat` });
         }
 
         socket.join(`chat:${taskId}`);
-        Logger.info('User joined chat room', { userId, taskId });
+        Logger.info('User joined chat room', { userId, taskId, isVital });
         
-        socket.emit('chat:joined', { taskId });
+        socket.emit('chat:joined', { taskId, isVital });
       } catch (error) {
         socket.emit('chat:error', { message: 'Failed to join chat' });
       }

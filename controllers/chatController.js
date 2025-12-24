@@ -5,20 +5,20 @@ import { uploadSingle } from './upload.js'; // Reuse upload controller logic if 
 
 export const getHistory = async (req, res) => {
   const { taskId } = req.params;
-  const { page, limit, before } = req.query;
+  const { page, limit, before, isVital } = req.query;
 
   const history = await chatService.getChatHistory(taskId, req.user._id, {
     page: parseInt(page),
     limit: parseInt(limit),
     before
-  });
+  }, isVital === 'true');
 
   ApiResponse.success(res, 200, 'Chat history fetched successfully', history);
 };
 
 export const sendMessage = async (req, res) => {
   const { taskId } = req.params;
-  const { content, messageType, fileDetails, replyTo, mentions } = req.body;
+  const { content, messageType, fileDetails, replyTo, mentions, isVital } = req.body;
 
   if (!content && !fileDetails) {
     throw ApiError.badRequest('Message content or file is required');
@@ -30,69 +30,74 @@ export const sendMessage = async (req, res) => {
     fileDetails,
     replyTo,
     mentions
-  });
+  }, isVital === true || req.query.isVital === 'true');
 
   ApiResponse.success(res, 201, 'Message sent successfully', message);
 };
 
 export const getMembers = async (req, res) => {
   const { taskId } = req.params;
-  const members = await chatService.getChatMembers(taskId, req.user._id);
+  const { isVital } = req.query;
+  const members = await chatService.getChatMembers(taskId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, 'Chat members fetched successfully', members);
 };
 
 export const toggleReaction = async (req, res) => {
   const { taskId, messageId } = req.params;
-  const { emoji } = req.body;
+  const { emoji, isVital } = req.body;
 
-  const reactions = await chatService.toggleReaction(taskId, messageId, req.user._id, emoji);
+  const reactions = await chatService.toggleReaction(taskId, messageId, req.user._id, emoji, isVital === true || req.query.isVital === 'true');
   ApiResponse.success(res, 200, 'Reaction updated successfully', reactions);
 };
 
 export const markAsRead = async (req, res) => {
   const { taskId } = req.params;
-  await chatService.markAsRead(taskId, req.user._id);
+  const { isVital } = req.query;
+  await chatService.markAsRead(taskId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, 'Messages marked as read');
 };
 
 export const editMessage = async (req, res) => {
   const { taskId, messageId } = req.params;
-  const { content } = req.body;
+  const { content, isVital } = req.body;
 
   if (!content) throw ApiError.badRequest('New content is required');
 
-  const message = await chatService.editMessage(taskId, messageId, req.user._id, content);
+  const message = await chatService.editMessage(taskId, messageId, req.user._id, content, isVital === true || req.query.isVital === 'true');
   ApiResponse.success(res, 200, 'Message edited successfully', message);
 };
 
 export const deleteMessage = async (req, res) => {
   const { taskId, messageId } = req.params;
+  const { isVital } = req.query;
 
-  const result = await chatService.deleteMessage(taskId, messageId, req.user._id);
+  const result = await chatService.deleteMessage(taskId, messageId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, 'Message deleted successfully', result);
 };
 
 export const togglePin = async (req, res) => {
   const { taskId, messageId } = req.params;
+  const { isVital } = req.query;
 
-  const result = await chatService.togglePin(taskId, messageId, req.user._id);
+  const result = await chatService.togglePin(taskId, messageId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, result.isPinned ? 'Message pinned' : 'Message unpinned', result);
 };
 
 export const getPinned = async (req, res) => {
   const { taskId } = req.params;
+  const { isVital } = req.query;
 
-  const pinned = await chatService.getPinnedMessages(taskId, req.user._id);
+  const pinned = await chatService.getPinnedMessages(taskId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, 'Pinned messages fetched successfully', pinned);
 };
 
 export const search = async (req, res) => {
   const { taskId } = req.params;
-  const { q } = req.query;
+  const { q, isVital } = req.query;
 
   if (!q) throw ApiError.badRequest('Search query is required');
 
-  const results = await chatService.searchMessages(taskId, req.user._id, q);
+  const results = await chatService.searchMessages(taskId, req.user._id, q, isVital === 'true');
   ApiResponse.success(res, 200, 'Search results fetched successfully', results);
 };
 

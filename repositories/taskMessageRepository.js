@@ -21,17 +21,18 @@ class TaskMessageRepository {
   }
 
   /**
-   * Get paginated chat history for a task
+   * Get paginated chat history for a task (Normal or Vital)
    */
-  async getTaskMessages(taskId, options = {}) {
+  async getTaskMessages(taskId, options = {}, isVital = false) {
     try {
       const { 
         page = 1, 
         limit = 50, 
-        before = null // For infinite scroll support
+        before = null 
       } = options;
 
-      const query = { task: taskId };
+      const field = isVital ? 'vitalTask' : 'task';
+      const query = { [field]: taskId };
       
       if (before) {
         query.createdAt = { $lt: new Date(before) };
@@ -47,16 +48,16 @@ class TaskMessageRepository {
           populate: { path: 'sender', select: 'firstName lastName avatar' }
         })
         .populate('reactions.user', 'firstName lastName avatar')
-        .sort({ createdAt: -1 }) // Newest first
+        .sort({ createdAt: -1 })
         .skip(before ? 0 : skip)
         .limit(parseInt(limit));
 
-      // Return messages sorted chronologically (oldest first) for UI
       return messages.reverse();
     } catch (error) {
       Logger.error('Error fetching chat history', { 
         error: error.message, 
-        taskId 
+        taskId,
+        isVital
       });
       throw error;
     }
@@ -65,11 +66,13 @@ class TaskMessageRepository {
   /**
    * Update read status
    */
-  async markAsRead(messageIds, userId) {
+  async markAsRead(taskId, userId, isVital = false) {
     try {
+      const field = isVital ? 'vitalTask' : 'task';
       return await TaskMessage.updateMany(
         { 
-          _id: { $in: messageIds },
+          [field]: taskId,
+          sender: { $ne: userId },
           'readBy.user': { $ne: userId }
         },
         { 
@@ -85,11 +88,12 @@ class TaskMessageRepository {
   }
 
   /**
-   * Get last message for a task
+   * Get last message for a task (Normal or Vital)
    */
-  async getLastMessage(taskId) {
+  async getLastMessage(taskId, isVital = false) {
     try {
-      return await TaskMessage.findOne({ task: taskId })
+      const field = isVital ? 'vitalTask' : 'task';
+      return await TaskMessage.findOne({ [field]: taskId })
         .sort({ createdAt: -1 })
         .populate('sender', 'firstName lastName avatar');
     } catch (error) {
