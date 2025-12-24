@@ -1,6 +1,8 @@
 import taskMessageRepository from '../repositories/taskMessageRepository.js';
 import TaskCollaborator from '../models/TaskCollaborator.js';
+import VitalTaskCollaborator from '../models/VitalTaskCollaborator.js';
 import Task from '../models/Task.js';
+import VitalTask from '../models/VitalTask.js';
 import TaskMessage from '../models/TaskMessage.js';
 import { encrypt, decrypt } from '../utils/encryptionUtils.js';
 import ApiError from '../utils/ApiError.js';
@@ -10,13 +12,16 @@ import WebSocketService from '../config/websocket.js';
 
 class ChatService {
   /**
-   * Send a message to a task chat
+   * Send a message to a task chat (Normal or Vital)
    */
-  async sendMessage(taskId, userId, messageData) {
+  async sendMessage(taskId, userId, messageData, isVital = false) {
     // 1. Verify access
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) {
-      throw ApiError.forbidden('You do not have access to this task chat');
+      throw ApiError.forbidden(`You do not have access to this ${isVital ? 'vital ' : ''}task chat`);
     }
 
     const { content, messageType = 'text', fileDetails = null, replyTo = null, mentions = [] } = messageData;
@@ -24,7 +29,8 @@ class ChatService {
     // 2. Validate replyTo if provided
     if (replyTo) {
       const parentMessage = await TaskMessage.findById(replyTo);
-      if (!parentMessage || parentMessage.task.toString() !== taskId.toString()) {
+      const field = isVital ? 'vitalTask' : 'task';
+      if (!parentMessage || !parentMessage[field] || parentMessage[field].toString() !== taskId.toString()) {
         throw ApiError.badRequest('Invalid message to reply to');
       }
     }
@@ -42,7 +48,8 @@ class ChatService {
 
     // 4. Create message in DB
     const message = await taskMessageRepository.createMessage({
-      task: taskId,
+      task: isVital ? null : taskId,
+      vitalTask: isVital ? taskId : null,
       sender: userId,
       content: finalContent,
       messageType,
@@ -84,17 +91,20 @@ class ChatService {
   }
 
   /**
-   * Get chat history
+   * Get chat history (Normal or Vital)
    */
-  async getChatHistory(taskId, userId, options = {}) {
+  async getChatHistory(taskId, userId, options = {}, isVital = false) {
     // 1. Verify access
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) {
-      throw ApiError.forbidden('You do not have access to this task chat');
+      throw ApiError.forbidden(`You do not have access to this ${isVital ? 'vital ' : ''}task chat`);
     }
 
     // 2. Fetch messages
-    const messages = await taskMessageRepository.getTaskMessages(taskId, options);
+    const messages = await taskMessageRepository.getTaskMessages(taskId, options, isVital);
 
     // 3. Decrypt messages
     return messages.map(msg => {
@@ -122,15 +132,19 @@ class ChatService {
   }
 
   /**
-   * Get all members of a task chat
+   * Get all members of a task chat (Normal or Vital)
    */
-  async getChatMembers(taskId, userId) {
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+  async getChatMembers(taskId, userId, isVital = false) {
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) {
-      throw ApiError.forbidden('You do not have access to this task chat members');
+      throw ApiError.forbidden(`You do not have access to this ${isVital ? 'vital ' : ''}task chat members`);
     }
 
-    const task = await Task.findById(taskId)
+    const Model = isVital ? VitalTask : Task;
+    const task = await Model.findById(taskId)
       .populate('user', 'firstName lastName email avatar')
       .populate({
         path: 'collaborators',
@@ -138,7 +152,7 @@ class ChatService {
         populate: { path: 'collaborator', select: 'firstName lastName email avatar' }
       });
 
-    if (!task) throw ApiError.notFound('Task not found');
+    if (!task) throw ApiError.notFound(`${isVital ? 'Vital ' : ''}Task not found`);
 
     const members = [
       {
@@ -162,23 +176,16 @@ class ChatService {
   }
 
   /**
-   * Mark messages as read for a task
+   * Mark messages as read for a task (Normal or Vital)
    */
-  async markAsRead(taskId, userId) {
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+  async markAsRead(taskId, userId, isVital = false) {
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) throw ApiError.forbidden('Access denied');
 
-    // Update all unread messages in this task for this user
-    await TaskMessage.updateMany(
-      { 
-        task: taskId, 
-        sender: { $ne: userId },
-        'readBy.user': { $ne: userId }
-      },
-      { 
-        $push: { readBy: { user: userId, readAt: new Date() } } 
-      }
-    );
+    await taskMessageRepository.markAsRead(taskId, userId, isVital);
 
     // Notify room about read status update
     WebSocketService.sendToChatRoom(taskId, 'chat:seen', {
@@ -193,11 +200,15 @@ class ChatService {
   /**
    * Toggle emoji reaction
    */
-  async toggleReaction(taskId, messageId, userId, emoji) {
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+  async toggleReaction(taskId, messageId, userId, emoji, isVital = false) {
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) throw ApiError.forbidden('Access denied');
 
-    const message = await TaskMessage.findOne({ _id: messageId, task: taskId });
+    const field = isVital ? 'vitalTask' : 'task';
+    const message = await TaskMessage.findOne({ _id: messageId, [field]: taskId });
     if (!message) throw ApiError.notFound('Message not found');
 
     const existingReactionIndex = message.reactions.findIndex(
@@ -229,11 +240,15 @@ class ChatService {
   /**
    * Edit a message
    */
-  async editMessage(taskId, messageId, userId, newContent) {
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+  async editMessage(taskId, messageId, userId, newContent, isVital = false) {
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) throw ApiError.forbidden('Access denied');
 
-    const message = await TaskMessage.findOne({ _id: messageId, task: taskId, sender: userId });
+    const field = isVital ? 'vitalTask' : 'task';
+    const message = await TaskMessage.findOne({ _id: messageId, [field]: taskId, sender: userId });
     if (!message) throw ApiError.notFound('Message not found or you are not the sender');
     if (message.isDeleted) throw ApiError.badRequest('Cannot edit a deleted message');
 
@@ -264,12 +279,15 @@ class ChatService {
   /**
    * Delete a message (Withdraw/Delete for everyone)
    */
-  async deleteMessage(taskId, messageId, userId) {
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+  async deleteMessage(taskId, messageId, userId, isVital = false) {
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) throw ApiError.forbidden('Access denied');
 
-    // Allow sender or task owner to delete
-    const message = await TaskMessage.findOne({ _id: messageId, task: taskId });
+    const field = isVital ? 'vitalTask' : 'task';
+    const message = await TaskMessage.findOne({ _id: messageId, [field]: taskId });
     if (!message) throw ApiError.notFound('Message not found');
 
     const isSender = message.sender.toString() === userId.toString();
@@ -290,13 +308,16 @@ class ChatService {
   /**
    * Pin or unpin a message
    */
-  async togglePin(taskId, messageId, userId) {
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+  async togglePin(taskId, messageId, userId, isVital = false) {
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) throw ApiError.forbidden('Access denied');
-    // Usually only owner or editors can pin
     if (access.role === 'viewer') throw ApiError.forbidden('Viewers cannot pin messages');
 
-    const message = await TaskMessage.findOne({ _id: messageId, task: taskId });
+    const field = isVital ? 'vitalTask' : 'task';
+    const message = await TaskMessage.findOne({ _id: messageId, [field]: taskId });
     if (!message) throw ApiError.notFound('Message not found');
 
     message.isPinned = !message.isPinned;
@@ -311,13 +332,17 @@ class ChatService {
   }
 
   /**
-   * Get pinned messages for a task
+   * Get pinned messages for a task (Normal or Vital)
    */
-  async getPinnedMessages(taskId, userId) {
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+  async getPinnedMessages(taskId, userId, isVital = false) {
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) throw ApiError.forbidden('Access denied');
 
-    const messages = await TaskMessage.find({ task: taskId, isPinned: true })
+    const field = isVital ? 'vitalTask' : 'task';
+    const messages = await TaskMessage.find({ [field]: taskId, isPinned: true })
       .populate('sender', 'firstName lastName avatar')
       .sort({ updatedAt: -1 });
 
@@ -335,14 +360,17 @@ class ChatService {
   }
 
   /**
-   * Search messages (Basic implementation: fetches and decrypts)
+   * Search messages (Normal or Vital)
    */
-  async searchMessages(taskId, userId, query) {
-    const access = await TaskCollaborator.canUserAccessTask(taskId, userId);
+  async searchMessages(taskId, userId, query, isVital = false) {
+    const access = isVital 
+      ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
+      : await TaskCollaborator.canUserAccessTask(taskId, userId);
+      
     if (!access.canAccess) throw ApiError.forbidden('Access denied');
 
-    // Fetch last 500 messages to search within (reasonable for a task chat)
-    const messages = await TaskMessage.find({ task: taskId, isDeleted: false })
+    const field = isVital ? 'vitalTask' : 'task';
+    const messages = await TaskMessage.find({ [field]: taskId, isDeleted: false })
       .populate('sender', 'firstName lastName avatar')
       .sort({ createdAt: -1 })
       .limit(500);
@@ -367,15 +395,20 @@ class ChatService {
   }
 
   /**
-   * Handle socket and push notifications
+   * Handle socket and push notifications (Normal or Vital)
    */
-  async _handleNotifications(taskId, senderId, message) {
+  async _handleNotifications(taskId, senderId, message, isVital = false) {
     try {
-      const task = await Task.findById(taskId).populate('collaborators');
+      const Model = isVital ? VitalTask : Task;
+      const task = await Model.findById(taskId).populate('collaborators');
       if (!task) return;
 
       // Get all collaborator IDs excluding sender
-      const collaborators = await TaskCollaborator.find({ task: taskId, status: 'active' });
+      const CollabModel = isVital ? VitalTaskCollaborator : TaskCollaborator;
+      const collaborators = await CollabModel.find({ 
+        [isVital ? 'vitalTask' : 'task']: taskId, 
+        status: 'active' 
+      });
       const recipientIds = collaborators
         .map(c => c.collaborator.toString())
         .filter(id => id !== senderId.toString());
@@ -390,8 +423,9 @@ class ChatService {
         : `[Sent an ${message.messageType}]`;
 
       const notificationData = {
-        type: 'CHAT_MESSAGE',
+        type: isVital ? 'VITAL_CHAT_MESSAGE' : 'CHAT_MESSAGE',
         taskId: task._id,
+        isVital,
         taskTitle: task.title,
         senderName: `${message.sender.firstName} ${message.sender.lastName}`,
         messagePreview: preview,

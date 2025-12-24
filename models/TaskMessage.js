@@ -5,7 +5,13 @@ const taskMessageSchema = new mongoose.Schema(
     task: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Task',
-      required: true,
+      required: false,
+      index: true,
+    },
+    vitalTask: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'VitalTask',
+      required: false,
       index: true,
     },
     sender: {
