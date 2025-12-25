@@ -1,3 +1,4 @@
+import User from '../models/User.js';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import bcrypt from 'bcryptjs';
@@ -186,52 +187,18 @@ class TwoFAService {
    * Disable 2FA
    */
   async disable(userId, password, token) {
-    const user = await AuthRepository.findByIdWithPassword(userId);
+    // Fetch user with all needed fields in one query
+    const user = await User.findById(userId).select('+password +twoFactorSecret +backupCodes');
     
-    if (!user.twoFactorEnabled) {
-      throw ApiError.badRequest('2FA is not enabled');
-    }
+    if (!user) throw ApiError.notFound('User not found');
+    if (!user.twoFactorEnabled) throw ApiError.badRequest('2FA is not enabled');
 
-    // Verify Password (if Local auth)
-    if (user.authProvider === 'local') {
-        const isPasswordValid = await user.comparePassword(password);
-        if (!isPasswordValid) throw ApiError.unauthorized('Invalid password');
-    }
-    // For OAuth users, we might skip password check or require re-auth? 
-    // Requirement says: "Require ALL: Password, OTP...". 
-    // If OAuth user has no password, this is tricky. 
-    // Assume OAuth users must define a password to use 2FA? Or we skip password for them?
-    // "Password login MUST stop... OAuth login MUST stop..."
-    // If OAuth user wants to disable, they might not have a password.
-    // We should check if user has password.
-    
-    if (!user.password && user.authProvider !== 'local') {
-        // If no password, we rely on OTP/Backup code only? 
-        // Or maybe force them to set password?
-        // Let's assume for now if they have no password, we skip it but enforce OTP strongly.
-    } else if (user.password) {
-         if (!password) throw ApiError.badRequest('Password required');
-         const isMatch = await user.comparePassword(password);
-         if (!isMatch) throw ApiError.unauthorized('Invalid password');
-    }
-
-    // Verify OTP to disable
-    // Reuse verifyLogin logic but we don't need side effects (like using backup code)?
-    // Actually, "OTP OR unused backup code".
-    // If we use a backup code to disable, we should probably mark it used? 
-    // But we are wiping them anyway.
-    
-    // Use the verify logic (without marking backup code as used, since we are wiping)
-    // But verifyLogin marks it. 
-    // We'll duplicate verify logic slightly or refactor.
-    // Refactoring verifyLogin to separate verification from side effects is better.
-    
-    // For now, I'll validte manually here to avoid side effects of verifyLogin
-    const userWithSecret = await AuthRepository.findByIdWith2FASecret(userId);
+    // 1. Verify 2FA token or Backup code first
     let isCodeValid = false;
     
+    // Check if OTP
     if (/^\d{6}$/.test(token)) {
-        const secret = decrypt(userWithSecret.twoFactorSecret);
+        const secret = decrypt(user.twoFactorSecret);
         isCodeValid = speakeasy.totp.verify({
             secret: secret,
             encoding: 'base32',
@@ -240,9 +207,9 @@ class TwoFAService {
         });
     }
     
+    // Check backup codes if not validated by OTP
     if (!isCodeValid) {
-         // check backup codes
-         const availableCodes = userWithSecret.backupCodes.filter(c => !c.usedAt);
+         const availableCodes = user.backupCodes.filter(c => !c.usedAt);
          for (const codeObj of availableCodes) {
             if (await bcrypt.compare(token, codeObj.codeHash)) {
                 isCodeValid = true;
@@ -252,6 +219,14 @@ class TwoFAService {
     }
     
     if (!isCodeValid) throw ApiError.unauthorized('Invalid 2FA code');
+
+    // 2. Optional: Password check (kept as a second layer only if explicitly needed, but user wants to disable via OTP)
+    // We'll skip password requirement if OTP is valid, as OTP is stronger proof of possession.
+    // However, if we want to be paranoid, we could check it if provided.
+    if (password && user.password) {
+         const isMatch = await user.comparePassword(password);
+         if (!isMatch) throw ApiError.unauthorized('Invalid password');
+    }
 
     // Disable
     await AuthRepository.updateUser(userId, {
