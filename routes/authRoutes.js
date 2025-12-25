@@ -179,6 +179,14 @@ router.post(
   asyncHandler(AuthController.logout.bind(AuthController))
 );
 
+// Onboarding complete mark
+router.patch(
+  "/onboarding-complete",
+  protect,
+  invalidateCache((req) => `user:${req.user._id}:*`),
+  asyncHandler(AuthController.completeOnboarding.bind(AuthController))
+);
+
 // Add these routes to your existing authRoutes.js
 
 // ========== GOOGLE OAUTH ROUTES ==========

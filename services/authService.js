@@ -1437,6 +1437,32 @@ class AuthService {
       throw error;
     }
   }
+
+  /**
+   * Mark onboarding as complete
+   */
+  async completeOnboarding(userId) {
+    try {
+      const user = await AuthRepository.updateUser(userId, { onboardingComplete: true });
+      
+      if (!user) {
+        throw ApiError.notFound("User not found");
+      }
+
+      Logger.info("Onboarding marked as complete", { userId });
+      
+      return {
+        user,
+        message: "Onboarding marked as complete successfully",
+      };
+    } catch (error) {
+      Logger.error("Error marking onboarding as complete", {
+        error: error.message,
+        userId,
+      });
+      throw error;
+    }
+  }
 }
 
 export default new AuthService();

@@ -457,6 +457,19 @@ class AuthController {
 
     await ExportService.generateUserDataPdf(userId, res);
   }
+
+  /**
+   * Mark onboarding as complete
+   * PATCH /api/auth/onboarding-complete
+   */
+  async completeOnboarding(req, res) {
+    const userId = req.user._id;
+    const result = await AuthService.completeOnboarding(userId);
+
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message, {
+      user: result.user,
+    });
+  }
 }
 
 export default new AuthController();

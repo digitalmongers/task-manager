@@ -48,6 +48,14 @@ class TaskService {
         userId
       );
 
+      // Check if this is the user's first task
+      const user = await (await import('../models/User.js')).default.findById(userId);
+      if (user && !user.firstTaskCreated) {
+        user.firstTaskCreated = true;
+        await user.save();
+        Logger.info('First task created flag set for user', { userId });
+      }
+
       // Handle image upload if file exists
       if (file) {
         await this.handleImageUpload(userId, task._id, file);
