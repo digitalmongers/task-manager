@@ -85,7 +85,7 @@ class ChatService {
     }
 
     // 6. Trigger Notifications
-    this._handleNotifications(taskId, userId, decryptedMessage);
+    this._handleNotifications(taskId, userId, decryptedMessage, isVital);
 
     return decryptedMessage;
   }
