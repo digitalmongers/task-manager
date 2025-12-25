@@ -35,13 +35,14 @@ class WebSocketService {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        socket.userId = decoded.id;
-        socket.userEmail = decoded.email;
-
-        // Fetch user details for richer real-time info (like full name in typing)
+        socket.userId = decoded.userId;
+        
+        // Fetch user details for richer real-time info
         const User = mongoose.model('User');
-        const user = await User.findById(decoded.id).select('firstName lastName');
-        socket.userName = user ? `${user.firstName} ${user.lastName}` : decoded.email;
+        const user = await User.findById(decoded.userId).select('firstName lastName email');
+        
+        socket.userEmail = user ? user.email : 'Unknown';
+        socket.userName = user ? `${user.firstName} ${user.lastName}` : 'Anonymous';
         
         Logger.info('WebSocket authentication successful', {
           userId: socket.userId,
