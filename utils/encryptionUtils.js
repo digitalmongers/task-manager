@@ -42,13 +42,20 @@ export const decrypt = (text, customKey) => {
     try {
         if (!text) return null;
         
-        const key = getEncryptionKey(customKey);
+        // Fallback for legacy plain-text data
+        // Encrypted format is iv:authTag:encryptedData
+        if (typeof text !== 'string' || !text.includes(':')) {
+            return text;
+        }
+
         const parts = text.split(':');
-        
         if (parts.length !== 3) {
-            throw new Error('Invalid encrypted format');
+            // If it has colons but not 3 parts, it might be something else
+            // but for safety with legacy data, we return original if it doesn't match format
+            return text;
         }
         
+        const key = getEncryptionKey(customKey);
         const iv = Buffer.from(parts[0], 'hex');
         const authTag = Buffer.from(parts[1], 'hex');
         const encryptedText = parts[2];
@@ -61,7 +68,10 @@ export const decrypt = (text, customKey) => {
         
         return decrypted;
     } catch (error) {
-        throw new Error('Decryption failed');
+        // If decryption fails but it looked like encrypted data, 
+        // it might be legacy data that happens to have colons, or wrong key.
+        // Returning original text as extreme fallback for legacy recovery.
+        return text;
     }
 };
 
