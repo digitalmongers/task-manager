@@ -16,14 +16,60 @@ class CronService {
   init() {
     Logger.info('Initializing Cron Service...');
     
-    // Run every hour
+    // Run every hour for reminders
     this.cronJob = cron.schedule('0 * * * *', async () => {
       Logger.info('Running Due Date Reminder Job');
       await this.checkDueTasks();
       await this.checkDueVitalTasks();
     });
 
+    // Run every day at midnight for account cleanup
+    cron.schedule('0 0 * * *', async () => {
+      Logger.info('Running Inactive Account Cleanup Job');
+      await this.cleanupInactiveAccounts();
+    });
+
     Logger.info('Cron Service Initialized');
+  }
+
+  /**
+   * Automatically delete accounts inactive for more than 90 days
+   */
+  async cleanupInactiveAccounts() {
+    try {
+      const mongoose = (await import("mongoose")).default;
+      const User = mongoose.model('User');
+      const AuthService = (await import('./authService.js')).default;
+
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+      // Find users where lastLogin < 90 days ago OR (lastLogin is null and createdAt < 90 days ago)
+      const inactiveUsers = await User.find({
+        $or: [
+          { lastLogin: { $lt: ninetyDaysAgo } },
+          { lastLogin: null, createdAt: { $lt: ninetyDaysAgo } }
+        ]
+      });
+
+      if (inactiveUsers.length === 0) {
+        Logger.info('No inactive users found for cleanup');
+        return;
+      }
+
+      Logger.info(`Found ${inactiveUsers.length} inactive users for cleanup`);
+
+      for (const user of inactiveUsers) {
+        Logger.info(`Auto-deleting inactive user: ${user.email} (ID: ${user._id})`);
+        await AuthService.systemHardDeleteUser(user._id).catch(e => {
+          Logger.error("Failed to auto-delete user", { userId: user._id, error: e.message });
+        });
+      }
+      
+      Logger.info('Inactive account cleanup completed');
+    } catch (error) {
+      Logger.error('Error in cleanupInactiveAccounts cron', { error: error.message });
+    }
   }
 
   /**

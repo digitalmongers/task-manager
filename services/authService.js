@@ -1041,13 +1041,11 @@ class AuthService {
     }
   }
 
-  // ========== NEW: Delete account method ==========
+  // ========== UPDATED: Hard delete account method ==========
   /**
-   * Delete user account (soft delete)
+   * Delete user account permanently (hard delete)
    */
   async deleteAccount(userId, password, req) {
-    const cloudinary = (await import("../config/cloudinary.js")).default;
-
     const user = await AuthRepository.findByIdWithPassword(userId);
 
     if (!user) {
@@ -1079,26 +1077,10 @@ class AuthService {
       });
     }
 
-    // Delete avatar if exists
-    if (user.avatar?.publicId) {
-      await cloudinary.uploader.destroy(user.avatar.publicId).catch((error) => {
-        Logger.warn("Failed to delete avatar during account deletion", {
-          userId,
-          error: error.message,
-        });
-      });
-    }
+    // Call the system hard delete to handle data purging
+    await this.systemHardDeleteUser(userId);
 
-    // Soft delete
-    await AuthRepository.updateUser(userId, {
-      isActive: false,
-      avatar: {
-        url: null,
-        publicId: null,
-      },
-    });
-
-    Logger.logAuth("ACCOUNT_DELETED", userId, {
+    Logger.logAuth("ACCOUNT_PERMANENTLY_DELETED", userId, {
       email: user.email,
       authProvider: user.authProvider,
       ip: req?.ip,
@@ -1106,8 +1088,102 @@ class AuthService {
     });
 
     return {
-      message: "Your account has been deleted successfully",
+      message: "Your account and all associated data have been permanently deleted",
     };
+  }
+
+  /**
+   * System-initiated hard delete (used for manual deletion and cron cleanup)
+   * Does NOT check for password/auth as it's assumed to be called from a secure context
+   */
+  async systemHardDeleteUser(userId) {
+    const user = await AuthRepository.findById(userId);
+    if (!user) return false;
+
+    // 1. Revoke all active sessions in Redis
+    try {
+      await SessionService.revokeAllSessions(userId);
+    } catch (error) {
+      Logger.warn("Failed to revoke sessions during system hard delete", { userId, error: error.message });
+    }
+
+    // 2. Cascade delete all user data
+    await this.cascadeDeleteUserData(user);
+
+    // 3. Hard delete user document from database
+    await AuthRepository.hardDeleteUser(userId);
+
+    return true;
+  }
+
+  /**
+   * Helper to delete all data belonging to a user across all collections
+   */
+  async cascadeDeleteUserData(user) {
+    const userId = user._id;
+    const mongoose = (await import("mongoose")).default;
+    const cloudinary = (await import("../config/cloudinary.js")).default;
+
+    try {
+      // Get all models dynamically to avoid circular dependencies
+      const Task = mongoose.model('Task');
+      const VitalTask = mongoose.model('VitalTask');
+      const TaskCollaborator = mongoose.model('TaskCollaborator');
+      const VitalTaskCollaborator = mongoose.model('VitalTaskCollaborator');
+      const TaskInvitation = mongoose.model('TaskInvitation');
+      const VitalTaskInvitation = mongoose.model('VitalTaskInvitation');
+      const Notification = mongoose.model('Notification');
+      const PushSubscription = mongoose.model('PushSubscription');
+      const LoginActivity = mongoose.model('LoginActivity');
+      const TaskMessage = mongoose.model('TaskMessage');
+      const TeamMember = mongoose.model('TeamMember');
+
+      Logger.info("Starting cascade delete for user", { userId, email: user.email });
+
+      // 1. Delete user avatar from Cloudinary
+      if (user.avatar?.publicId) {
+        await cloudinary.uploader.destroy(user.avatar.publicId).catch(e => {});
+      }
+
+      // 2. Delete Tasks and their images
+      const tasks = await Task.find({ user: userId });
+      for (const t of tasks) {
+        if (t.image?.publicId) {
+          await cloudinary.uploader.destroy(t.image.publicId).catch(e => {});
+        }
+      }
+      await Task.deleteMany({ user: userId });
+
+      // 3. Delete VitalTasks and their images
+      const vitalTasks = await VitalTask.find({ user: userId });
+      for (const vt of vitalTasks) {
+        if (vt.image?.publicId) {
+          await cloudinary.uploader.destroy(vt.image.publicId).catch(e => {});
+        }
+      }
+      await VitalTask.deleteMany({ user: userId });
+
+      // 4. Delete collaborations (where user is collaborator)
+      await TaskCollaborator.deleteMany({ collaborator: userId });
+      await VitalTaskCollaborator.deleteMany({ collaborator: userId });
+
+      // 5. Delete invitations
+      await TaskInvitation.deleteMany({ $or: [{ sender: userId }, { recipientEmail: user.email }] });
+      await VitalTaskInvitation.deleteMany({ $or: [{ sender: userId }, { recipientEmail: user.email }] });
+
+      // 6. Delete other user-owned records
+      await Notification.deleteMany({ recipient: userId });
+      await PushSubscription.deleteMany({ user: userId });
+      await LoginActivity.deleteMany({ userId: userId });
+      await TaskMessage.deleteMany({ sender: userId });
+      await TeamMember.deleteMany({ user: userId });
+
+      Logger.info("Cascade delete completed for user", { userId });
+      return true;
+    } catch (error) {
+      Logger.error("Error during cascade delete", { userId, error: error.message });
+      return false;
+    }
   }
 
   /**

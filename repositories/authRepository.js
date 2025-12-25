@@ -148,6 +148,20 @@ class AuthRepository {
   }
 
   /**
+   * Hard delete user from database
+   */
+  async hardDeleteUser(userId) {
+    try {
+      const result = await User.findByIdAndDelete(userId);
+      Logger.info("User hard deleted from database", { userId });
+      return result;
+    } catch (error) {
+      Logger.error("Error hard deleting user", { error: error.message, userId });
+      throw error;
+    }
+  }
+
+  /**
    * Save user (for instance methods like save())
    */
   async saveUser(user) {
