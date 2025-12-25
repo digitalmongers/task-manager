@@ -187,10 +187,6 @@ class AuthController {
   async deleteAccount(req, res) {
     const { password } = req.body;
 
-    if (!password) {
-      throw ApiError.badRequest("Password is required to delete account");
-    }
-
     const result = await AuthService.deleteAccount(req.user._id, password, req);
 
     // Clear cookies
