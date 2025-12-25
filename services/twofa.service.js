@@ -39,7 +39,7 @@ class TwoFAService {
     // So we overwrite any existing unconfirmed secret.
     
     // Encrypt secret
-    const encryptedSecret = encrypt(secret.base32);
+    const encryptedSecret = encrypt(secret.base32, '2FA');
 
     // Save secret to user (but keep 2FA disabled)
     // We need a method in repo for this partial update
@@ -79,13 +79,15 @@ class TwoFAService {
       throw ApiError.badRequest('2FA setup not initiated');
     }
 
-    const secret = decrypt(userWithSecret.twoFactorSecret);
+    const secret = decrypt(userWithSecret.twoFactorSecret, '2FA');
+
+    const normalizedToken = String(token).trim().replace(/\s/g, '');
 
     const verified = speakeasy.totp.verify({
       secret: secret,
       encoding: 'base32',
-      token: token,
-      window: 1 // Allow 30sec slack
+      token: normalizedToken,
+      window: 2 // Increased to 2 (90s slack) to handle time drift
     });
 
     if (!verified) {
@@ -132,29 +134,28 @@ class TwoFAService {
     // Promp said: "Accept: OTP OR backup code".
     // We can try both.
     
+    const normalizedToken = String(token).trim().replace(/\s/g, '');
     let isVerified = false;
     let usedBackupCodeId = null;
 
     // 1. Try as OTP (if 6 digits)
-    if (/^\d{6}$/.test(token)) {
-        const secret = decrypt(user.twoFactorSecret);
+    if (/^\d{6}$/.test(normalizedToken)) {
+        const secret = decrypt(user.twoFactorSecret, '2FA');
         isVerified = speakeasy.totp.verify({
             secret: secret,
             encoding: 'base32',
-            token: token,
-            window: 1
+            token: normalizedToken,
+            window: 2
         });
     }
 
     // 2. If not Verified and looks like backup code (or just try if OTP failed)
     if (!isVerified) {
         // Check backup codes
-        // We need to compare specific code against all hashes? That's expensive (10 comparisons).
-        // But 10 is small.
         const availableCodes = user.backupCodes.filter(c => !c.usedAt);
         
         for (const codeObj of availableCodes) {
-            const isMatch = await bcrypt.compare(token, codeObj.codeHash);
+            const isMatch = await bcrypt.compare(normalizedToken, codeObj.codeHash);
             if (isMatch) {
                 isVerified = true;
                 usedBackupCodeId = codeObj._id; 
@@ -193,17 +194,19 @@ class TwoFAService {
     if (!user) throw ApiError.notFound('User not found');
     if (!user.twoFactorEnabled) throw ApiError.badRequest('2FA is not enabled');
 
+    const normalizedToken = String(token).trim().replace(/\s/g, '');
+
     // 1. Verify 2FA token or Backup code first
     let isCodeValid = false;
     
     // Check if OTP
-    if (/^\d{6}$/.test(token)) {
-        const secret = decrypt(user.twoFactorSecret);
+    if (/^\d{6}$/.test(normalizedToken)) {
+        const secret = decrypt(user.twoFactorSecret, '2FA');
         isCodeValid = speakeasy.totp.verify({
             secret: secret,
             encoding: 'base32',
-            token: token,
-            window: 1
+            token: normalizedToken,
+            window: 2
         });
     }
     
@@ -211,7 +214,7 @@ class TwoFAService {
     if (!isCodeValid) {
          const availableCodes = user.backupCodes.filter(c => !c.usedAt);
          for (const codeObj of availableCodes) {
-            if (await bcrypt.compare(token, codeObj.codeHash)) {
+            if (await bcrypt.compare(normalizedToken, codeObj.codeHash)) {
                 isCodeValid = true;
                 break;
             }

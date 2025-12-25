@@ -39,7 +39,7 @@ class ChatService {
     let finalContent = content;
     if (messageType === 'text' && content) {
       try {
-        finalContent = encrypt(content);
+        finalContent = encrypt(content, 'CHAT');
       } catch (err) {
         Logger.error('Message encryption failed', { error: err.message });
         throw ApiError.internal('Failed to secure message');
@@ -72,13 +72,13 @@ class ChatService {
     
     // Decrypt main message
     if (decryptedMessage.isEncrypted && decryptedMessage.content) {
-      decryptedMessage.content = decrypt(decryptedMessage.content);
+      decryptedMessage.content = decrypt(decryptedMessage.content, 'CHAT');
     }
 
     // Decrypt replied-to message if any
     if (decryptedMessage.replyTo && decryptedMessage.replyTo.isEncrypted && decryptedMessage.replyTo.content) {
       try {
-        decryptedMessage.replyTo.content = decrypt(decryptedMessage.replyTo.content);
+        decryptedMessage.replyTo.content = decrypt(decryptedMessage.replyTo.content, 'CHAT');
       } catch (e) {
         decryptedMessage.replyTo.content = '[Encrypted Message]';
       }
@@ -111,7 +111,7 @@ class ChatService {
       const plainMsg = msg.toObject();
       if (plainMsg.isEncrypted && plainMsg.content) {
         try {
-          plainMsg.content = decrypt(plainMsg.content);
+          plainMsg.content = decrypt(plainMsg.content, 'CHAT');
         } catch (err) {
           plainMsg.content = '[Encrypted Message]';
           Logger.warn('Failed to decrypt message in history', { messageId: msg._id });
@@ -121,7 +121,7 @@ class ChatService {
       // Also decrypt content of replied-to message if it exists in history
       if (plainMsg.replyTo && plainMsg.replyTo.isEncrypted && plainMsg.replyTo.content) {
         try {
-          plainMsg.replyTo.content = decrypt(plainMsg.replyTo.content);
+          plainMsg.replyTo.content = decrypt(plainMsg.replyTo.content, 'CHAT');
         } catch (e) {
           plainMsg.replyTo.content = '[Encrypted Message]';
         }
@@ -260,7 +260,7 @@ class ChatService {
 
     // Encrypt new content
     try {
-      message.content = encrypt(newContent);
+      message.content = encrypt(newContent, 'CHAT');
       message.isEdited = true;
       await message.save();
     } catch (err) {
@@ -296,7 +296,7 @@ class ChatService {
     }
 
     message.isDeleted = true;
-    message.content = encrypt('[This message was deleted]'); // Secure the deletion notice too if needed
+    message.content = encrypt('[This message was deleted]', 'CHAT'); // Secure the deletion notice too if needed
     await message.save();
 
     // Broadcast deletion
@@ -350,7 +350,7 @@ class ChatService {
       const plain = msg.toObject();
       if (plain.isEncrypted && plain.content) {
         try {
-          plain.content = decrypt(plain.content);
+          plain.content = decrypt(plain.content, 'CHAT');
         } catch (e) {
           plain.content = '[Encrypted]';
         }
@@ -380,7 +380,7 @@ class ChatService {
       if (msg.messageType !== 'text') continue;
       
       try {
-        const decryptedContent = decrypt(msg.content);
+        const decryptedContent = decrypt(msg.content, 'CHAT');
         if (decryptedContent.toLowerCase().includes(query.toLowerCase())) {
           const plain = msg.toObject();
           plain.content = decryptedContent;

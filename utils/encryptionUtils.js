@@ -10,11 +10,22 @@ const ITERATIONS = 100000;
 
 // Get key from env or throw error
 const getEncryptionKey = (customKey) => {
-    const secret = customKey || process.env.CHAT_ENCRYPTION_KEY || process.env.TWO_FACTOR_ENCRYPTION_KEY;
-    if (!secret) {
-        throw new Error('Encryption key (CHAT_ENCRYPTION_KEY or TWO_FACTOR_ENCRYPTION_KEY) is not defined');
+    // If customKey is provided, check if it's one of our known ENV keys or a raw key
+    if (customKey === '2FA') return crypto.createHash('sha256').update(process.env.TWO_FACTOR_ENCRYPTION_KEY).digest();
+    if (customKey === 'CHAT') return crypto.createHash('sha256').update(process.env.CHAT_ENCRYPTION_KEY).digest();
+    
+    // If it's a raw string, use it
+    if (customKey && customKey.length > 0) {
+        return crypto.createHash('sha256').update(customKey).digest();
     }
-    // ensure key is 32 bytes (256 bits)
+
+    // Fallback (Legacy/Implicit) - Prioritize 2FA if only 2FA exists, etc.
+    const secret = process.env.TWO_FACTOR_ENCRYPTION_KEY || process.env.CHAT_ENCRYPTION_KEY;
+    
+    if (!secret) {
+        throw new Error('Encryption key (TWO_FACTOR_ENCRYPTION_KEY or CHAT_ENCRYPTION_KEY) is not defined');
+    }
+    
     return crypto.createHash('sha256').update(secret).digest();
 };
 
