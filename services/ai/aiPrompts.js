@@ -141,6 +141,33 @@ Provide weekly plan in JSON format:
 }
 `,
 
+  STRATEGIC_PLAN: (vitalTasks, normalTasks) => `
+You are an Enterprise Strategic Planner. Analyze this user's current workload and provide a High-Level Execution Strategy.
+Priority: ALWAYS focus on Vital Tasks first.
+
+Vital Tasks (Top Priority):
+${JSON.stringify(vitalTasks, null, 2)}
+
+High-Priority Standard Tasks:
+${JSON.stringify(normalTasks, null, 2)}
+
+Goal: Provide a cohesive strategy that balances urgency and long-term momentum. 
+Do NOT just list tasks. Provide a Narrative Strategy.
+
+Respond in JSON format:
+{
+  "strategyTitle": "A concise, powerful title for this plan",
+  "narrative": "A 3-4 sentence strategic overview explaining the 'Why' behind this sequence.",
+  "focusArea": "The most critical theme or bottleneck to address immediately",
+  "executionSteps": [
+    { "phase": "Immediate (Next 4h)", "actions": ["action 1", "action 2"] },
+    { "phase": "Momentum (Rest of Day)", "actions": ["action 1"] }
+  ],
+  "risks": ["Potential bottleneck 1", "Dependency risk 2"],
+  "motivation": "A brief, professional encouragement"
+}
+`,
+
   ANALYZE_COMPREHENSIVE_INSIGHTS: (stats) => `
 Analyze the following user productivity statistics for the Dashboard Insights:
 ${JSON.stringify(stats, null, 2)}

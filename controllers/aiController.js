@@ -460,6 +460,56 @@ class AIController {
       );
     }
   }
+  /**
+   * Get the persistent strategic plan (Enterprise Planner)
+   * GET /api/ai/planner
+   */
+  async getPlannerStrategy(req, res) {
+    if (!AIService.isEnabled()) {
+      throw ApiError.serviceUnavailable('AI service is not configured');
+    }
+
+    const result = await AIService.getLatestStrategicPlan(req.user._id);
+    
+    // If no plan exists, generate one pro-actively
+    if (!result) {
+      const newPlan = await AIService.generateStrategicPlan(req.user._id);
+      
+      if (newPlan && newPlan.error) {
+        return ApiResponse.success(res, 200, 'No active tasks to plan', { plan: null });
+      }
+
+      return ApiResponse.success(res, 200, 'New strategic plan generated', { 
+        plan: newPlan,
+        isNew: true 
+      });
+    }
+
+    return ApiResponse.success(res, 200, 'Strategic plan retrieved', {
+      plan: result.plan,
+      isExpired: result.isExpired
+    });
+  }
+
+  /**
+   * Force refresh the strategic plan
+   * POST /api/ai/planner/refresh
+   */
+  async refreshPlannerStrategy(req, res) {
+    if (!AIService.isEnabled()) {
+      throw ApiError.serviceUnavailable('AI service is not configured');
+    }
+
+    const newPlan = await AIService.generateStrategicPlan(req.user._id);
+
+    if (newPlan && newPlan.error) {
+      throw ApiError.badRequest(newPlan.error);
+    }
+
+    return ApiResponse.success(res, 200, 'Strategic plan refreshed successfully', {
+      plan: newPlan
+    });
+  }
 }
 
 export default new AIController();

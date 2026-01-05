@@ -27,6 +27,8 @@ import Category from '../../models/Category.js';
 import TaskPriority from '../../models/TaskPriority.js';
 import TaskStatus from '../../models/TaskStatus.js';
 import Task from '../../models/Task.js';
+import VitalTask from '../../models/VitalTask.js';
+import AIPlan from '../../models/AIPlan.js';
 
 class AIService {
   /**
@@ -433,6 +435,97 @@ class AIService {
       return similarTasks;
     } catch (error) {
       return handleAIError(error, 'findSimilarTasks');
+    }
+  }
+
+  /**
+   * Get the latest strategic plan for a user
+   */
+  async getLatestStrategicPlan(userId) {
+    try {
+      const plan = await AIPlan.findOne({ user: userId })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      if (!plan) return null;
+
+      const isExpired = new Date() > new Date(plan.expiresAt);
+      return { plan, isExpired };
+    } catch (error) {
+      Logger.error('Failed to fetch latest strategic plan', { userId, error: error.message });
+      return null;
+    }
+  }
+
+  /**
+   * Generate an autonomous strategic plan based on existing tasks
+   */
+  async generateStrategicPlan(userId) {
+    try {
+      // 1. Fetch Context: Vital Tasks (All pending)
+      const vitalTasks = await VitalTask.find({
+        user: userId,
+        isCompleted: false,
+        isDeleted: false
+      })
+      .select('title description dueDate priority status steps')
+      .lean();
+
+      // 2. Fetch Context: High Priority Normal Tasks
+      const normalTasks = await Task.find({
+        user: userId,
+        isCompleted: false,
+        isDeleted: false,
+        $or: [
+          { priority: { $exists: true, $ne: null } },
+          { dueDate: { $exists: true, $ne: null } }
+        ]
+      })
+      .populate('priority', 'name')
+      .select('title description dueDate priority status')
+      .limit(10)
+      .lean();
+
+      // Filter to only high/urgent normal tasks if priority is populated
+      const filteredNormal = normalTasks.filter(t => 
+        !t.priority || ['high', 'urgent', 'High', 'Urgent'].includes(t.priority.name)
+      );
+
+      if (vitalTasks.length === 0 && filteredNormal.length === 0) {
+        return { error: 'No active Vital or High-Priority tasks found to plan against.' };
+      }
+
+      // 3. Call AI
+      const prompt = INSIGHTS_PROMPTS.STRATEGIC_PLAN(vitalTasks, filteredNormal);
+      const response = await this.callOpenAI(
+        SYSTEM_PROMPTS.TASK_ASSISTANT,
+        prompt
+      );
+
+      const planData = parseJSONResponse(response);
+      if (!planData || planData.error) throw new Error('AI failed to generate a valid strategy');
+
+      // 4. Persistence
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24); // Valid for 24h
+
+      const newPlan = await AIPlan.create({
+        user: userId,
+        planType: 'strategic',
+        content: JSON.stringify(planData),
+        focusSummary: planData.focusArea,
+        sourceTasks: [
+          ...vitalTasks.map(t => ({ taskId: t._id, taskModel: 'VitalTask', title: t.title })),
+          ...filteredNormal.map(t => ({ taskId: t._id, taskModel: 'Task', title: t.title }))
+        ],
+        expiresAt
+      });
+
+      Logger.info('Autonomous Strategic Plan generated and persisted', { userId, planId: newPlan._id });
+
+      return newPlan;
+    } catch (error) {
+      return handleAIError(error, 'generateStrategicPlan');
     }
   }
 }
