@@ -41,15 +41,31 @@ class ChatService {
 
     let { content, messageType = 'text', fileDetails = null, replyTo = null, mentions = [], clientSideId = null } = messageData;
 
-    // 2. Smarter Type Detection & Validation
-    if (fileDetails && fileDetails.url) {
-      const mime = fileDetails.mimeType || '';
-      if (mime.startsWith('image/')) {
-        messageType = 'image';
-      } else if (mime.startsWith('audio/')) {
-        messageType = 'audio';
-      } else {
-        messageType = 'file';
+    // 2. Robust File Data Parsing & Mapping
+    if (fileDetails) {
+      // Parse if string (common in some frontend environments)
+      if (typeof fileDetails === 'string') {
+        try { fileDetails = JSON.parse(fileDetails); } catch (e) { /* ignore */ }
+      }
+
+      if (fileDetails.url) {
+        // Field Mapping: Ensure frontend fields match schema
+        if (fileDetails.bytes && !fileDetails.fileSize) fileDetails.fileSize = fileDetails.bytes;
+        if (!fileDetails.mimeType && fileDetails.resourceType) {
+           fileDetails.mimeType = fileDetails.resourceType === 'image' ? 'image/jpeg' : 
+                                fileDetails.resourceType === 'video' ? 'video/mp4' : 
+                                fileDetails.resourceType === 'raw' ? 'audio/mpeg' : 'application/octet-stream';
+        }
+
+        // Smarter Type Detection
+        const mime = (fileDetails.mimeType || '').toLowerCase();
+        const url = fileDetails.url.toLowerCase();
+        const isImg = mime.startsWith('image/') || url.match(/\.(jpg|jpeg|png|gif|webp|heic)$/);
+        const isAudio = mime.startsWith('audio/') || url.match(/\.(mp3|wav|ogg|m4a|aac)$/);
+
+        if (isImg) messageType = 'image';
+        else if (isAudio) messageType = 'audio';
+        else if (messageType === 'text') messageType = 'file';
       }
     }
 
@@ -73,9 +89,11 @@ class ChatService {
     }
 
     // 3. Encrypt content if present (Captions or Text)
-    let finalContent = content;
+    // For non-text messages with no content, use empty string to satisfy any strict checks
+    let finalContent = content || '';
     let isEncrypted = false;
-    if (content) {
+    
+    if (content && typeof content === 'string' && content.trim().length > 0) {
       try {
         finalContent = encrypt(content, 'CHAT');
         isEncrypted = true;
@@ -83,9 +101,27 @@ class ChatService {
         Logger.error('Message encryption failed', { error: err.message });
         throw ApiError.internal('Failed to secure message');
       }
+    } else {
+      // For images with no text, we still store '' and isEncrypted: false
+      finalContent = '';
+      isEncrypted = false;
     }
 
-    // 4. Create message in DB (Immediate)
+    // 4. Synchronous Link Preview (Short Wait Strategy)
+    let syncLinkPreview = null;
+    if (messageType === 'text' && content) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const match = content.match(urlRegex);
+      if (match) {
+        // Wait at most 1.5s for a preview to keep the message "instant"
+        syncLinkPreview = await Promise.race([
+          getLinkPreview(match[0]),
+          new Promise(resolve => setTimeout(() => resolve(null), 1500))
+        ]);
+      }
+    }
+
+    // 5. Create message in DB (Immediate)
     const message = await taskMessageRepository.createMessage({
       task: isVital ? null : taskId,
       vitalTask: isVital ? taskId : null,
@@ -98,7 +134,7 @@ class ChatService {
       isEncrypted,
       clientSideId,
       status: 'sent',
-      linkPreview: null,
+      linkPreview: syncLinkPreview,
       sequenceNumber: await this._getNextSequence(taskId, isVital)
     });
 
@@ -122,8 +158,8 @@ class ChatService {
    */
   async _processBackgroundTasks(taskId, userId, populatedMessage, rawContent, isVital) {
     try {
-      // A. Meta Data Extraction (Link Previews)
-      if (populatedMessage.messageType === 'text' && rawContent) {
+      // A. Meta Data Extraction (Link Previews) - Only if not already fetched synchronously
+      if (populatedMessage.messageType === 'text' && rawContent && !populatedMessage.linkPreview) {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         const match = rawContent.match(urlRegex);
         if (match) {
@@ -131,7 +167,7 @@ class ChatService {
             if (preview) {
               await TaskMessage.findByIdAndUpdate(populatedMessage._id, { linkPreview: preview });
               populatedMessage.linkPreview = preview;
-              // Broadcast update to the room
+              // Broadcast update to the chat room
               WebSocketService.sendToChatRoom(taskId, 'chat:message_update', {
                 messageId: populatedMessage._id,
                 linkPreview: preview
@@ -165,8 +201,14 @@ class ChatService {
     const decryptedMessage = populatedMessage.toObject();
     
     // Decrypt main message
-    if (decryptedMessage.isEncrypted && decryptedMessage.content) {
-      decryptedMessage.content = decrypt(decryptedMessage.content, 'CHAT');
+    if (decryptedMessage.isEncrypted && decryptedMessage.content && decryptedMessage.content.trim().length > 0) {
+      try {
+        decryptedMessage.content = decrypt(decryptedMessage.content, 'CHAT');
+      } catch (e) {
+        decryptedMessage.content = '[Encrypted]';
+      }
+    } else if (decryptedMessage.isEncrypted && !decryptedMessage.content) {
+        decryptedMessage.content = '';
     }
 
     // Decrypt replied-to message if any
