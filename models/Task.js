@@ -162,6 +162,21 @@ const taskSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // Task steps/activities
+    steps: [
+      {
+        text: {
+          type: String,
+          required: [true, 'Step text is required'],
+          trim: true,
+        },
+        isCompleted: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

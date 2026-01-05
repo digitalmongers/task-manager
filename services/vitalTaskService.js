@@ -44,6 +44,7 @@ class VitalTaskService {
           status: status || 'Not Started',
           category: category || null,
           isCompleted: isCompleted || false,
+          steps: taskData.steps || [],
         },
         userId
       );
@@ -684,6 +685,7 @@ class VitalTaskService {
           category: vitalTask.category,
           isCompleted: vitalTask.isCompleted,
           image: vitalTask.image,
+          steps: vitalTask.steps,
         },
         userId
       );
