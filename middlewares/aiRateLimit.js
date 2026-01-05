@@ -9,7 +9,7 @@ import Logger from '../config/logger.js';
 // AI-specific rate limiter (more restrictive than general API)
 const aiRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 100, // 100 requests per hour per user
+  max:1000, // 1000 requests per hour per user (Increased from 100)
   message: {
     success: false,
     message: 'Too many AI requests. Please try again later.',

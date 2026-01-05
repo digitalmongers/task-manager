@@ -16,7 +16,7 @@ import Logger from '../config/logger.js';
  * - Invalid sessionId format
  * - Attempting to logout other users' sessions
  * - Empty device list
- * 
+ *  
  * FAILURE SCENARIOS:
  * - Service errors: Return 500 with safe error message
  * - Validation errors: Return 400 with specific error
