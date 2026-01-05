@@ -120,20 +120,32 @@ class AIService {
         prompt
       );
 
-      // Parse response
-      const suggestions = parseJSONResponse(response);
+      // Parse response (now expecting an array)
+      const suggestionsArray = parseJSONResponse(response);
 
-      // Validate
-      if (!validateSuggestions(suggestions, 'task')) {
-        throw new Error('Invalid suggestions format');
+      // Validate array structure
+      if (!Array.isArray(suggestionsArray) || suggestionsArray.length === 0) {
+        throw new Error('AI did not return a valid suggestions array');
+      }
+
+      // Validate each suggestion
+      const validSuggestions = suggestionsArray.filter(s => validateSuggestions(s, 'task'));
+      
+      if (validSuggestions.length === 0) {
+        throw new Error('No valid suggestions in response');
       }
 
       Logger.info('Task suggestions generated', {
         userId,
         title: sanitizedTitle,
+        count: validSuggestions.length
       });
 
-      return suggestions;
+      // Return structured response for frontend
+      return {
+        suggestions: validSuggestions.slice(0, 5), // Ensure max 5
+        count: validSuggestions.length
+      };
     } catch (error) {
       return handleAIError(error, 'generateTaskSuggestions');
     }
