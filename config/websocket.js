@@ -92,12 +92,13 @@ class WebSocketService {
             this.io.to(room).emit(event, data);
           }
         } catch (e) {
-          Logger.error('Relay message parsing failed', { error: e.message });
+          Logger.error('Relay message processing failed', { error: e.message, channel });
         }
       });
 
       await this.subClient.subscribe(`relay:${this.serverId}`);
       await this.subClient.subscribe('relay:global_chat');
+      await this.subClient.subscribe('relay:global_user');
       
       Logger.info('Redis Relay initialized', { serverId: this.serverId });
     } catch (error) {
@@ -142,6 +143,39 @@ class WebSocketService {
     // Handle disconnection
     socket.on('disconnect', () => {
       this.handleDisconnection(socket);
+    });
+
+    // Heartbeat logic (Enterprise Standard)
+    socket.on('chat:heartbeat', (data) => {
+      this._updateHeartbeat(userId);
+      if (data?.isIdle) {
+        this._updatePresence(userId, 'away');
+        // Auto-stop typing if idle
+        socket.to(Array.from(socket.rooms).filter(r => r.startsWith('chat:'))).emit('chat:stop_typing', { userId });
+      } else {
+        this._updatePresence(userId, 'online');
+      }
+    });
+
+    // Throttled Typing Indicator
+    socket.on('chat:typing', async (data) => {
+      const { taskId } = data;
+      if (!taskId) return;
+
+      const lockKey = `typing:lock:${userId}:${taskId}`;
+      const isLocked = await redisClient.get(lockKey);
+
+      if (!isLocked) {
+        // Broadcast typing and set 2s throttle lock
+        socket.to(`chat:${taskId}`).emit('chat:typing', { userId, taskId });
+        await redisClient.set(lockKey, 'true', 'EX', 2);
+      }
+    });
+
+    socket.on('chat:stop_typing', (data) => {
+      const { taskId } = data;
+      if (!taskId) return;
+      socket.to(`chat:${taskId}`).emit('chat:stop_typing', { userId, taskId });
     });
 
     // Handle mark notification as read
@@ -246,6 +280,13 @@ class WebSocketService {
         Logger.error('Error handling chat:delivered', { error: error.message, userId });
       }
     });
+
+    // Explicit manual Presence update
+    socket.on('chat:presence', (status) => {
+      if (['online', 'away', 'dnd'].includes(status)) {
+        this._updatePresence(userId, status);
+      }
+    });
   }
 
   /**
@@ -289,21 +330,16 @@ class WebSocketService {
   }
 
   /**
-   * Relay event to user on other servers
+   * Relay event to user on other servers (Multi-Device Sync)
    */
   async _relayToUser(userId, event, data) {
     try {
-      const presence = await redisClient.get(`presence:${userId}`);
-      if (presence) {
-        const { serverId, status } = JSON.parse(presence);
-        if (status === 'online' && serverId !== this.serverId) {
-          redisClient.publish(`relay:${serverId}`, JSON.stringify({
-            event, data, userId
-          }));
-        }
-      }
+      // Broadcast to a global user channel so all instances where the user is connected receive it
+      redisClient.publish('relay:global_user', JSON.stringify({
+        userId, event, data
+      }));
     } catch (e) {
-      // Silent fail for relay
+      Logger.error('User relay failed', { error: e.message, userId });
     }
   }
 
@@ -330,15 +366,82 @@ class WebSocketService {
     if (!this.io) return false;
     this.io.to(`chat:${taskId}`).emit(event, data);
     
-    // Broadcast to all servers via global relay channel if needed
-    // or use a chat room relay. For now, we'll keep it simple:
-    // Every server sends to its local chat room.
-    // To be truly global, we'd need to publish to a 'relay:chat' channel.
+    // Broadcast to all servers via global relay channel
     redisClient.publish('relay:global_chat', JSON.stringify({
       event, data, taskId
     }));
 
     return true;
+  }
+
+  /**
+   * Update User Presence across multiple server instances via Redis
+   */
+  async _updatePresence(userId, status) {
+    try {
+      const presenceKey = `presence:user:${userId}`;
+      const now = new Date().toISOString();
+
+      // Store in Redis with TTL (Presence expires if no heartbeat)
+      await redisClient.hset(presenceKey, {
+        status,
+        lastSeen: now,
+        serverId: this.serverId,
+        lastHeartbeat: now
+      });
+
+      // TTL slightly longer than heartbeat interval (45s for 30s heartbeat)
+      await redisClient.expire(presenceKey, 45);
+
+      // Broadcast Presence change to active chats
+      this._broadcastPresenceUpdate(userId, status, now);
+      
+      Logger.debug('User presence updated', { userId, status });
+    } catch (error) {
+      Logger.error('Presence update failed', { error: error.message, userId });
+    }
+  }
+
+  /**
+   * Update heartbeat specifically to keep presence alive
+   */
+  async _updateHeartbeat(userId) {
+    const presenceKey = `presence:user:${userId}`;
+    const exists = await redisClient.hexists(presenceKey, 'status');
+    if (exists) {
+      await redisClient.hset(presenceKey, 'lastHeartbeat', new Date().toISOString());
+      await redisClient.expire(presenceKey, 45); // Refresh TTL
+    }
+  }
+
+  /**
+   * Broadcast presence to rooms where user is active
+   */
+  async _broadcastPresenceUpdate(userId, status, lastSeen) {
+    try {
+       const userSockets = this.userSockets.get(userId.toString());
+       if (!userSockets) return;
+
+       const activeRooms = new Set();
+       userSockets.forEach(sid => {
+         const socket = this.io.sockets.sockets.get(sid);
+         if (socket) {
+           socket.rooms.forEach(room => {
+             if (room.startsWith('chat:')) activeRooms.add(room);
+           });
+         }
+       });
+
+       activeRooms.forEach(room => {
+         const taskId = room.split(':')[1];
+         this.io.to(room).emit('chat:presence_update', { userId, status, lastSeen, taskId });
+       });
+
+       // Also global sync for the user
+       this.sendToUser(userId, 'chat:presence_sync', { status, lastSeen });
+    } catch (e) {
+      Logger.error('Broadcast presence update failed', { error: e.message });
+    }
   }
 
   /**

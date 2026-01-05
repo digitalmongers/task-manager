@@ -8,16 +8,26 @@ import { encrypt, decrypt } from '../utils/encryptionUtils.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import pushService from './pushService.js';
-import WebSocketService from '../config/websocket.js';
 import redisClient from '../config/redis.js';
 import { getLinkPreview } from '../utils/linkPreview.js';
 import Notification from '../models/Notification.js';
+import ChatReadState from '../models/ChatReadState.js';
 
 class ChatService {
   /**
    * Send a message to a task chat (Normal or Vital)
    */
   async sendMessage(taskId, userId, messageData, isVital = false) {
+    // 0. Internal Rate Limiting (Abuse Prevention)
+    const limitKey = `ratelimit:msg:${userId}`;
+    const count = await redisClient.incr(limitKey);
+    if (count === 1) {
+      await redisClient.expire(limitKey, 2); // 2 second window
+    }
+    if (count > 5) {
+      throw ApiError.tooManyRequests('Chat rate limit exceeded. Slow down.');
+    }
+
     // 1. Verify access
     const access = isVital 
       ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
@@ -34,7 +44,7 @@ class ChatService {
       const existingMessage = await TaskMessage.findOne({ clientSideId });
       if (existingMessage) {
         Logger.info('Duplicate message detected (clientSideId), returning existing', { clientSideId });
-        return this._populatedAndDecrypted(existingMessage._id);
+        return this.getMessageById(existingMessage._id);
       }
     }
 
@@ -71,7 +81,8 @@ class ChatService {
       isEncrypted: messageType === 'text',
       clientSideId,
       status: 'sent',
-      linkPreview: null // Will be updated in background if exists
+      linkPreview: null,
+      sequenceNumber: await this._getNextSequence(taskId, isVital)
     });
 
     // 5. Decrypt and broadcast IMMEDIATELY for seamless experience
@@ -192,6 +203,14 @@ class ChatService {
   }
 
   /**
+   * Atomic sequence generator for messages using Redis
+   */
+  async _getNextSequence(taskId, isVital) {
+    const key = `chat:seq:${isVital ? 'vital:' : ''}${taskId}`;
+    return await redisClient.incr(key);
+  }
+
+  /**
    * Sync missed messages since a specific timestamp
    * Essential for Offline Catch-up (Seamless Experience)
    */
@@ -222,7 +241,7 @@ class ChatService {
       sender: { $ne: userId }
     })
     .populate('sender', 'firstName lastName email avatar')
-    .sort({ createdAt: 1 }) // Chronological order for sync
+    .sort({ sequenceNumber: 1 }) // Hard Ordering for sync stream
     .limit(limit);
 
     return messages.map(msg => {
@@ -275,11 +294,20 @@ class ChatService {
     for (const c of task.collaborators) {
       if (c.collaborator._id.toString() !== task.user._id.toString()) {
         const collabPresence = await this._getUserPresence(c.collaborator._id);
+        
+        // Fetch last read state for this collaborator
+        const readState = await ChatReadState.findOne({ 
+          user: c.collaborator._id, 
+          [isVital ? 'vitalTask' : 'task']: taskId 
+        });
+
         members.push({
           user: c.collaborator,
           role: c.role,
           isOnline: collabPresence.isOnline,
-          lastSeen: collabPresence.lastSeen
+          lastSeen: collabPresence.lastSeen,
+          lastReadSequence: readState ? readState.lastReadSequence : 0,
+          lastReadAt: readState ? readState.lastReadAt : null
         });
       }
     }
@@ -288,7 +316,7 @@ class ChatService {
   }
 
   /**
-   * Mark messages as read for a task (Normal or Vital)
+   * Mark messages as read for a user in a task (Normal or Vital)
    */
   async markAsRead(taskId, userId, isVital = false) {
     const access = isVital 
@@ -297,36 +325,63 @@ class ChatService {
       
     if (!access.canAccess) throw ApiError.forbidden('Access denied');
 
-    await taskMessageRepository.markAsRead(taskId, userId, isVital);
-
-    // Update global status to 'read' for these messages
     const field = isVital ? 'vitalTask' : 'task';
-    await TaskMessage.updateMany(
-      { [field]: taskId, sender: { $ne: userId }, status: { $ne: 'read' } },
-      { status: 'read' }
+    const now = new Date();
+
+    // 1. Get the latest message to find the current "High-Water Mark" sequence
+    const latestMessage = await TaskMessage.findOne({ [field]: taskId })
+      .sort({ sequenceNumber: -1 });
+
+    if (!latestMessage) return { success: true };
+
+    // 2. Atomic Upsert of Read State (High-Water Mark Model)
+    // This replaces the per-message readBy update for MASSIVE scalability
+    await ChatReadState.findOneAndUpdate(
+      { user: userId, [field]: taskId },
+      { 
+        lastReadSequence: latestMessage.sequenceNumber,
+        lastReadAt: now,
+        isVital
+      },
+      { upsert: true, new: true }
     );
 
-    // Notify room about read status update
-    WebSocketService.sendToChatRoom(taskId, 'chat:seen', {
+    // 3. Broadcast globally that this user has read up to this point (for OTHER users)
+    const ws = (await import('../config/websocket.js')).default;
+    ws.sendToChatRoom(taskId, 'chat:read', {
       taskId,
       userId,
-      readAt: new Date()
+      readAt: now,
+      isVital,
+      lastReadSequence: latestMessage.sequenceNumber
     });
 
-    return true;
+    // 4. Multi-Device Sync: Notify OTHER devices of the SAME user to clear badges
+    ws.sendToUser(userId, 'chat:read_sync', {
+      taskId,
+      isVital,
+      readAt: now,
+      lastReadSequence: latestMessage.sequenceNumber
+    });
+
+    return { success: true };
   }
 
   /**
-   * Internal helper to get presence from Redis
+   * Internal helper to get presence from Redis (Enterprise v2)
    */
   async _getUserPresence(userId) {
     try {
-        const data = await redisClient.get(`presence:${userId}`);
-        if (!data) return { isOnline: false, lastSeen: null };
-        const { status, lastSeen } = JSON.parse(data);
+        const presenceKey = `presence:user:${userId}`;
+        const data = await redisClient.hgetall(presenceKey);
+        
+        if (!data || Object.keys(data).length === 0) return { isOnline: false, lastSeen: null };
+        
         return {
-            isOnline: status === 'online',
-            lastSeen: lastSeen
+            isOnline: data.status === 'online',
+            status: data.status,
+            lastSeen: data.lastSeen,
+            lastHeartbeat: data.lastHeartbeat
         };
     } catch (e) {
         return { isOnline: false, lastSeen: null };
@@ -430,6 +485,16 @@ class ChatService {
     // Broadcast update
     WebSocketService.sendToChatRoom(taskId, 'chat:message_update', decryptedMessage);
 
+    // Compliance: Internal audit log entry
+    Logger.info('Message edited (Compliance Log)', { 
+      messageId, 
+      userId, 
+      taskId, 
+      isVital,
+      oldHistoryCount: message.editHistory.length,
+      timestamp: new Date() 
+    });
+
     return decryptedMessage;
   }
 
@@ -458,6 +523,15 @@ class ChatService {
 
     // Broadcast deletion
     WebSocketService.sendToChatRoom(taskId, 'chat:message_delete', { messageId });
+
+    // Compliance: Internal audit log entry
+    Logger.info('Message deleted (Compliance Log)', { 
+      messageId, 
+      userId, 
+      taskId, 
+      isVital, 
+      timestamp: new Date() 
+    });
 
     return { messageId, isDeleted: true };
   }
@@ -605,6 +679,47 @@ class ChatService {
     } catch (error) {
       Logger.error('Chat notification delivery failed', { error: error.message });
     }
+  }
+
+  /**
+   * Helper: Get a single message with decryption and population
+   */
+  async getMessageById(messageId) {
+    const message = await TaskMessage.findById(messageId)
+      .populate('sender', 'firstName lastName avatar')
+      .populate('replyTo');
+    
+    if (!message) return null;
+
+    const plain = message.toObject();
+    if (plain.isEncrypted && plain.content) {
+      try {
+        plain.content = decrypt(plain.content, 'CHAT');
+      } catch (e) {
+        plain.content = '[Encrypted]';
+      }
+    }
+    return plain;
+  }
+
+  /**
+   * Purge messages older than 90 days (Enterprise Retention Policy)
+   */
+  async purgeOldMessages(retentionDays = 90) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - retentionDays);
+
+    const result = await TaskMessage.deleteMany({
+      createdAt: { $lt: cutoff },
+      isPinned: false // Never purge pinned messages
+    });
+
+    Logger.info('Enterprise Retention Policy: Old messages purged', {
+      purgedCount: result.deletedCount,
+      cutoffDate: cutoff
+    });
+
+    return result.deletedCount;
   }
 }
 

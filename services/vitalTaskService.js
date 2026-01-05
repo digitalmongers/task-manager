@@ -34,17 +34,26 @@ class VitalTaskService {
         }
       }
 
-      // Parse steps if they come as a string (usual in multipart/form-data)
+      // Parse steps using robust logic
       let parsedSteps = [];
-      if (typeof taskData.steps === 'string') {
-        try {
-          parsedSteps = JSON.parse(taskData.steps);
-        } catch (e) {
-          Logger.error('Failed to parse vital task steps', { error: e.message });
-          throw ApiError.badRequest('Invalid format for steps. Must be a JSON array.');
+      if (taskData.steps) {
+        if (typeof taskData.steps === 'string') {
+          try {
+            const parsed = JSON.parse(taskData.steps);
+            parsedSteps = Array.isArray(parsed) ? parsed : [parsed];
+          } catch (e) {
+            parsedSteps = taskData.steps;
+          }
+        } else if (Array.isArray(taskData.steps)) {
+          parsedSteps = taskData.steps.map(s => {
+            if (typeof s === 'string') {
+              try { return JSON.parse(s); } catch (e) { return s; }
+            }
+            return s;
+          });
+        } else {
+          parsedSteps = taskData.steps;
         }
-      } else {
-        parsedSteps = taskData.steps || [];
       }
 
       // Create vital task
@@ -301,8 +310,27 @@ class VitalTaskService {
         updateData.status = updateData.isCompleted ? 'Completed' : 'In Progress';
       }
 
-      // Update vital task
-      Object.assign(vitalTask, updateData);
+      // Robust steps parsing for updates
+      if (updateData.steps) {
+        if (typeof updateData.steps === 'string') {
+          try {
+            const parsed = JSON.parse(updateData.steps);
+            updateData.steps = Array.isArray(parsed) ? parsed : [parsed];
+          } catch (e) {
+            // Keep as is
+          }
+        } else if (Array.isArray(updateData.steps)) {
+          updateData.steps = updateData.steps.map(s => {
+            if (typeof s === 'string') {
+              try { return JSON.parse(s); } catch (e) { return s; }
+            }
+            return s;
+          });
+        }
+      }
+
+      // Update vital task using set()
+      vitalTask.set(updateData);
       await vitalTask.save();
       
       // Populate
