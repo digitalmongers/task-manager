@@ -15,7 +15,7 @@ class TaskService {
    */
   async createTask(userId, taskData, file) {
     try {
-      const { title, description, dueDate, priority, status, category, isCompleted } = taskData;
+      const { title, description, dueDate, priority, status, category, isCompleted, steps } = taskData;
 
       // Verify category belongs to user (if provided)
       if (category) {
@@ -35,26 +35,8 @@ class TaskService {
       }
 
       // Parse steps using robust logic (handles stringified JSON, real arrays, or mixed)
-      let parsedSteps = [];
-      if (taskData.steps) {
-        if (typeof taskData.steps === 'string') {
-          try {
-            const parsed = JSON.parse(taskData.steps);
-            parsedSteps = Array.isArray(parsed) ? parsed : [parsed];
-          } catch (e) {
-            parsedSteps = taskData.steps; // Let Mongoose handle error if any
-          }
-        } else if (Array.isArray(taskData.steps)) {
-          parsedSteps = taskData.steps.map(s => {
-            if (typeof s === 'string') {
-              try { return JSON.parse(s); } catch (e) { return s; }
-            }
-            return s;
-          });
-        } else {
-          parsedSteps = taskData.steps;
-        }
-      }
+      const parsedSteps = this._parseSteps(steps);
+      Logger.debug('Parsed steps for task creation', { count: parsedSteps.length, taskId: null });
 
       // Create task
       const task = await TaskRepository.createTask(
@@ -907,6 +889,53 @@ class TaskService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Helper to parse steps from various input formats (standardizes to objects)
+   */
+  _parseSteps(steps) {
+    if (!steps) return [];
+    
+    let raw = steps;
+    // Handle single string (JSON or raw)
+    if (typeof steps === 'string') {
+      try {
+        const parsed = JSON.parse(steps);
+        raw = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        // Not JSON, treat as a single step if not empty
+        return steps.trim() ? [{ text: steps.trim(), isCompleted: false }] : [];
+      }
+    }
+
+    if (Array.isArray(raw)) {
+      return raw.map(s => {
+        // Case 1: String in array (could be JSON or raw text)
+        if (typeof s === 'string') {
+          try {
+            const parsed = JSON.parse(s);
+            // If it's an object with text, use it; otherwise wrap the original string
+            return (typeof parsed === 'object' && parsed !== null && (parsed.text || parsed.content))
+              ? { text: parsed.text || parsed.content, isCompleted: !!parsed.isCompleted }
+              : { text: s, isCompleted: false };
+          } catch (e) {
+            return { text: s, isCompleted: false };
+          }
+        }
+        // Case 2: Already an object
+        if (typeof s === 'object' && s !== null) {
+          return {
+            text: s.text || s.content || '',
+            isCompleted: !!s.isCompleted
+          };
+        }
+        // Case 3: Fallback
+        return { text: String(s), isCompleted: false };
+      }).filter(s => s.text.trim() !== ''); // Remove empty steps
+    }
+
+    return [];
   }
 }
 

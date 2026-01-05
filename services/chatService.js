@@ -12,6 +12,7 @@ import redisClient from '../config/redis.js';
 import { getLinkPreview } from '../utils/linkPreview.js';
 import Notification from '../models/Notification.js';
 import ChatReadState from '../models/ChatReadState.js';
+import MetricsService from './metricsService.js';
 
 class ChatService {
   /**
@@ -44,6 +45,7 @@ class ChatService {
       const existingMessage = await TaskMessage.findOne({ clientSideId });
       if (existingMessage) {
         Logger.info('Duplicate message detected (clientSideId), returning existing', { clientSideId });
+        MetricsService.trackFailedRetry(); // Using this to track idempotency hits
         return this.getMessageById(existingMessage._id);
       }
     }
@@ -84,6 +86,9 @@ class ChatService {
       linkPreview: null,
       sequenceNumber: await this._getNextSequence(taskId, isVital)
     });
+
+    // Track metrics
+    MetricsService.trackMessage();
 
     // 5. Decrypt and broadcast IMMEDIATELY for seamless experience
     const populatedMessage = await this._populatedAndDecrypted(message._id);
@@ -216,6 +221,9 @@ class ChatService {
    */
   async getSyncMessages(userId, since, limit = 100) {
     if (!since) throw ApiError.badRequest('Missing sync timestamp');
+
+    // Track sync lag (ms)
+    MetricsService.trackSyncLag(Date.now() - new Date(since).getTime());
     
     // Find all tasks the user is part of
     const standardTasks = await TaskCollaborator.find({ collaborator: userId, status: 'active' }).select('task');

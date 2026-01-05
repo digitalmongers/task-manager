@@ -15,7 +15,7 @@ class VitalTaskService {
    */
   async createVitalTask(userId, taskData, file) {
     try {
-      const { title, description, dueDate, priority, status, category, isCompleted } = taskData;
+      const { title, description, dueDate, priority, status, category, isCompleted, steps } = taskData;
 
       // Verify category belongs to user (if provided)
       if (category) {
@@ -34,27 +34,9 @@ class VitalTaskService {
         }
       }
 
-      // Parse steps using robust logic
-      let parsedSteps = [];
-      if (taskData.steps) {
-        if (typeof taskData.steps === 'string') {
-          try {
-            const parsed = JSON.parse(taskData.steps);
-            parsedSteps = Array.isArray(parsed) ? parsed : [parsed];
-          } catch (e) {
-            parsedSteps = taskData.steps;
-          }
-        } else if (Array.isArray(taskData.steps)) {
-          parsedSteps = taskData.steps.map(s => {
-            if (typeof s === 'string') {
-              try { return JSON.parse(s); } catch (e) { return s; }
-            }
-            return s;
-          });
-        } else {
-          parsedSteps = taskData.steps;
-        }
-      }
+      // Parse steps using robust logic (handles stringified JSON, real arrays, or mixed)
+      const parsedSteps = this._parseSteps(steps);
+      Logger.debug('Parsed steps for vital task creation', { count: parsedSteps.length });
 
       // Create vital task
       const vitalTask = await VitalTaskRepository.createVitalTask(
@@ -809,6 +791,47 @@ class VitalTaskService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Helper to parse steps from various input formats
+   */
+  _parseSteps(steps) {
+    if (!steps) return [];
+    
+    let raw = steps;
+    if (typeof steps === 'string') {
+      try {
+        const parsed = JSON.parse(steps);
+        raw = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        return steps.trim() ? [{ text: steps.trim(), isCompleted: false }] : [];
+      }
+    }
+
+    if (Array.isArray(raw)) {
+      return raw.map(s => {
+        if (typeof s === 'string') {
+          try {
+            const parsed = JSON.parse(s);
+            return (typeof parsed === 'object' && parsed !== null && (parsed.text || parsed.content))
+              ? { text: parsed.text || parsed.content, isCompleted: !!parsed.isCompleted }
+              : { text: s, isCompleted: false };
+          } catch (e) {
+            return { text: s, isCompleted: false };
+          }
+        }
+        if (typeof s === 'object' && s !== null) {
+          return {
+            text: s.text || s.content || '',
+            isCompleted: !!s.isCompleted
+          };
+        }
+        return { text: String(s), isCompleted: false };
+      }).filter(s => s.text.trim() !== '');
+    }
+
+    return [];
   }
 }
 

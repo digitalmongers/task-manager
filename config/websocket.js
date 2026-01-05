@@ -6,6 +6,7 @@ import TaskCollaborator from '../models/TaskCollaborator.js';
 import VitalTaskCollaborator from '../models/VitalTaskCollaborator.js';
 import redisClient from './redis.js';
 import { v4 as uuidv4 } from 'uuid';
+import MetricsService from '../services/metricsService.js';
 
 class WebSocketService {
   constructor() {
@@ -127,8 +128,8 @@ class WebSocketService {
     // Join user's personal room
     socket.join(`user:${userId}`);
 
-    // Update Presence in Redis
-    this._updatePresence(userId, 'online');
+    // Update Presence in Redis (Atomic Socket Tracking with TTL for Ghost Cleanup)
+    this._addSocketToPresence(userId, socket.id);
 
     // Send connection success
     socket.emit('connected', {
@@ -140,6 +141,9 @@ class WebSocketService {
     // AUTO-JOIN & AUTO-SYNC (Enterprise Standard)
     this._handleAutoReconnectPresence(socket, userId);
 
+    // Track metrics
+    MetricsService.incrementSockets();
+
     // Handle disconnection
     socket.on('disconnect', () => {
       this.handleDisconnection(socket);
@@ -147,17 +151,18 @@ class WebSocketService {
 
     // Heartbeat logic (Enterprise Standard)
     socket.on('chat:heartbeat', (data) => {
-      this._updateHeartbeat(userId);
+      this._updateHeartbeat(userId, socket.id);
       if (data?.isIdle) {
         this._updatePresence(userId, 'away');
         // Auto-stop typing if idle
+        this.io.to(`user:${userId}`).emit('chat:stop_typing_all', { userId });
         socket.to(Array.from(socket.rooms).filter(r => r.startsWith('chat:'))).emit('chat:stop_typing', { userId });
       } else {
         this._updatePresence(userId, 'online');
       }
     });
 
-    // Throttled Typing Indicator
+    // Throttled Typing Indicator with Auto-expire (5s)
     socket.on('chat:typing', async (data) => {
       const { taskId } = data;
       if (!taskId) return;
@@ -169,12 +174,22 @@ class WebSocketService {
         // Broadcast typing and set 2s throttle lock
         socket.to(`chat:${taskId}`).emit('chat:typing', { userId, taskId });
         await redisClient.set(lockKey, 'true', 'EX', 2);
+
+        // Track metric (typing is also a message-like event for load tracking)
+        MetricsService.trackMessage();
+
+        // Schedule auto-stop broadcast if user stops sending signals
+        if (socket.typingTimeout) clearTimeout(socket.typingTimeout);
+        socket.typingTimeout = setTimeout(() => {
+          socket.to(`chat:${taskId}`).emit('chat:stop_typing', { userId, taskId });
+        }, 5000);
       }
     });
 
     socket.on('chat:stop_typing', (data) => {
       const { taskId } = data;
       if (!taskId) return;
+      if (socket.typingTimeout) clearTimeout(socket.typingTimeout);
       socket.to(`chat:${taskId}`).emit('chat:stop_typing', { userId, taskId });
     });
 
@@ -292,15 +307,17 @@ class WebSocketService {
   /**
    * Handle socket disconnection
    */
-  handleDisconnection(socket) {
+  async handleDisconnection(socket) {
     const userId = socket.userId;
     
     if (this.userSockets.has(userId)) {
       this.userSockets.get(userId).delete(socket.id);
       
+      // Remove from Redis Socket Set
+      await this._removeSocketFromPresence(userId, socket.id);
+
       if (this.userSockets.get(userId).size === 0) {
         this.userSockets.delete(userId);
-        this._updatePresence(userId, 'offline');
       }
     }
 
@@ -309,6 +326,9 @@ class WebSocketService {
       socketId: socket.id,
       remainingConnections: this.userSockets.get(userId)?.size || 0,
     });
+
+    // Track metrics
+    MetricsService.decrementSockets();
   }
 
   /**
@@ -375,6 +395,48 @@ class WebSocketService {
   }
 
   /**
+   * Atomic Socket Tracking: Add socket ID to Redis Set + Per-socket TTL
+   */
+  async _addSocketToPresence(userId, socketId) {
+    try {
+      const socketSetKey = `presence:sockets:user:${userId}`;
+      const socketTtlKey = `presence:socket:${socketId}`;
+
+      await Promise.all([
+        redisClient.sadd(socketSetKey, socketId),
+        redisClient.set(socketTtlKey, userId, 'EX', 60) // Heartbeat expected every 30s
+      ]);
+      
+      await redisClient.expire(socketSetKey, 86400); // 24h safety expiry
+      await this._updatePresence(userId, 'online');
+    } catch (e) {
+      Logger.error('Add socket to presence failed', { userId, error: e.message });
+    }
+  }
+
+  /**
+   * Atomic Socket Tracking: Remove socket ID from Redis Set
+   */
+  async _removeSocketFromPresence(userId, socketId) {
+    try {
+      const socketSetKey = `presence:sockets:user:${userId}`;
+      const socketTtlKey = `presence:socket:${socketId}`;
+
+      await Promise.all([
+        redisClient.srem(socketSetKey, socketId),
+        redisClient.del(socketTtlKey)
+      ]);
+      
+      const count = await redisClient.scard(socketSetKey);
+      if (count === 0) {
+        await this._updatePresence(userId, 'offline');
+      }
+    } catch (e) {
+      Logger.error('Remove socket from presence failed', { userId, error: e.message });
+    }
+  }
+
+  /**
    * Update User Presence across multiple server instances via Redis
    */
   async _updatePresence(userId, status) {
@@ -390,8 +452,8 @@ class WebSocketService {
         lastHeartbeat: now
       });
 
-      // TTL slightly longer than heartbeat interval (45s for 30s heartbeat)
-      await redisClient.expire(presenceKey, 45);
+      // TTL slightly longer than heartbeat interval (60s for true "ghost" detection)
+      await redisClient.expire(presenceKey, 60);
 
       // Broadcast Presence change to active chats
       this._broadcastPresenceUpdate(userId, status, now);
@@ -403,15 +465,16 @@ class WebSocketService {
   }
 
   /**
-   * Update heartbeat specifically to keep presence alive
+   * Update heartbeat specifically to keep presence alive (Per-socket & Per-user)
    */
-  async _updateHeartbeat(userId) {
+  async _updateHeartbeat(userId, socketId) {
     const presenceKey = `presence:user:${userId}`;
-    const exists = await redisClient.hexists(presenceKey, 'status');
-    if (exists) {
-      await redisClient.hset(presenceKey, 'lastHeartbeat', new Date().toISOString());
-      await redisClient.expire(presenceKey, 45); // Refresh TTL
-    }
+    const socketTtlKey = `presence:socket:${socketId}`;
+    
+    await Promise.all([
+        redisClient.expire(presenceKey, 60),
+        redisClient.set(socketTtlKey, userId, 'EX', 60)
+    ]);
   }
 
   /**
@@ -496,10 +559,46 @@ class WebSocketService {
   }
 
   /**
-   * Check if user is online
+   * Check if user is online (Cluster-Safe + Ghost Cleanup Awareness)
    */
-  isUserOnline(userId) {
-    return this.userSockets.has(userId.toString());
+  async isUserOnline(userId) {
+    const presenceKey = `presence:user:${userId}`;
+    const socketSetKey = `presence:sockets:user:${userId}`;
+    
+    const [presence, socketIds] = await Promise.all([
+      redisClient.hgetall(presenceKey),
+      redisClient.smembers(socketSetKey)
+    ]);
+
+    if (!presence || presence.status !== 'online' || socketIds.length === 0) {
+      return false;
+    }
+
+    // Filter sockets that have valid TTL keys (Ghost cleanup check)
+    const ttlChecks = await Promise.all(
+        socketIds.map(sid => redisClient.exists(`presence:socket:${sid}`))
+    );
+
+    const activeSocketCount = ttlChecks.filter(exists => exists === 1).length;
+    
+    // If we found ghost sockets in the set, cleanup background
+    if (activeSocketCount !== socketIds.length) {
+        this._cleanupGhostSockets(userId, socketIds, ttlChecks);
+    }
+
+    return activeSocketCount > 0;
+  }
+
+  /**
+   * Background cleanup of ghost sockets from the set
+   */
+  async _cleanupGhostSockets(userId, socketIds, ttlResults) {
+      const socketSetKey = `presence:sockets:user:${userId}`;
+      const ghosts = socketIds.filter((_, index) => ttlResults[index] === 0);
+      if (ghosts.length > 0) {
+          await redisClient.srem(socketSetKey, ...ghosts);
+          Logger.debug('Cleaned up ghost sockets', { userId, count: ghosts.length });
+      }
   }
 
   /**
