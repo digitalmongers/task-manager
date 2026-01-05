@@ -28,14 +28,14 @@ class TaskMessageRepository {
       const { 
         page = 1, 
         limit = 50, 
-        before = null 
+        beforeSequence = null 
       } = options;
 
       const field = isVital ? 'vitalTask' : 'task';
       const query = { [field]: taskId };
       
-      if (before) {
-        query.createdAt = { $lt: new Date(before) };
+      if (beforeSequence) {
+        query.sequenceNumber = { $lt: parseInt(beforeSequence) };
       }
 
       const skip = (page - 1) * limit;
@@ -48,8 +48,9 @@ class TaskMessageRepository {
           populate: { path: 'sender', select: 'firstName lastName avatar' }
         })
         .populate('reactions.user', 'firstName lastName avatar')
-        .sort({ createdAt: -1 })
-        .skip(before ? 0 : skip)
+        .populate('reactions.user', 'firstName lastName avatar')
+        .sort({ sequenceNumber: -1 })
+        .skip(beforeSequence ? 0 : skip)
         .limit(parseInt(limit));
 
       return messages.reverse();
@@ -63,29 +64,8 @@ class TaskMessageRepository {
     }
   }
 
-  /**
-   * Update read status
-   */
-  async markAsRead(taskId, userId, isVital = false) {
-    try {
-      const field = isVital ? 'vitalTask' : 'task';
-      return await TaskMessage.updateMany(
-        { 
-          [field]: taskId,
-          sender: { $ne: userId },
-          'readBy.user': { $ne: userId }
-        },
-        { 
-          $addToSet: { 
-            readBy: { user: userId, readAt: new Date() } 
-          } 
-        }
-      );
-    } catch (error) {
-      Logger.error('Error marking messages as read', { error: error.message });
-      throw error;
-    }
-  }
+  // Read tracking is now handled by ChatService using ChatReadState model
+  // markAsRead repository method removed for scalability refactor
 
   /**
    * Get last message for a task (Normal or Vital)
@@ -94,7 +74,7 @@ class TaskMessageRepository {
     try {
       const field = isVital ? 'vitalTask' : 'task';
       return await TaskMessage.findOne({ [field]: taskId })
-        .sort({ createdAt: -1 })
+        .sort({ sequenceNumber: -1 })
         .populate('sender', 'firstName lastName avatar');
     } catch (error) {
       return null;

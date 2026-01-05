@@ -84,18 +84,6 @@ const taskMessageSchema = new mongoose.Schema(
         },
       },
     ],
-    readBy: [
-      {
-        user: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: 'User',
-        },
-        readAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
     isEncrypted: {
       type: Boolean,
       default: true,
@@ -108,6 +96,10 @@ const taskMessageSchema = new mongoose.Schema(
       type: String,
       enum: ['sent', 'delivered', 'read'],
       default: 'sent',
+    },
+    sequenceNumber: {
+      type: Number,
+      index: true,
     },
     linkPreview: {
       url: String,

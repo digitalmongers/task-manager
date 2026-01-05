@@ -7,12 +7,12 @@ import { uploadToCloudinary } from './upload.js'; // Reuse upload controller log
 
 export const getHistory = async (req, res) => {
   const { taskId } = req.params;
-  const { page, limit, before, isVital } = req.query;
+  const { page, limit, beforeSequence, isVital } = req.query;
 
   const history = await chatService.getChatHistory(taskId, req.user._id, {
     page: parseInt(page),
     limit: parseInt(limit),
-    before
+    beforeSequence
   }, isVital === 'true');
 
   ApiResponse.success(res, 200, 'Chat history fetched successfully', history);
@@ -31,7 +31,8 @@ export const sendMessage = async (req, res) => {
     messageType,
     fileDetails,
     replyTo,
-    mentions
+    mentions,
+    clientSideId
   }, isVital === true || req.query.isVital === 'true');
 
   ApiResponse.success(res, 201, 'Message sent successfully', message);
@@ -99,20 +100,29 @@ export const search = async (req, res) => {
 
   if (!q) throw ApiError.badRequest('Search query is required');
 
-  // New Optimized Search using Text Index
+  // 1. Verify access (Enterprise Security)
+  const access = isVital === 'true'
+    ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, req.user._id)
+    : await TaskCollaborator.canUserAccessTask(taskId, req.user._id);
+
+  if (!access.canAccess) {
+    throw ApiError.forbidden('You do not have access to search in this chat');
+  }
+
+  // 2. Optimized Search using Text Index
   const field = isVital === 'true' ? 'vitalTask' : 'task';
   const query = {
     [field]: taskId,
     $text: { $search: q },
-    isDeleted: false
+    isDeleted: false // Respect soft-deletion
   };
 
-  const results = await TaskMessage.find(query)
+  const results = await TaskMessage.find(query, { score: { $meta: 'textScore' } })
     .populate('sender', 'firstName lastName avatar')
-    .sort({ score: { $meta: 'textScore' } }) // Sort by relevance
+    .sort({ score: { $meta: 'textScore' } }) // Relevance first
     .limit(100);
 
-  // Decrypt results
+  // 3. Decrypt results
   const decryptedResults = results.map(msg => {
     const plain = msg.toObject();
     if (plain.isEncrypted && plain.content) {
