@@ -13,6 +13,7 @@ import { getLinkPreview } from '../utils/linkPreview.js';
 import Notification from '../models/Notification.js';
 import ChatReadState from '../models/ChatReadState.js';
 import MetricsService from './metricsService.js';
+import WebSocketService from '../config/websocket.js';
 
 class ChatService {
   /**
@@ -355,8 +356,8 @@ class ChatService {
     );
 
     // 3. Broadcast globally that this user has read up to this point (for OTHER users)
-    const ws = (await import('../config/websocket.js')).default;
-    ws.sendToChatRoom(taskId, 'chat:read', {
+    // 3. Broadcast globally that this user has read up to this point (for OTHER users)
+    WebSocketService.sendToChatRoom(taskId, 'chat:read', {
       taskId,
       userId,
       readAt: now,
@@ -365,7 +366,7 @@ class ChatService {
     });
 
     // 4. Multi-Device Sync: Notify OTHER devices of the SAME user to clear badges
-    ws.sendToUser(userId, 'chat:read_sync', {
+    WebSocketService.sendToUser(userId, 'chat:read_sync', {
       taskId,
       isVital,
       readAt: now,

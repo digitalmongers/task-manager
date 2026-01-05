@@ -201,4 +201,28 @@ router.post(
   asyncHandler(aiController.suggestStatus.bind(aiController))
 );
 
+/**
+ * @route   GET /api/ai/planner
+ * @desc    Get the latest persistent strategic plan
+ * @access  Private
+ */
+router.get(
+  '/planner',
+  protect,
+  aiRateLimit,
+  asyncHandler(aiController.getPlannerStrategy.bind(aiController))
+);
+
+/**
+ * @route   POST /api/ai/planner/refresh
+ * @desc    Force generate a new strategic plan
+ * @access  Private
+ */
+router.post(
+  '/planner/refresh',
+  protect,
+  aiRateLimit,
+  asyncHandler(aiController.refreshPlannerStrategy.bind(aiController))
+);
+
 export default router;
