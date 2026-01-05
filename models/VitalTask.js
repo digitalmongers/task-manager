@@ -163,6 +163,21 @@ const vitalTaskSchema = new mongoose.Schema(
       default: null,
       index: true, // Useful for sorting pending reviews
     },
+
+    // Vital Task steps/activities
+    steps: [
+      {
+        text: {
+          type: String,
+          required: [true, 'Step text is required'],
+          trim: true,
+        },
+        isCompleted: {
+          type: Boolean,
+          default: false,
+        },
+      },
+    ],
   },
   {
     timestamps: true,

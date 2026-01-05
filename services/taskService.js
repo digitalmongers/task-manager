@@ -44,6 +44,7 @@ class TaskService {
           status: status || 'Not Started',
           category: category || null,
           isCompleted: isCompleted || false,
+          steps: taskData.steps || [],
         },
         userId
       );
@@ -779,6 +780,7 @@ class TaskService {
           category: task.category,
           isCompleted: task.isCompleted,
           image: task.image,
+          steps: task.steps,
         },
         userId
       );
