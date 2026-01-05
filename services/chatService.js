@@ -9,6 +9,9 @@ import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import pushService from './pushService.js';
 import WebSocketService from '../config/websocket.js';
+import redisClient from '../config/redis.js';
+import { getLinkPreview } from '../utils/linkPreview.js';
+import Notification from '../models/Notification.js';
 
 class ChatService {
   /**
@@ -24,9 +27,18 @@ class ChatService {
       throw ApiError.forbidden(`You do not have access to this ${isVital ? 'vital ' : ''}task chat`);
     }
 
-    const { content, messageType = 'text', fileDetails = null, replyTo = null, mentions = [] } = messageData;
+    const { content, messageType = 'text', fileDetails = null, replyTo = null, mentions = [], clientSideId = null } = messageData;
 
-    // 2. Validate replyTo if provided
+    // 2. Idempotency Check
+    if (clientSideId) {
+      const existingMessage = await TaskMessage.findOne({ clientSideId });
+      if (existingMessage) {
+        Logger.info('Duplicate message detected (clientSideId), returning existing', { clientSideId });
+        return this._populatedAndDecrypted(existingMessage._id);
+      }
+    }
+
+    // 3. Validate replyTo if provided
     if (replyTo) {
       const parentMessage = await TaskMessage.findById(replyTo);
       const field = isVital ? 'vitalTask' : 'task';
@@ -35,7 +47,7 @@ class ChatService {
       }
     }
 
-    // 3. Encrypt text content
+    // 3. Encrypt text content (Fast Path)
     let finalContent = content;
     if (messageType === 'text' && content) {
       try {
@@ -46,7 +58,7 @@ class ChatService {
       }
     }
 
-    // 4. Create message in DB
+    // 4. Create message in DB (Immediate)
     const message = await taskMessageRepository.createMessage({
       task: isVital ? null : taskId,
       vitalTask: isVital ? taskId : null,
@@ -56,17 +68,68 @@ class ChatService {
       fileDetails,
       replyTo,
       mentions,
-      isEncrypted: messageType === 'text'
+      isEncrypted: messageType === 'text',
+      clientSideId,
+      status: 'sent',
+      linkPreview: null // Will be updated in background if exists
     });
 
-    // 5. Decrypt and populate for real-time delivery
-    const populatedMessage = await TaskMessage.findById(message._id)
+    // 5. Decrypt and broadcast IMMEDIATELY for seamless experience
+    const populatedMessage = await this._populatedAndDecrypted(message._id);
+    
+    // Fast Emit to the chat room
+    WebSocketService.sendToChatRoom(taskId, 'chat:message', populatedMessage);
+
+    // 6. Background Tasks (Non-blocking)
+    this._processBackgroundTasks(taskId, userId, populatedMessage, content, isVital);
+
+    return populatedMessage;
+  }
+
+  /**
+   * Handle non-blocking tasks after message is sent
+   */
+  async _processBackgroundTasks(taskId, userId, populatedMessage, rawContent, isVital) {
+    try {
+      // A. Meta Data Extraction (Link Previews)
+      if (populatedMessage.messageType === 'text' && rawContent) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const match = rawContent.match(urlRegex);
+        if (match) {
+          getLinkPreview(match[0]).then(async (preview) => {
+            if (preview) {
+              await TaskMessage.findByIdAndUpdate(populatedMessage._id, { linkPreview: preview });
+              populatedMessage.linkPreview = preview;
+              // Broadcast update to the room
+              WebSocketService.sendToChatRoom(taskId, 'chat:message_update', {
+                messageId: populatedMessage._id,
+                linkPreview: preview
+              });
+            }
+          }).catch(e => Logger.error('Background review failed', { e: e.message }));
+        }
+      }
+
+      // B. Push Notifications & Alerts
+      await this._handleNotifications(taskId, userId, populatedMessage, isVital);
+    } catch (e) {
+      Logger.error('Chat background processing failed', { error: e.message });
+    }
+  }
+
+  /**
+   * Helper to populate and decrypt message
+   */
+  async _populatedAndDecrypted(messageId) {
+    const populatedMessage = await TaskMessage.findById(messageId)
       .populate('sender', 'firstName lastName email avatar')
       .populate('mentions', 'firstName lastName avatar')
       .populate({
         path: 'replyTo',
         populate: { path: 'sender', select: 'firstName lastName avatar' }
       });
+
+    if (!populatedMessage) return null;
 
     const decryptedMessage = populatedMessage.toObject();
     
@@ -83,9 +146,6 @@ class ChatService {
         decryptedMessage.replyTo.content = '[Encrypted Message]';
       }
     }
-
-    // 6. Trigger Notifications
-    this._handleNotifications(taskId, userId, decryptedMessage, isVital);
 
     return decryptedMessage;
   }
@@ -132,6 +192,53 @@ class ChatService {
   }
 
   /**
+   * Sync missed messages since a specific timestamp
+   * Essential for Offline Catch-up (Seamless Experience)
+   */
+  async getSyncMessages(userId, since, limit = 100) {
+    if (!since) throw ApiError.badRequest('Missing sync timestamp');
+    
+    // Find all tasks the user is part of
+    const standardTasks = await TaskCollaborator.find({ collaborator: userId, status: 'active' }).select('task');
+    const vitalTasks = await VitalTaskCollaborator.find({ collaborator: userId, status: 'active' }).select('vitalTask');
+    const ownedTasks = await Task.find({ user: userId }).select('_id');
+    const ownedVitalTasks = await VitalTask.find({ user: userId }).select('_id');
+
+    const taskIds = [
+      ...standardTasks.map(t => t.task),
+      ...ownedTasks.map(t => t._id)
+    ];
+    const vitalTaskIds = [
+      ...vitalTasks.map(t => t.vitalTask),
+      ...ownedVitalTasks.map(t => t._id)
+    ];
+
+    const messages = await TaskMessage.find({
+      $or: [
+        { task: { $in: taskIds } },
+        { vitalTask: { $in: vitalTaskIds } }
+      ],
+      createdAt: { $gt: new Date(since) },
+      sender: { $ne: userId }
+    })
+    .populate('sender', 'firstName lastName email avatar')
+    .sort({ createdAt: 1 }) // Chronological order for sync
+    .limit(limit);
+
+    return messages.map(msg => {
+      const plain = msg.toObject();
+      if (plain.isEncrypted && plain.content) {
+        try {
+          plain.content = decrypt(plain.content, 'CHAT');
+        } catch (e) {
+          plain.content = '[Encrypted]';
+        }
+      }
+      return plain;
+    });
+  }
+
+  /**
    * Get all members of a task chat (Normal or Vital)
    */
   async getChatMembers(taskId, userId, isVital = false) {
@@ -154,23 +261,28 @@ class ChatService {
 
     if (!task) throw ApiError.notFound(`${isVital ? 'Vital ' : ''}Task not found`);
 
-    const members = [
-      {
+    const members = [];
+    
+    // Add owner
+    const ownerPresence = await this._getUserPresence(task.user._id);
+    members.push({
         user: task.user,
         role: 'owner',
-        isOnline: WebSocketService.isUserOnline(task.user._id)
-      }
-    ];
+        isOnline: ownerPresence.isOnline,
+        lastSeen: ownerPresence.lastSeen
+    });
 
-    task.collaborators.forEach(c => {
+    for (const c of task.collaborators) {
       if (c.collaborator._id.toString() !== task.user._id.toString()) {
+        const collabPresence = await this._getUserPresence(c.collaborator._id);
         members.push({
           user: c.collaborator,
           role: c.role,
-          isOnline: WebSocketService.isUserOnline(c.collaborator._id)
+          isOnline: collabPresence.isOnline,
+          lastSeen: collabPresence.lastSeen
         });
       }
-    });
+    }
 
     return members;
   }
@@ -187,6 +299,13 @@ class ChatService {
 
     await taskMessageRepository.markAsRead(taskId, userId, isVital);
 
+    // Update global status to 'read' for these messages
+    const field = isVital ? 'vitalTask' : 'task';
+    await TaskMessage.updateMany(
+      { [field]: taskId, sender: { $ne: userId }, status: { $ne: 'read' } },
+      { status: 'read' }
+    );
+
     // Notify room about read status update
     WebSocketService.sendToChatRoom(taskId, 'chat:seen', {
       taskId,
@@ -195,6 +314,44 @@ class ChatService {
     });
 
     return true;
+  }
+
+  /**
+   * Internal helper to get presence from Redis
+   */
+  async _getUserPresence(userId) {
+    try {
+        const data = await redisClient.get(`presence:${userId}`);
+        if (!data) return { isOnline: false, lastSeen: null };
+        const { status, lastSeen } = JSON.parse(data);
+        return {
+            isOnline: status === 'online',
+            lastSeen: lastSeen
+        };
+    } catch (e) {
+        return { isOnline: false, lastSeen: null };
+    }
+  }
+
+  /**
+   * Mark message as delivered
+   */
+  async markAsDelivered(messageId, userId, taskId, isVital = false) {
+    const message = await TaskMessage.findById(messageId);
+    if (!message || message.status === 'read' || message.status === 'delivered') return;
+
+    // Only update if not the sender
+    if (message.sender.toString() === userId.toString()) return;
+
+    message.status = 'delivered';
+    await message.save();
+
+    // Notify room (sender especially)
+    WebSocketService.sendToChatRoom(taskId, 'chat:delivered', {
+      messageId,
+      userId,
+      deliveredAt: new Date()
+    });
   }
 
   /**
@@ -435,10 +592,7 @@ class ChatService {
       // 1. WebSocket Broadcast to personal rooms (for alerts/badges)
       WebSocketService.sendToUsers(recipientIds, 'chat:new_message_alert', notificationData);
 
-      // 2. WebSocket broadcast to the actual chat room for users actively viewing the chat
-      WebSocketService.sendToChatRoom(taskId, 'chat:message', message);
-
-      // 3. Web Push for offline/background users
+      // Web Push for offline/background users
       await pushService.sendPushToMultipleUsers(recipientIds, {
         title: `New message in ${task.title}`,
         body: `${notificationData.senderName}: ${preview}`,

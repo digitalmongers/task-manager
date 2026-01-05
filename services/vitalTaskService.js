@@ -34,6 +34,19 @@ class VitalTaskService {
         }
       }
 
+      // Parse steps if they come as a string (usual in multipart/form-data)
+      let parsedSteps = [];
+      if (typeof taskData.steps === 'string') {
+        try {
+          parsedSteps = JSON.parse(taskData.steps);
+        } catch (e) {
+          Logger.error('Failed to parse vital task steps', { error: e.message });
+          throw ApiError.badRequest('Invalid format for steps. Must be a JSON array.');
+        }
+      } else {
+        parsedSteps = taskData.steps || [];
+      }
+
       // Create vital task
       const vitalTask = await VitalTaskRepository.createVitalTask(
         {
@@ -44,7 +57,7 @@ class VitalTaskService {
           status: status || 'Not Started',
           category: category || null,
           isCompleted: isCompleted || false,
-          steps: taskData.steps || [],
+          steps: parsedSteps,
         },
         userId
       );

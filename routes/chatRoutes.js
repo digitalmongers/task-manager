@@ -8,7 +8,8 @@ const router = express.Router();
 
 // All chat routes require authentication
 router.use(protect);
-
+ 
+router.get('/sync', asyncHandler(chatController.syncMessages));
 router.get('/:taskId/history', asyncHandler(chatController.getHistory));
 router.get('/:taskId/members', asyncHandler(chatController.getMembers));
 router.get('/:taskId/pinned', asyncHandler(chatController.getPinned));

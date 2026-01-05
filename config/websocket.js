@@ -4,11 +4,15 @@ import mongoose from 'mongoose';
 import Logger from './logger.js';
 import TaskCollaborator from '../models/TaskCollaborator.js';
 import VitalTaskCollaborator from '../models/VitalTaskCollaborator.js';
+import redisClient from './redis.js';
+import { v4 as uuidv4 } from 'uuid';
 
 class WebSocketService {
   constructor() {
     this.io = null;
     this.userSockets = new Map(); // userId -> Set of socket IDs
+    this.serverId = `server:${uuidv4()}`;
+    this.subClient = null;
   }
 
   /**
@@ -64,7 +68,41 @@ class WebSocketService {
       this.handleConnection(socket);
     });
 
-    Logger.info('WebSocket server initialized successfully');
+    // Initialize Redis Subscription for cross-server relay
+    this._initializeRedisRelay();
+
+    Logger.info('WebSocket server initialized successfully', { serverId: this.serverId });
+  }
+
+  /**
+   * Internal Redis Relay initialization
+   */
+  async _initializeRedisRelay() {
+    try {
+      this.subClient = redisClient.duplicate();
+      
+      this.subClient.on('message', (channel, message) => {
+        try {
+          const { event, data, userId, taskId, room } = JSON.parse(message);
+          if (userId) {
+            this.io.to(`user:${userId}`).emit(event, data);
+          } else if (taskId) {
+            this.io.to(`chat:${taskId}`).emit(event, data);
+          } else if (room) {
+            this.io.to(room).emit(event, data);
+          }
+        } catch (e) {
+          Logger.error('Relay message parsing failed', { error: e.message });
+        }
+      });
+
+      await this.subClient.subscribe(`relay:${this.serverId}`);
+      await this.subClient.subscribe('relay:global_chat');
+      
+      Logger.info('Redis Relay initialized', { serverId: this.serverId });
+    } catch (error) {
+      Logger.error('Failed to initialize Redis Relay', { error: error.message });
+    }
   }
 
   /**
@@ -88,12 +126,18 @@ class WebSocketService {
     // Join user's personal room
     socket.join(`user:${userId}`);
 
+    // Update Presence in Redis
+    this._updatePresence(userId, 'online');
+
     // Send connection success
     socket.emit('connected', {
       message: 'Connected to notification server',
       userId,
       socketId: socket.id,
     });
+
+    // AUTO-JOIN & AUTO-SYNC (Enterprise Standard)
+    this._handleAutoReconnectPresence(socket, userId);
 
     // Handle disconnection
     socket.on('disconnect', () => {
@@ -115,6 +159,34 @@ class WebSocketService {
 
     // Handle Chat Events
     this.handleChatEvents(socket);
+
+    // Handle Presence Heartbeat
+    socket.on('presence:heartbeat', () => {
+      this._updatePresence(userId, 'online');
+    });
+  }
+
+  /**
+   * Update User Presence in Redis
+   */
+  async _updatePresence(userId, status) {
+    try {
+      const key = `presence:${userId}`;
+      if (status === 'online') {
+        await redisClient.set(key, JSON.stringify({
+          status: 'online',
+          serverId: this.serverId,
+          lastSeen: new Date()
+        }), 'EX', 120); // 2 min expiry
+      } else {
+        await redisClient.set(key, JSON.stringify({
+          status: 'offline',
+          lastSeen: new Date()
+        }), 'EX', 86400 * 7); // Keep for 7 days
+      }
+    } catch (e) {
+      Logger.error('Presence update failed', { userId, error: e.message });
+    }
   }
 
   /**
@@ -163,6 +235,17 @@ class WebSocketService {
     socket.on('chat:stop_typing', (taskId) => {
       socket.to(`chat:${taskId}`).emit('chat:stop_typing', { userId, taskId });
     });
+
+    // Handle message delivery acknowledgment from client
+    socket.on('chat:delivered', async (data) => {
+      try {
+        const { messageId, taskId, isVital } = data;
+        const chatService = (await import('../services/chatService.js')).default;
+        await chatService.markAsDelivered(messageId, userId, taskId, isVital);
+      } catch (error) {
+        Logger.error('Error handling chat:delivered', { error: error.message, userId });
+      }
+    });
   }
 
   /**
@@ -176,6 +259,7 @@ class WebSocketService {
       
       if (this.userSockets.get(userId).size === 0) {
         this.userSockets.delete(userId);
+        this._updatePresence(userId, 'offline');
       }
     }
 
@@ -198,13 +282,29 @@ class WebSocketService {
     const userIdStr = userId.toString();
     this.io.to(`user:${userIdStr}`).emit(event, data);
 
-    Logger.info('Notification sent to user', {
-      userId: userIdStr,
-      event,
-      hasActiveConnections: this.userSockets.has(userIdStr),
-    });
+    // Relay to other servers via Redis
+    this._relayToUser(userIdStr, event, data);
 
     return true;
+  }
+
+  /**
+   * Relay event to user on other servers
+   */
+  async _relayToUser(userId, event, data) {
+    try {
+      const presence = await redisClient.get(`presence:${userId}`);
+      if (presence) {
+        const { serverId, status } = JSON.parse(presence);
+        if (status === 'online' && serverId !== this.serverId) {
+          redisClient.publish(`relay:${serverId}`, JSON.stringify({
+            event, data, userId
+          }));
+        }
+      }
+    } catch (e) {
+      // Silent fail for relay
+    }
   }
 
   /**
@@ -229,6 +329,15 @@ class WebSocketService {
   sendToChatRoom(taskId, event, data) {
     if (!this.io) return false;
     this.io.to(`chat:${taskId}`).emit(event, data);
+    
+    // Broadcast to all servers via global relay channel if needed
+    // or use a chat room relay. For now, we'll keep it simple:
+    // Every server sends to its local chat room.
+    // To be truly global, we'd need to publish to a 'relay:chat' channel.
+    redisClient.publish('relay:global_chat', JSON.stringify({
+      event, data, taskId
+    }));
+
     return true;
   }
 
@@ -295,6 +404,43 @@ class WebSocketService {
    */
   getUserConnectionsCount(userId) {
     return this.userSockets.get(userId.toString())?.size || 0;
+  }
+
+  /**
+   * Handle auto-joining rooms and syncing missed data on connect
+   */
+  async _handleAutoReconnectPresence(socket, userId) {
+    try {
+      // 1. Fetch all tasks the user is part of
+      const chatService = (await import('../services/chatService.js')).default;
+      const standardTasks = await TaskCollaborator.find({ collaborator: userId, status: 'active' }).select('task');
+      const vitalTasks = await VitalTaskCollaborator.find({ collaborator: userId, status: 'active' }).select('vitalTask');
+      const ownedTasks = await Task.find({ user: userId }).select('_id');
+      const ownedVitalTasks = await VitalTask.find({ user: userId }).select('_id');
+
+      const allTaskIds = [
+        ...standardTasks.map(t => t.task),
+        ...ownedTasks.map(t => t._id)
+      ];
+      const allVitalTaskIds = [
+        ...vitalTasks.map(t => t.vitalTask),
+        ...ownedVitalTasks.map(t => t._id)
+      ];
+
+      // Auto-join rooms
+      allTaskIds.forEach(id => socket.join(`chat:${id}`));
+      allVitalTaskIds.forEach(id => socket.join(`chat:${id}`));
+
+      Logger.debug('User auto-joined chat rooms', { userId, roomCount: allTaskIds.length + allVitalTaskIds.length });
+
+      // 2. Performance: Push a sync check if user was recently offline
+      // We'll let the frontend request it via the 'sync' route, 
+      // but we can also broadcast a 'chat:sync_needed' hint here.
+      socket.emit('chat:sync_needed', { timestamp: new Date() });
+
+    } catch (error) {
+       Logger.error('Auto-reconnect presence failed', { error: error.message });
+    }
   }
 }
 

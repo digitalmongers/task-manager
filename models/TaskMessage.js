@@ -100,14 +100,35 @@ const taskMessageSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    clientSideId: {
+      type: String,
+      index: true, // For deduplication/ACK
+    },
+    status: {
+      type: String,
+      enum: ['sent', 'delivered', 'read'],
+      default: 'sent',
+    },
+    linkPreview: {
+      url: String,
+      title: String,
+      description: String,
+      image: String,
+      siteName: String,
+    },
   },
   {
     timestamps: true,
   }
 );
 
+// Search Index - Principal Engineer Preference: Specific compound index for performance
+taskMessageSchema.index({ task: 1, content: 'text' });
+taskMessageSchema.index({ vitalTask: 1, content: 'text' });
+
 // Index for fetching chat history efficiently
 taskMessageSchema.index({ task: 1, createdAt: -1 });
+taskMessageSchema.index({ vitalTask: 1, createdAt: -1 });
 
 const TaskMessage = mongoose.model('TaskMessage', taskMessageSchema);
 

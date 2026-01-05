@@ -34,6 +34,19 @@ class TaskService {
         }
       }
 
+      // Parse steps if they come as a string
+      let parsedSteps = [];
+      if (typeof taskData.steps === 'string') {
+        try {
+          parsedSteps = JSON.parse(taskData.steps);
+        } catch (e) {
+          Logger.error('Failed to parse task steps', { error: e.message });
+          throw ApiError.badRequest('Invalid format for steps. Must be a JSON array.');
+        }
+      } else {
+        parsedSteps = taskData.steps || [];
+      }
+
       // Create task
       const task = await TaskRepository.createTask(
         {
@@ -44,7 +57,7 @@ class TaskService {
           status: status || 'Not Started',
           category: category || null,
           isCompleted: isCompleted || false,
-          steps: taskData.steps || [],
+          steps: parsedSteps,
         },
         userId
       );

@@ -3,14 +3,17 @@ import streamifier from "streamifier";
 import ApiResponse from "../utils/ApiResponse.js";
 import ApiError from "../utils/ApiError.js";
 
-const uploadToCloudinary = (file, folder = "dobbyMall") => {
+export const uploadToCloudinary = (file, folder = "dobbyMall") => {
   return new Promise((resolve, reject) => {
-    let resourceType = file.mimetype.startsWith("video/") ? "video" : "image";
+    // Handle both Multer file and custom buffer/mimetype objects
+    const mimetype = file.mimetype || '';
+    let resourceType = mimetype.startsWith("video/") ? "video" : "image";
+    if (mimetype.startsWith("audio/")) resourceType = "raw"; // Cloudinary uses raw/auto for audio
 
     const stream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: resourceType,
+        resource_type: "auto", // Let cloudinary handle the specific type
       },
       (error, result) => {
         if (error) reject(error);
@@ -18,7 +21,10 @@ const uploadToCloudinary = (file, folder = "dobbyMall") => {
       }
     );
 
-    streamifier.createReadStream(file.buffer).pipe(stream);
+    const buffer = file.buffer;
+    if (!buffer) return reject(new Error('No file buffer provided'));
+    
+    streamifier.createReadStream(buffer).pipe(stream);
   });
 };
 
