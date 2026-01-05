@@ -39,7 +39,19 @@ class ChatService {
       throw ApiError.forbidden(`You do not have access to this ${isVital ? 'vital ' : ''}task chat`);
     }
 
-    const { content, messageType = 'text', fileDetails = null, replyTo = null, mentions = [], clientSideId = null } = messageData;
+    let { content, messageType = 'text', fileDetails = null, replyTo = null, mentions = [], clientSideId = null } = messageData;
+
+    // 2. Smarter Type Detection & Validation
+    if (fileDetails && fileDetails.url) {
+      const mime = fileDetails.mimeType || '';
+      if (mime.startsWith('image/')) {
+        messageType = 'image';
+      } else if (mime.startsWith('audio/')) {
+        messageType = 'audio';
+      } else {
+        messageType = 'file';
+      }
+    }
 
     // 2. Idempotency Check
     if (clientSideId) {
@@ -60,11 +72,13 @@ class ChatService {
       }
     }
 
-    // 3. Encrypt text content (Fast Path)
+    // 3. Encrypt content if present (Captions or Text)
     let finalContent = content;
-    if (messageType === 'text' && content) {
+    let isEncrypted = false;
+    if (content) {
       try {
         finalContent = encrypt(content, 'CHAT');
+        isEncrypted = true;
       } catch (err) {
         Logger.error('Message encryption failed', { error: err.message });
         throw ApiError.internal('Failed to secure message');
@@ -81,7 +95,7 @@ class ChatService {
       fileDetails,
       replyTo,
       mentions,
-      isEncrypted: messageType === 'text',
+      isEncrypted,
       clientSideId,
       status: 'sent',
       linkPreview: null,
