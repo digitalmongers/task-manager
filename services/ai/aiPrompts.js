@@ -28,17 +28,23 @@ User's existing context:
 - Priorities: ${data.userPriorities?.join(', ') || 'None'}
 - Statuses: ${data.userStatuses?.join(', ') || 'None'}
 
-Provide smart suggestions for this task. Respond in JSON format:
-{
-  "title": "improved or completed title",
-  "description": "helpful description if not provided",
-  "suggestedCategory": "best matching category from user's list or suggest new",
-  "suggestedPriority": "appropriate priority level",
-  "suggestedStatus": "appropriate status",
-  "suggestedDueDate": "YYYY-MM-DD format, realistic deadline",
-  "estimatedTime": "estimated time to complete (e.g., '2 hours', '1 day')",
-  "tags": ["relevant", "tags"]
-}
+Provide 5 DISTINCT smart suggestions for this task. Each should offer a different perspective or approach.
+Respond with a JSON array of exactly 5 suggestion objects:
+[
+  {
+    "title": "improved or completed title (variation 1)",
+    "description": "helpful description if not provided",
+    "suggestedCategory": "best matching category from user's list or suggest new",
+    "suggestedPriority": "appropriate priority level",
+    "suggestedStatus": "appropriate status",
+    "suggestedDueDate": "YYYY-MM-DD format, realistic deadline",
+    "estimatedTime": "estimated time to complete (e.g., '2 hours', '1 day')",
+    "tags": ["relevant", "tags"]
+  },
+  ... (4 more distinct variations)
+]
+
+IMPORTANT: Make each suggestion meaningfully different. Vary the title phrasing, priority, or approach.
 `,
 
   NLP_PARSE: (input) => `
