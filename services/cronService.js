@@ -4,6 +4,7 @@ import VitalTask from '../models/VitalTask.js';
 import NotificationService from './notificationService.js';
 import Logger from '../config/logger.js';
 import Notification from '../models/Notification.js';
+import SubscriptionService from './subscriptionService.js';
 
 class CronService {
   constructor() {
@@ -23,10 +24,14 @@ class CronService {
       await this.checkDueVitalTasks();
     });
 
-    // Run every day at midnight for account cleanup
+    // Run every day at midnight for account cleanup and subscription maintenance
     cron.schedule('0 0 * * *', async () => {
-      Logger.info('Running Inactive Account Cleanup Job');
+      Logger.info('Running Daily Maintenance Jobs');
       await this.cleanupInactiveAccounts();
+      
+      // ENTERPRISE: Subscription Maintenance
+      await SubscriptionService.checkAndSendExpiryReminders();
+      await SubscriptionService.processAllExpiries();
     });
 
     Logger.info('Cron Service Initialized');

@@ -28,49 +28,154 @@ import TaskPriority from '../../models/TaskPriority.js';
 import TaskStatus from '../../models/TaskStatus.js';
 import Task from '../../models/Task.js';
 import VitalTask from '../../models/VitalTask.js';
-import AIPlan from '../../models/AIPlan.js';
+import AIServiceModel from '../../models/AIPlan.js';
+import EmailService from '../emailService.js';
+import User from '../../models/User.js';
+import AIUsage from '../../models/AIUsage.js';
+import { PLAN_LIMITS, AI_CONSTANTS } from '../../config/aiConfig.js';
+import { countTokens, compressPrompt } from '../../utils/aiTokenUtils.js';
+import ApiError from '../../utils/ApiError.js';
+import OpenAI from 'openai';
 
 class AIService {
-  /**
-   * Check if AI is enabled
-   */
-  isEnabled() {
-    return !!process.env.OPENAI_API_KEY;
+  constructor() {
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
   }
 
   /**
-   * Call OpenAI API
+   * Centralized method to run AI features with plan-based limits
    */
-  async callOpenAI(systemPrompt, userPrompt) {
-    if (!this.isEnabled()) {
-      throw new Error('AI service not configured');
+  async run({ userId, feature, input, prompt, systemPrompt = SYSTEM_PROMPTS.TASK_ASSISTANT }) {
+    const user = await User.findById(userId);
+    if (!user) throw ApiError.notFound('User not found');
+
+    // 1. Plan Enforcement: Check if AI usage is blocked
+    if (user.aiUsageBlocked) {
+      throw ApiError.forbidden('AI usage limit reached for your plan. Upgrade for more boosts.');
+    }
+
+    const plan = PLAN_LIMITS[user.plan];
+    
+    // 3. Token Safety & Compression (BEFORE AI CALL)
+    // Support both 'input' and 'prompt' keys
+    const rawInput = input || prompt;
+    let finalPrompt = typeof rawInput === 'string' ? rawInput : JSON.stringify(rawInput);
+    let inputTokens = countTokens(finalPrompt);
+
+    // Hard Cap: Input Limit
+    if (inputTokens > AI_CONSTANTS.MAX_INPUT_TOKENS) {
+      throw ApiError.badRequest('Input is too long. Please shorten your request.');
+    }
+
+    // Soft Cap: Prompt Compression
+    if (inputTokens > AI_CONSTANTS.COMPRESS_THRESHOLD_TOKENS) {
+      finalPrompt = compressPrompt(finalPrompt);
+      const originalTokens = inputTokens;
+      inputTokens = countTokens(finalPrompt); // Re-count after compression
+      Logger.info('Prompt compressed', { userId, originalTokens, compressedTokens: inputTokens });
+    }
+
+    // 4. Boost Calculation (Pre-flight check)
+    const potentialBoosts = Math.ceil((inputTokens + plan.maxOutputTokens) / AI_CONSTANTS.BOOST_TOKEN_VALUE);
+    
+    if (user.usedBoosts + potentialBoosts > user.totalBoosts) {
+      user.aiUsageBlocked = true;
+      await user.save();
+      
+      // EMAIL NOTIFICATION: Notify user about boost exhaustion
+      try {
+        await EmailService.sendBoostExhaustionEmail(user);
+      } catch (error) {
+        Logger.error('Failed to send boost exhaustion email', { error: error.message, userId });
+      }
+
+      throw ApiError.forbidden('You have exhausted your AI boosts. Upgrade your plan to get more.');
+    }
+
+    // Does user have boosts remaining?
+    if (user.usedBoosts >= user.totalBoosts) {
+      throw new Error('You have reached your monthly AI boost limit. Please upgrade or wait for the next billing cycle.');
+    }
+
+    // Check maxBoostsPerRequest (Potential boosts)
+    if (potentialBoosts > plan.maxBoostsPerRequest) {
+      throw new Error(`This request might exceed your plan's boost limit per request. Please shorten your input.`);
     }
 
     try {
       const config = getConfig();
       
-      const response = await openai.chat.completions.create({
-        model: config.model,
+      // 5. OpenAI Call (HARD CAP)
+      const response = await this.openai.chat.completions.create({
+        model: "gpt-4o-mini", // Forced as per instructions
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
+          { role: 'user', content: finalPrompt },
         ],
-        max_tokens: config.maxTokens,
-        temperature: config.temperature,
+        max_tokens: plan.maxOutputTokens, // Plan-based hard cap
+        temperature: config.temperature || 0.7,
       });
 
-      return response.choices[0].message.content;
+      const content = response.choices[0].message.content;
+      const usage = response.usage;
+
+      // 6. Boost Calculation (AFTER AI RESPONSE)
+      const totalTokens = usage.total_tokens;
+      const completionTokens = usage.completion_tokens;
+      const promptsTokensUsed = usage.prompt_tokens;
+
+      const boostsUsed = Math.ceil(totalTokens / AI_CONSTANTS.BOOST_TOKEN_VALUE);
+
+      // 6. ABSOLUTE FAILSAFE
+      if (totalTokens > AI_CONSTANTS.ABSOLUTE_FAILSAFE_TOKENS) {
+        user.aiUsageBlocked = true;
+        await user.save();
+        Logger.error('ABSOLUTE FAILSAFE TRIGGERED', { userId, totalTokens });
+        throw new Error('System safety limit reached. Account marked for review.');
+      }
+
+
+      // 7. Deduct boosts and Log
+      user.usedBoosts += boostsUsed;
+      await user.save();
+
+      await AIUsage.create({
+        user: userId,
+        plan: planKey,
+        feature,
+        promptTokens: promptsTokensUsed,
+        completionTokens: completionTokens,
+        totalTokens: totalTokens,
+        boostsUsed,
+      });
+
+      return content;
     } catch (error) {
-      Logger.error('OpenAI API call failed', {
+      if (error.message.includes('safety limit')) throw error;
+      
+      Logger.error('AI Service Run failed', {
+        userId,
+        feature,
         error: error.message,
-        errorType: error.constructor.name,
-        statusCode: error.status || error.statusCode,
-        errorCode: error.code,
-        model: getConfig().model,
-        stack: error.stack,
       });
       throw error;
     }
+  }
+
+  /**
+   * @deprecated Use run() instead
+   */
+  async callOpenAI(systemPrompt, userPrompt) {
+    // Redirect to run for backward compatibility where possible
+    // This is risky as it lacks 'feature' and 'userId' context
+    return this.run({ 
+      userId: null, // This will fail if not provided
+      feature: 'LEGACY_CALL',
+      prompt: userPrompt,
+      systemPrompt 
+    });
   }
 
   /**
@@ -115,10 +220,12 @@ class AIService {
       });
 
       // Call AI
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.TASK_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'TASK_SUGGESTION',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
+      });
 
       // Parse response (now expecting an array)
       const suggestionsArray = parseJSONResponse(response);
@@ -189,10 +296,12 @@ class AIService {
         existingCategories: existingCategories.map(c => c.title),
       });
 
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.CATEGORY_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'TASK_SUGGESTION',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.CATEGORY_ASSISTANT
+      });
 
       const suggestions = parseJSONResponse(response);
 
@@ -230,10 +339,12 @@ class AIService {
         existingPriorities: existingPriorities.map(p => p.name),
       });
 
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.PRIORITY_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'TASK_SUGGESTION',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.PRIORITY_ASSISTANT
+      });
 
       const suggestions = parseJSONResponse(response);
 
@@ -271,10 +382,12 @@ class AIService {
         existingStatuses: existingStatuses.map(s => s.name),
       });
 
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.STATUS_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'TASK_SUGGESTION',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.STATUS_ASSISTANT
+      });
 
       const suggestions = parseJSONResponse(response);
 
@@ -302,10 +415,12 @@ class AIService {
 
       const prompt = TASK_PROMPTS.NLP_PARSE(sanitizedInput);
 
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.TASK_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'VOICE_TASK',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
+      });
 
       const parsedTask = parseJSONResponse(response);
 
@@ -344,10 +459,12 @@ class AIService {
 
       const prompt = INSIGHTS_PROMPTS.ANALYZE_TASKS(tasks);
 
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.TASK_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'AI_INSIGHTS',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
+      });
 
       const insights = parseJSONResponse(response);
 
@@ -384,10 +501,12 @@ class AIService {
 
       const prompt = INSIGHTS_PROMPTS.WEEKLY_PLAN(tasks, preferences);
 
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.TASK_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'AI_PLANNER',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
+      });
 
       const weeklyPlan = parseJSONResponse(response);
 
@@ -435,10 +554,12 @@ class AIService {
 
       const prompt = SIMILARITY_PROMPTS.FIND_SIMILAR(targetTask, allTasks);
 
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.TASK_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'TASK_SUGGESTION',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
+      });
 
       const similarTasks = parseJSONResponse(response);
 
@@ -509,10 +630,12 @@ class AIService {
 
       // 3. Call AI
       const prompt = INSIGHTS_PROMPTS.STRATEGIC_PLAN(vitalTasks, filteredNormal);
-      const response = await this.callOpenAI(
-        SYSTEM_PROMPTS.TASK_ASSISTANT,
-        prompt
-      );
+      const response = await this.run({
+        userId,
+        feature: 'AI_PLANNER',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
+      });
 
       const planData = parseJSONResponse(response);
       if (!planData || planData.error) throw new Error('AI failed to generate a valid strategy');

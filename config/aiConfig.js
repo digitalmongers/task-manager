@@ -1,0 +1,44 @@
+export const PLAN_LIMITS = {
+  FREE: {
+    monthlyBoosts: 20,
+    maxBoostsPerRequest: 1,
+    maxOutputTokens: 300,
+    aiFeatures: ["TASK_SUGGESTION"],
+    maxCollaborators: 1,
+    pricing: { monthly: 0, yearly: 0 }
+  },
+
+  STARTER: {
+    monthlyBoosts: 200,
+    maxBoostsPerRequest: 1,
+    maxOutputTokens: 600,
+    aiFeatures: ["TASK_SUGGESTION", "VOICE_TASK"],
+    maxCollaborators: 5,
+    pricing: { monthly: 12, yearly: 120 }
+  },
+
+  PRO: {
+    monthlyBoosts: 800,
+    maxBoostsPerRequest: 2,
+    maxOutputTokens: 1000,
+    aiFeatures: ["TASK_SUGGESTION", "VOICE_TASK", "AI_INSIGHTS", "AI_PLANNER"],
+    maxCollaborators: 25,
+    pricing: { monthly: 29, yearly: 290 }
+  },
+
+  TEAM: {
+    monthlyBoosts: 3000,
+    maxBoostsPerRequest: 3,
+    maxOutputTokens: 1500,
+    aiFeatures: ["ALL"],
+    maxCollaborators: 50,
+    pricing: { monthly: 49, yearly: 490 }
+  }
+};
+
+export const AI_CONSTANTS = {
+  BOOST_TOKEN_VALUE: 2000,
+  MAX_INPUT_TOKENS: 2000,
+  COMPRESS_THRESHOLD_TOKENS: 1200,
+  ABSOLUTE_FAILSAFE_TOKENS: 4000
+};

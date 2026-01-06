@@ -217,6 +217,41 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // ========== AI & PLAN FIELDS ==========
+    plan: {
+      type: String,
+      enum: ["FREE", "STARTER", "PRO", "TEAM"],
+      default: "FREE",
+    },
+    totalBoosts: {
+      type: Number,
+      default: 20, // Default for FREE plan
+    },
+    usedBoosts: {
+      type: Number,
+      default: 0,
+    },
+    aiUsageBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    billingCycle: {
+      type: String,
+      enum: ["MONTHLY", "YEARLY"],
+      default: "MONTHLY",
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ["active", "inactive", "past_due", "cancelled"],
+      default: "inactive",
+    },
+    currentPeriodEnd: {
+      type: Date,
+    },
+    razorpayCustomerId: {
+      type: String,
+    },
   },
   {
     timestamps: true,

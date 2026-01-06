@@ -4,6 +4,7 @@ import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import EmailService from '../services/emailService.js';
 import NotificationService from '../services/notificationService.js';
+import { PLAN_LIMITS } from '../config/aiConfig.js';
 
 
 class TeamService {
@@ -17,6 +18,19 @@ class TeamService {
 
       // Check if inviting self
       const owner = await User.findById(ownerId);
+
+      // --- PLAN LIMIT CHECK ---
+      const plan = PLAN_LIMITS[owner.plan || 'FREE'];
+      const currentMembersCount = await TeamMember.countDocuments({
+        owner: ownerId,
+        status: { $in: ['pending', 'active'] }
+      });
+
+      if (currentMembersCount >= plan.maxCollaborators) {
+        throw ApiError.badRequest(`Your ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} team member(s). Please upgrade for more.`);
+      }
+      // -------------------------
+
       if (owner.email === email) {
         throw ApiError.badRequest('You cannot invite yourself');
       }
