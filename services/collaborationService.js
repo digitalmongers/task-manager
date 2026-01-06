@@ -6,6 +6,7 @@ import EmailService from '../services/emailService.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import NotificationService from '../services/notificationService.js';
+import { PLAN_LIMITS } from '../config/aiConfig.js';
 import crypto from 'crypto';
 
 class CollaborationService {
@@ -33,6 +34,18 @@ class CollaborationService {
 
       // Check if inviting self
       const inviter = await User.findById(inviterUserId);
+
+      // --- PLAN LIMIT CHECK ---
+      const plan = PLAN_LIMITS[inviter.plan || 'FREE'];
+      const currentCollaboratorsCount = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
+      const pendingInvitationsCount = await CollaborationRepository.getTaskInvitations(taskId, 'pending');
+      const totalCount = currentCollaboratorsCount.length + pendingInvitationsCount.length;
+
+      if (totalCount >= plan.maxCollaborators) {
+        throw ApiError.badRequest(`Your ${inviter.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} collaborator(s). Please upgrade for more.`);
+      }
+      // -------------------------
+
       if (inviter.email === inviteeEmail) {
         throw ApiError.badRequest('You cannot invite yourself');
       }
@@ -112,6 +125,18 @@ class CollaborationService {
       if (!access.canAccess || (access.role !== 'owner' && access.role !== 'editor')) {
         throw ApiError.forbidden('You do not have permission to share this task');
       }
+
+      // --- PLAN LIMIT CHECK ---
+      const owner = await User.findById(ownerId);
+      const plan = PLAN_LIMITS[owner.plan || 'FREE'];
+      const currentCollaboratorsCount = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
+      const pendingInvitationsCount = await CollaborationRepository.getTaskInvitations(taskId, 'pending');
+      const totalCount = currentCollaboratorsCount.length + pendingInvitationsCount.length;
+
+      if (totalCount + memberIds.length > plan.maxCollaborators) {
+        throw ApiError.badRequest(`Your ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} collaborator(s). Sharing with these members would exceed your limit.`);
+      }
+      // -------------------------
 
       // Verify all memberIds are valid team members
       const teamMembers = await TeamMember.find({

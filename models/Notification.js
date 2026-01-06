@@ -14,7 +14,7 @@ const notificationSchema = new mongoose.Schema(
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false,
     },
 
     // Notification Type
@@ -63,6 +63,12 @@ const notificationSchema = new mongoose.Schema(
         // Review notifications
         'task_review_requested',
         'vital_task_review_requested',
+
+        // System & Subscription notifications
+        'plan_upgraded',
+        'subscription_expired',
+        'payment_failed',
+        'system_alert',
       ],
       required: true,
       index: true,

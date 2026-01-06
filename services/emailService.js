@@ -3915,6 +3915,252 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
   });
 }
 
+/**
+ * Send plan purchase confirmation email to user
+ */
+async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Purchase Confirmed - Tasskr</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+          .header { background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; padding: 25px 20px; text-align: center; }
+          .header-branding { display: flex; align-items: center; justify-content: center; gap: 15px; }
+          .header img { width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 12px; }
+          .content { padding: 40px 30px; }
+          .plan-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+          .plan-name { font-size: 24px; font-weight: bold; color: #FF6B6B; margin-bottom: 5px; }
+          .plan-price { font-size: 18px; color: #555; }
+          .button-container { text-align: center; margin: 30px 0; }
+          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
+          .footer { text-align: center; padding: 20px 30px; background: #f8f9fa; color: #6c757d; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="header-branding">
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>Purchase Confirmed! 🎉</h1>
+            </div>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>Thank you for upgrading! Your payment was successful, and your <strong>${planKey}</strong> plan is now active.</p>
+            
+            <div class="plan-box">
+              <div class="plan-name">${planKey} Plan</div>
+              <div class="plan-price">$${amount} / ${billingCycle.toLowerCase()}</div>
+            </div>
+
+            <p>You now have access to premium features, increased collaborator limits, and monthly AI boosts.</p>
+            
+            ${invoiceUrl ? `
+            <div class="button-container">
+              <a href="${invoiceUrl}" class="button">Download Invoice</a>
+            </div>
+            ` : ''}
+
+            <p>Best regards,<br><strong>The Tasskr Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    Purchase Confirmed! 🎉
+    
+    Hello ${user.firstName},
+    
+    Thank you for upgrading to the ${planKey} plan ($${amount}/${billingCycle.toLowerCase()}).
+    Your plan is now active with all premium features.
+    
+    ${invoiceUrl ? `You can download your invoice here: ${invoiceUrl}` : ''}
+    
+    Best regards,
+    The Tasskr Team
+  `;
+
+  return await this.sendEmail({
+    to: user.email,
+    subject: `Welcome to the ${planKey} Plan! - Tasskr`,
+    html,
+    text,
+  });
+}
+
+/**
+ * Send plan purchase notification to admin
+ */
+async sendAdminPlanPurchaseNotification(user, planKey, billingCycle, amount) {
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM;
+  
+  const html = `
+    <h2>New Subscription! 🚀</h2>
+    <p>A user has just purchased a new plan.</p>
+    <ul>
+      <li><strong>User:</strong> ${user.firstName} ${user.lastName} (${user.email})</li>
+      <li><strong>Plan:</strong> ${planKey}</li>
+      <li><strong>Cycle:</strong> ${billingCycle}</li>
+      <li><strong>Amount:</strong> $${amount}</li>
+      <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
+    </ul>
+  `;
+
+  return await this.sendEmail({
+    to: adminEmail,
+    subject: `🚀 New Sale: ${planKey} Plan purchased by ${user.email}`,
+    html,
+    text: `New Sale: ${user.email} purchased ${planKey} plan for $${amount} (${billingCycle})`,
+  });
+}
+
+/**
+ * Send AI Boost exhaustion alert
+ */
+async sendBoostExhaustionEmail(user) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AI Boosts Exhausted - Tasskr</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+          .header { background: linear-gradient(135deg, #6B7280 0%, #374151 100%); color: white; padding: 25px 20px; text-align: center; }
+          .header-branding { display: flex; align-items: center; justify-content: center; gap: 15px; }
+          .header img { width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 12px; }
+          .content { padding: 40px 30px; }
+          .warning-box { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+          .warning-title { font-size: 20px; font-weight: bold; color: #92400E; margin-bottom: 5px; }
+          .button-container { text-align: center; margin: 30px 0; }
+          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
+          .footer { text-align: center; padding: 20px 30px; background: #f8f9fa; color: #6c757d; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="header-branding">
+              <img src="${LOGO_URL}" alt="Tasskr">
+              <h1>Action Required: AI Boosts Exhausted ⚡</h1>
+            </div>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>You have used up all your AI boosts for the current period.</p>
+            
+            <div class="warning-box">
+              <div class="warning-title">Boosts Exhausted (0 remaining)</div>
+              <p>Your AI-powered features will be limited until your next billing cycle.</p>
+            </div>
+
+            <p>To continue using AI features without interruption, you can upgrade to a higher plan or wait for your boosts to reset.</p>
+            
+            <div class="button-container">
+              <a href="${process.env.FRONTEND_URL.split(',')[0].trim()}/billing" class="button">View Plans & Upgrade</a>
+            </div>
+
+            <p>Best regards,<br><strong>The Tasskr Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+    AI Boosts Exhausted! ⚡
+    
+    Hello ${user.firstName},
+    
+    You have used all your AI boosts for this month. AI features will be limited until your next cycle.
+    Upgrade your plan to get more boosts: ${process.env.FRONTEND_URL.split(',')[0].trim()}/billing
+    
+    Best regards,
+    The Tasskr Team
+  `;
+
+  return await this.sendEmail({
+    to: user.email,
+    subject: 'AI Boosts Exhausted - Upgrade for More! ⚡',
+    html,
+    text,
+  });
+}
+
+/**
+ * Send Subscription Expiry Reminder
+ */
+async sendSubscriptionExpiryReminder(user, daysRemaining) {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Subscription Expiry - Tasskr</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+          .header { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: white; padding: 25px 20px; text-align: center; }
+          .content { padding: 40px 30px; }
+          .alert-box { background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+          .button-container { text-align: center; margin: 30px 0; }
+          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
+          .footer { text-align: center; padding: 20px 30px; background: #f8f9fa; color: #6c757d; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Subscription Expiry Reminder ⏳</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>This is a friendly reminder that your <strong>${user.plan}</strong> plan subscription will expire in ${daysRemaining} days.</p>
+            
+            <div class="alert-box">
+              <p>Expiry Date: <strong>${user.currentPeriodEnd.toLocaleDateString()}</strong></p>
+            </div>
+
+            <p>To avoid any disruption to your workflow and keep your premium features active, please ensure your payment details are up to date or renew your subscription.</p>
+            
+            <div class="button-container">
+              <a href="${process.env.FRONTEND_URL.split(',')[0].trim()}/billing" class="button">Renew Subscription</a>
+            </div>
+
+            <p>Best regards,<br><strong>The Tasskr Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return await this.sendEmail({
+    to: user.email,
+    subject: `Your Tasskr ${user.plan} Plan expires in ${daysRemaining} days! ⏳`,
+    html,
+    text: `Your ${user.plan} plan expires in ${daysRemaining} days on ${user.currentPeriodEnd.toLocaleDateString()}. Renew now: ${process.env.FRONTEND_URL.split(',')[0].trim()}/billing`,
+  });
+}
+
 }
 
 export default new EmailService();
