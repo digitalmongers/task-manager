@@ -1,18 +1,18 @@
-2026-01-06 16:59:11 [[32m[32minfo[32m[39m] : [32m[32mMongoDB Connected: ac-s9ekfws-shard-00-02.bgpiqnj.mongodb.net[32m[39m
+2026-01-06 17:37:54 [[32m[32minfo[32m[39m] : [32m[32mMongoDB Connected: ac-s9ekfws-shard-00-00.bgpiqnj.mongodb.net[32m[39m
 {
   "service": "task-manager-api",
   "environment": "development"
 }
 Connected to DB
 Found user: Paras Mourya (695ce405efbe0a2aa2109dcc)
-Current Plan: FREE
+Current Plan: STARTER
 
---- Creating Razorpay Order for STARTER (MONTHLY) ---
-2026-01-06 16:59:11 [[32m[32minfo[32m[39m] : [32m[32mRazorpay Order Created[32m[39m
+--- Creating Razorpay Subscription for STARTER (MONTHLY) ---
+2026-01-06 17:37:56 [[32m[32minfo[32m[39m] : [32m[32mRazorpay Subscription Created[32m[39m
 {
   "service": "task-manager-api",
   "environment": "development",
-  "orderId": "order_S0ZoVW42WALvv8",
+  "subscriptionId": "sub_S0aTPr8j6Dr1Q1",
   "userId": {
     "buffer": {
       "0": 105,
@@ -30,24 +30,36 @@ Current Plan: FREE
     }
   }
 }
-✅ Order Created Successfully!
-Order Details: {
-  "amount": 1200,
-  "amount_due": 1200,
-  "amount_paid": 0,
-  "attempts": 0,
-  "created_at": 1767698948,
-  "currency": "USD",
-  "entity": "order",
-  "id": "order_S0ZoVW42WALvv8",
+✅ Subscription Created Successfully!
+Subscription Details: {
+  "id": "sub_S0aTPr8j6Dr1Q1",
+  "entity": "subscription",
+  "plan_id": "plan_S0ZzfdHQXxmTz4",
+  "customer_email": null,
+  "status": "created",
+  "current_start": null,
+  "current_end": null,
+  "ended_at": null,
+  "quantity": 1,
   "notes": {
-    "billingCycle": "MONTHLY",
+    "userId": "695ce405efbe0a2aa2109dcc",
     "plan": "STARTER",
-    "userId": "695ce405efbe0a2aa2109dcc"
+    "billingCycle": "MONTHLY"
   },
-  "offer_id": null,
-  "receipt": "rcpt_a2109dcc_1767698951420",
-  "status": "created"
+  "charge_at": null,
+  "start_at": null,
+  "end_at": null,
+  "auth_attempts": 0,
+  "total_count": 120,
+  "paid_count": 0,
+  "customer_notify": true,
+  "created_at": 1767701272,
+  "expire_by": null,
+  "short_url": "https://rzp.io/rzp/Pcgh7bn5",
+  "has_scheduled_changes": false,
+  "change_scheduled_at": null,
+  "source": "api",
+  "remaining_count": 119
 }
 
 ---------------------------------------------------
@@ -56,7 +68,7 @@ NEXT STEPS:
 2. Once payment is successful, Razorpay Webhook will call your API.
 3. Your backend will then upgrade this user to STARTER plan.
 ---------------------------------------------------
-2026-01-06 16:59:11 [[33m[33mwarn[33m[39m] : [33m[33mMongoose disconnected from MongoDB[33m[39m
+2026-01-06 17:37:56 [[33m[33mwarn[33m[39m] : [33m[33mMongoose disconnected from MongoDB[33m[39m
 {
   "service": "task-manager-api",
   "environment": "development"

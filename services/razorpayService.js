@@ -1,7 +1,7 @@
 import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import Logger from '../config/logger.js';
-import { PLAN_LIMITS } from '../config/aiConfig.js';
+import { PLAN_LIMITS, RAZORPAY_PLANS } from '../config/aiConfig.js';
 import ApiError from '../utils/ApiError.js';
 
 class RazorpayService {
@@ -13,7 +13,34 @@ class RazorpayService {
   }
 
   /**
-   * Create a Razorpay order
+   * Create a Razorpay Subscription (Recurring billing)
+   */
+  async createSubscription(userId, planKey, billingCycle) {
+    try {
+      const planId = RAZORPAY_PLANS[planKey]?.[billingCycle.toUpperCase()];
+      if (!planId) throw ApiError.badRequest('Invalid plan or billing cycle for subscription');
+
+      const subscription = await this.instance.subscriptions.create({
+        plan_id: planId,
+        customer_notify: 1,
+        total_count: billingCycle.toUpperCase() === 'YEARLY' ? 10 : 120, // 10 years
+        notes: {
+          userId: userId.toString(),
+          plan: planKey,
+          billingCycle: billingCycle.toUpperCase()
+        }
+      });
+
+      Logger.info('Razorpay Subscription Created', { subscriptionId: subscription.id, userId });
+      return subscription;
+    } catch (error) {
+      Logger.error('Razorpay Subscription Creation Failed', { error: error.message, userId });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a Razorpay order (Legacy/One-time fallback)
    */
   async createOrder(userId, planKey, billingCycle) {
     try {
@@ -64,6 +91,30 @@ class RazorpayService {
       return await this.instance.orders.fetchPayments(orderId);
     } catch (error) {
       Logger.error('Failed to fetch payments for order', { orderId, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch subscription details
+   */
+  async getSubscription(subscriptionId) {
+    try {
+      return await this.instance.subscriptions.fetch(subscriptionId);
+    } catch (error) {
+      Logger.error('Failed to fetch Razorpay subscription', { subscriptionId, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a subscription
+   */
+  async cancelSubscription(subscriptionId) {
+    try {
+      return await this.instance.subscriptions.cancel(subscriptionId);
+    } catch (error) {
+      Logger.error('Failed to cancel Razorpay subscription', { subscriptionId, error: error.message });
       throw error;
     }
   }

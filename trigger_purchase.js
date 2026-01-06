@@ -21,17 +21,17 @@ const triggerPurchase = async () => {
     console.log(`Found user: ${user.firstName} ${user.lastName} (${user._id})`);
     console.log(`Current Plan: ${user.plan}`);
 
-    console.log('\n--- Creating Razorpay Order for STARTER (MONTHLY) ---');
+    console.log('\n--- Creating Razorpay Subscription for STARTER (MONTHLY) ---');
     
     // Use the default exported instance
-    const order = await RazorpayService.createOrder(
+    const subscription = await RazorpayService.createSubscription(
       user._id,
       'STARTER',
       'MONTHLY'
     );
 
-    console.log('✅ Order Created Successfully!');
-    console.log('Order Details:', JSON.stringify(order, null, 2));
+    console.log('✅ Subscription Created Successfully!');
+    console.log('Subscription Details:', JSON.stringify(subscription, null, 2));
     
     console.log('\n---------------------------------------------------');
     console.log('NEXT STEPS:');

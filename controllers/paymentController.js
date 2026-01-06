@@ -9,11 +9,11 @@ import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 
 /**
- * @desc    Create Razorpay Order
- * @route   POST /api/payments/create-order
+ * @desc    Create Razorpay Subscription
+ * @route   POST /api/payments/create-subscription
  * @access  Private
  */
-export const createOrder = expressAsyncHandler(async (req, res) => {
+export const createSubscription = expressAsyncHandler(async (req, res) => {
   const { planKey, billingCycle } = req.body;
   const userId = req.user._id;
 
@@ -27,44 +27,22 @@ export const createOrder = expressAsyncHandler(async (req, res) => {
     throw ApiError.badRequest(`You are already on the ${planKey} plan`);
   }
 
-  // Security Check 2: Check for existing pending order to avoid redundancy
-  const existingOrder = await Payment.findOne({
-    user: userId,
-    plan: planKey,
-    billingCycle: billingCycle.toUpperCase(),
-    status: 'created',
-    createdAt: { $gt: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Last 24 hours
-  });
+  const subscription = await RazorpayService.createSubscription(userId, planKey, billingCycle);
 
-  if (existingOrder) {
-    // If redundant order exists, return it instead of creating new one in Razorpay
-    // This allows user to resume the same payment session
-    try {
-      const razorOrder = await RazorpayService.getOrder(existingOrder.razorpayOrderId);
-      if (razorOrder.status === 'created') {
-        return res.json({ success: true, order: razorOrder, resumed: true });
-      }
-    } catch (e) {
-      Logger.warn('Existing order session lost, creating new one', { orderId: existingOrder.razorpayOrderId });
-    }
-  }
-
-  const order = await RazorpayService.createOrder(userId, planKey, billingCycle);
-
-  // Log payment attempt
+  // Log subscription attempt
   await Payment.create({
     user: userId,
     plan: planKey,
     billingCycle: billingCycle.toUpperCase(),
-    amount: order.amount / 100, // back to dollars
-    currency: order.currency,
-    razorpayOrderId: order.id,
+    amount: PLAN_LIMITS[planKey].pricing[billingCycle.toLowerCase()],
+    currency: 'USD',
+    razorpaySubscriptionId: subscription.id,
     status: 'created',
   });
 
   res.status(201).json({
     success: true,
-    order,
+    subscription,
   });
 });
 
@@ -73,29 +51,48 @@ export const createOrder = expressAsyncHandler(async (req, res) => {
  * @route   POST /api/payments/cancel
  * @access  Private
  */
+/**
+ * @desc    Handle Payment Cancellation (User closed checkout or wants to stop sub)
+ * @route   POST /api/payments/cancel
+ * @access  Private
+ */
 export const cancelPayment = expressAsyncHandler(async (req, res) => {
-  const { razorpay_order_id, reason } = req.body;
+  const { razorpay_subscription_id, reason } = req.body;
   const userId = req.user._id;
 
-  const payment = await Payment.findOne({ razorpayOrderId: razorpay_order_id });
-  if (!payment) throw ApiError.notFound('Order not found');
+  const payment = await Payment.findOne({ razorpaySubscriptionId: razorpay_subscription_id });
+  if (!payment) throw ApiError.notFound('Subscription record not found');
 
   if (payment.user.toString() !== userId.toString()) {
     throw ApiError.forbidden('Unauthorized access');
   }
 
-  // Only cancel if it's still in 'created' status
-  if (payment.status === 'created') {
-    payment.status = 'cancelled';
-    payment.metadata = { 
-      cancellationReason: reason || 'User closed checkout',
-      cancelledAt: new Date()
-    };
-    await payment.save();
-    Logger.info('Payment marked as cancelled by user', { orderId: razorpay_order_id, userId });
+  // Cancel in Razorpay if it's active
+  try {
+    const sub = await RazorpayService.getSubscription(razorpay_subscription_id);
+    if (sub.status === 'active' || sub.status === 'authenticated' || sub.status === 'created') {
+      await RazorpayService.cancelSubscription(razorpay_subscription_id);
+    }
+  } catch (e) {
+    Logger.warn('Razorpay sub cancellation failed or already cancelled', { subId: razorpay_subscription_id });
   }
 
-  res.json({ success: true, message: 'Payment cancellation recorded' });
+  payment.status = 'cancelled';
+  payment.metadata = { 
+    ...payment.metadata,
+    cancellationReason: reason || 'User cancelled',
+    cancelledAt: new Date()
+  };
+  await payment.save();
+
+  // Mark subscriptionStatus as cancelled
+  const user = await User.findById(userId);
+  if (user) {
+    user.subscriptionStatus = 'cancelled';
+    await user.save();
+  }
+
+  res.json({ success: true, message: 'Subscription cancelled successfully' });
 });
 
 /**
@@ -104,11 +101,11 @@ export const cancelPayment = expressAsyncHandler(async (req, res) => {
  * @access  Private
  */
 export const checkPaymentStatus = expressAsyncHandler(async (req, res) => {
-  const { razorpay_order_id } = req.body;
+  const { razorpay_subscription_id } = req.body;
   const userId = req.user._id;
 
-  const payment = await Payment.findOne({ razorpayOrderId: razorpay_order_id });
-  if (!payment) throw ApiError.notFound('Order not found');
+  const payment = await Payment.findOne({ razorpaySubscriptionId: razorpay_subscription_id });
+  if (!payment) throw ApiError.notFound('Subscription not found');
 
   if (payment.user.toString() !== userId.toString()) {
     throw ApiError.forbidden('Unauthorized access');
@@ -122,38 +119,32 @@ export const checkPaymentStatus = expressAsyncHandler(async (req, res) => {
 });
 
 /**
- * @desc    Sync Payment Status (Recovery Fallback if phone switched off)
+ * @desc    Sync Payment Status (Recovery Fallback)
  * @route   POST /api/payments/sync
  * @access  Private
  */
 export const syncPaymentStatus = expressAsyncHandler(async (req, res) => {
-  const { razorpay_order_id } = req.body;
+  const { razorpay_subscription_id } = req.body;
   const userId = req.user._id;
 
-  const payment = await Payment.findOne({ razorpayOrderId: razorpay_order_id });
-  if (!payment) throw ApiError.notFound('Order not found');
+  const payment = await Payment.findOne({ razorpaySubscriptionId: razorpay_subscription_id });
+  if (!payment) throw ApiError.notFound('Subscription not found');
 
   if (payment.user.toString() !== userId.toString()) {
     throw ApiError.forbidden('Unauthorized access');
   }
 
-  // If already captured, just return
   if (payment.status === 'captured') {
-    return res.json({ success: true, status: 'captured', message: 'Already upgraded' });
+    return res.json({ success: true, status: 'captured', message: 'Already active' });
   }
 
-  // REACH OUT TO RAZORPAY (The fallback)
-  const razorOrder = await RazorpayService.getOrder(razorpay_order_id);
-  const razorPayments = await RazorpayService.getOrderPayments(razorpay_order_id);
+  // REACH OUT TO RAZORPAY
+  const sub = await RazorpayService.getSubscription(razorpay_subscription_id);
 
-  // Check if any payment for this order is captured/paid
-  const capturedPayment = razorPayments.items?.find(p => p.status === 'captured' || p.status === 'authorized');
-
-  if (capturedPayment || razorOrder.status === 'paid') {
-    Logger.info('Payment recovery successful via manual sync', { orderId: razorpay_order_id });
+  if (sub.status === 'active') {
+    Logger.info('Subscription recovery successful via manual sync', { subId: razorpay_subscription_id });
     
     payment.status = 'captured';
-    payment.razorpayPaymentId = capturedPayment?.id || 'manual_sync';
     await payment.save();
 
     await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle);
@@ -161,7 +152,7 @@ export const syncPaymentStatus = expressAsyncHandler(async (req, res) => {
     return res.json({ success: true, status: 'captured', message: 'Recovery successful, plan upgraded' });
   }
 
-  res.json({ success: true, status: payment.status, message: 'Payment not yet confirmed' });
+  res.json({ success: true, status: payment.status, message: `Current Status: ${sub.status}` });
 });
 
 /**
@@ -184,47 +175,47 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
   }
 
   const { event, payload } = req.body;
-  const data = payload.payment.entity;
+  
+  Logger.info(`Razorpay Webhook Received: ${event}`);
 
-  Logger.info(`Razorpay Webhook Received: ${event}`, { 
-    paymentId: data.id, 
-    orderId: data.order_id 
-  });
-
-  if (event === 'payment.captured') {
-    const orderId = data.order_id;
-    const payment = await Payment.findOne({ razorpayOrderId: orderId });
-
-    // IDEMPOTENCY: Check if already processed
-    if (payment && payment.status === 'captured') {
-      Logger.warn('Webhook received for already captured payment', { orderId });
-      return res.status(200).send('Already processed');
+  // 1. Subscription Authenticated (Initial setup successful)
+  if (event === 'subscription.authenticated') {
+    const data = payload.subscription.entity;
+    const payment = await Payment.findOne({ razorpaySubscriptionId: data.id });
+    
+    if (payment) {
+      payment.status = 'authenticated';
+      payment.metadata = { ...payment.metadata, authenticatedAt: new Date() };
+      await payment.save();
+      Logger.info('Subscription authenticated', { subscriptionId: data.id });
     }
+  }
+
+  // 2. Subscription Charged (Successful periodic payment)
+  else if (event === 'subscription.charged' || event === 'payment.captured') {
+    const data = payload.payment.entity;
+    const subscriptionId = data.subscription_id;
+    
+    const payment = await Payment.findOne({
+      $or: [
+        { razorpaySubscriptionId: subscriptionId },
+        { razorpayOrderId: data.order_id }
+      ]
+    });
 
     if (payment) {
-      // Security Check: Verify amount and currency
-      if (data.amount !== payment.amount * 100 || data.currency !== 'USD') {
-        Logger.error('SECURITY ALERT: Webhook data mismatch', { 
-          orderId, 
-          webhookAmount: data.amount, 
-          dbAmount: payment.amount,
-          currency: data.currency
-        });
-        payment.status = 'failed';
-        payment.metadata = { error: 'Amount or currency mismatch during webhook' };
-        await payment.save();
-        return res.status(400).send('Data mismatch');
+      if (payment.razorpayPaymentId === data.id) {
+        return res.status(200).send('Already processed');
       }
 
       payment.status = 'captured';
       payment.razorpayPaymentId = data.id;
+      payment.razorpayOrderId = data.order_id;
       payment.razorpaySignature = signature;
       await payment.save();
 
-      // THE SINGLE SOURCE OF TRUTH FOR UPGRADES
       await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle);
       
-      // ENTERPRISE FEATURE: Auto-generate Razorpay Invoice
       const user = await User.findById(payment.user);
       if (user) {
         const invoice = await RazorpayService.createInvoice(user, payment);
@@ -232,43 +223,43 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
           payment.razorpayInvoiceId = invoice.id;
           payment.invoiceUrl = invoice.short_url;
           await payment.save();
-          Logger.info('Invoice link attached to payment', { orderId });
         }
 
-        // NOITIFCATION: Send Emails
         try {
-          // 1. Send confirmation to User
-          await EmailService.sendPlanPurchaseEmail(
-            user, 
-            payment.plan, 
-            payment.billingCycle, 
-            payment.amount, 
-            payment.invoiceUrl
-          );
-
-          // 2. Send notification to Admin
-          await EmailService.sendAdminPlanPurchaseNotification(
-            user,
-            payment.plan,
-            payment.billingCycle,
-            payment.amount
-          );
-          
-          Logger.info('Purchase notification emails sent', { userId: user._id });
+          await EmailService.sendPlanPurchaseEmail(user, payment.plan, payment.billingCycle, payment.amount, payment.invoiceUrl);
+          await EmailService.sendAdminPlanPurchaseNotification(user, payment.plan, payment.billingCycle, payment.amount);
         } catch (emailError) {
-          Logger.error('Failed to send purchase notification emails', { 
-            error: emailError.message, 
-            userId: user._id 
-          });
+          Logger.error('Email sending failed during sub charged', { error: emailError.message });
         }
       }
-      
-      Logger.info('Subscription successfully upgraded via Webhook', { userId: payment.user, plan: payment.plan });
+      Logger.info('Plan successfully processed via Webhook', { userId: payment.user, event });
     }
-  } else if (event === 'payment.failed') {
-    const orderId = data.order_id;
+  }
+
+  // 3. Subscription Cancelled
+  else if (event === 'subscription.cancelled') {
+    const data = payload.subscription.entity;
+    const payment = await Payment.findOne({ razorpaySubscriptionId: data.id });
+    
+    if (payment) {
+      payment.status = 'failed';
+      payment.metadata = { ...payment.metadata, cancelledAt: new Date(), reason: 'Subscription cancelled' };
+      await payment.save();
+      
+      const user = await User.findById(payment.user);
+      if (user) {
+        user.subscriptionStatus = 'cancelled';
+        await user.save();
+      }
+      Logger.info('Subscription cancelled via webhook', { subscriptionId: data.id });
+    }
+  } 
+  
+  // 4. Payment Failed
+  else if (event === 'payment.failed') {
+    const data = payload.payment.entity;
     await Payment.findOneAndUpdate(
-      { razorpayOrderId: orderId },
+      { $or: [{ razorpayOrderId: data.order_id }, { razorpayPaymentId: data.id }] },
       { 
         status: 'failed', 
         metadata: { 
@@ -278,6 +269,7 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
         } 
       }
     );
+    Logger.warn('Payment failed via webhook', { paymentId: data.id });
   }
 
   res.status(200).send('OK');
