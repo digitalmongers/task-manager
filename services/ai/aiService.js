@@ -35,19 +35,22 @@ import AIUsage from '../../models/AIUsage.js';
 import { PLAN_LIMITS, AI_CONSTANTS } from '../../config/aiConfig.js';
 import { countTokens, compressPrompt } from '../../utils/aiTokenUtils.js';
 import ApiError from '../../utils/ApiError.js';
-import OpenAI from 'openai';
-
 class AIService {
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    this.openai = openai;
+  }
+
+  /**
+   * Check if AI service is properly configured
+   */
+  isEnabled() {
+    return !!process.env.OPENAI_API_KEY;
   }
 
   /**
    * Centralized method to run AI features with plan-based limits
    */
-  async run({ userId, feature, input, prompt, systemPrompt = SYSTEM_PROMPTS.TASK_ASSISTANT }) {
+  async run({ userId, feature, input, prompt, messages, systemPrompt = SYSTEM_PROMPTS.TASK_ASSISTANT }) {
     const user = await User.findById(userId);
     if (!user) throw ApiError.notFound('User not found');
 
@@ -58,11 +61,25 @@ class AIService {
 
     const plan = PLAN_LIMITS[user.plan];
     
+    // 2. Feature Access Enforcement: Check if user has access to this specific feature
+    if (!plan.aiFeatures.includes(feature) && !plan.aiFeatures.includes('ALL')) {
+      throw ApiError.forbidden(`The ${feature} feature is not available on your current plan. Please upgrade to access this.`);
+    }
+
     // 3. Token Safety & Compression (BEFORE AI CALL)
-    // Support both 'input' and 'prompt' keys
-    const rawInput = input || prompt;
-    let finalPrompt = typeof rawInput === 'string' ? rawInput : JSON.stringify(rawInput);
-    let inputTokens = countTokens(finalPrompt);
+    // Support 'messages' (for chatbot) or 'input'/'prompt'
+    let finalPrompt;
+    let inputTokens;
+
+    if (messages && Array.isArray(messages)) {
+      // For messages, we count tokens for the whole array
+      finalPrompt = JSON.stringify(messages);
+      inputTokens = countTokens(finalPrompt);
+    } else {
+      const rawInput = input || prompt;
+      finalPrompt = typeof rawInput === 'string' ? rawInput : JSON.stringify(rawInput);
+      inputTokens = countTokens(finalPrompt);
+    }
 
     // Hard Cap: Input Limit
     if (inputTokens > AI_CONSTANTS.MAX_INPUT_TOKENS) {
@@ -108,12 +125,14 @@ class AIService {
       const config = getConfig();
       
       // 5. OpenAI Call (HARD CAP)
+      const openaiMessages = messages && Array.isArray(messages) ? messages : [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: finalPrompt },
+      ];
+
       const response = await this.openai.chat.completions.create({
         model: "gpt-4o-mini", // Forced as per instructions
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: finalPrompt },
-        ],
+        messages: openaiMessages,
         max_tokens: plan.maxOutputTokens, // Plan-based hard cap
         temperature: config.temperature || 0.7,
       });
@@ -143,7 +162,7 @@ class AIService {
 
       await AIUsage.create({
         user: userId,
-        plan: planKey,
+        plan: user.plan,
         feature,
         promptTokens: promptsTokensUsed,
         completionTokens: completionTokens,

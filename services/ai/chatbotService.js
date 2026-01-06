@@ -12,6 +12,7 @@ import TaskPriority from '../../models/TaskPriority.js';
 import TaskStatus from '../../models/TaskStatus.js';
 import { parseJSONResponse, handleAIError } from './aiHelpers.js';
 import ChatConversation from '../../models/ChatConversation.js';
+import AIService from './aiService.js';
 
 class ChatbotService {
   /**
@@ -151,16 +152,12 @@ Respond naturally and conversationally.`;
         { role: 'user', content: message }
       ];
 
-      // 5. Call OpenAI
-      const config = getConfig();
-      const response = await openai.chat.completions.create({
-        model: config.model,
-        messages: messages,
-        max_tokens: 1000, 
-        temperature: 0.7,
+      // 5. Call AIService.run (Centralized enforcement & boost deduction)
+      const assistantMessage = await AIService.run({
+        userId,
+        feature: 'AI_CHAT',
+        messages: messages
       });
-
-      const assistantMessage = response.choices[0].message.content;
 
       // 6. Save to database
       conversation.messages.push({ role: 'user', content: message });
@@ -240,18 +237,14 @@ User has:
 Provide 3-5 quick action suggestions. Return as JSON array:
 ["suggestion 1", "suggestion 2", "suggestion 3"]`;
 
-      const config = getConfig();
-      const response = await openai.chat.completions.create({
-        model: config.model,
-        messages: [
-          { role: 'system', content: 'You are a helpful task assistant.' },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 200,
-        temperature: 0.7,
+      const response = await AIService.run({
+        userId,
+        feature: 'AI_CHAT',
+        prompt,
+        systemPrompt: 'You are a helpful task assistant.'
       });
 
-      const suggestions = parseJSONResponse(response.choices[0].message.content);
+      const suggestions = parseJSONResponse(response);
 
       return suggestions;
     } catch (error) {
@@ -262,7 +255,7 @@ Provide 3-5 quick action suggestions. Return as JSON array:
   /**
    * Analyze user intent and extract action
    */
-  async analyzeIntent(message) {
+  async analyzeIntent(userId, message) {
     try {
       const prompt = `Analyze this user message and determine the intent:
 "${message}"
@@ -278,18 +271,17 @@ Return JSON:
   }
 }`;
 
-      const config = getConfig();
-      const response = await openai.chat.completions.create({
-        model: config.model,
-        messages: [
-          { role: 'system', content: 'You are an intent analyzer.' },
-          { role: 'user', content: prompt },
-        ],
-        max_tokens: 300,
-        temperature: 0.3,
+      const response = await AIService.run({
+        userId, // Note: this method might be called without userId in some contexts, 
+                // but for now we expect it from higher layers if we want enforcement.
+                // In analyzeIntent it was not passing userId before, but we should.
+        feature: 'TASK_SUGGESTION', // Intent analysis is a utility, allow on FREE? 
+                                     // Actually chatbot needs it. Let's use TASK_SUGGESTION to keep it light.
+        prompt,
+        systemPrompt: 'You are an intent analyzer.'
       });
 
-      const intent = parseJSONResponse(response.choices[0].message.content);
+      const intent = parseJSONResponse(response);
 
       return intent;
     } catch (error) {

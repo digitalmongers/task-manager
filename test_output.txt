@@ -1,0 +1,52 @@
+2026-01-06 16:46:17 [[32m[32minfo[32m[39m] : [32m[32mSendGrid email service initialized[32m[39m
+{
+  "service": "task-manager-api",
+  "environment": "development"
+}
+2026-01-06 16:46:18 [[32m[32minfo[32m[39m] : [32m[32mMongoDB Connected: ac-s9ekfws-shard-00-00.bgpiqnj.mongodb.net[32m[39m
+{
+  "service": "task-manager-api",
+  "environment": "development"
+}
+Connected to DB
+Test User Reset to FREE plan
+
+--- TEST 1: Task Suggestions (Should Work) ---
+2026-01-06 16:46:28 [[31m[31merror[31m[39m] : [31m[31mFailed to parse AI response[31m[39m
+{
+  "service": "task-manager-api",
+  "environment": "development",
+  "error": "Expected property name or '}' in JSON at position 1121 (line 32 column 4)",
+  "response": "```json\n[\n  {\n    \"title\": \"Finalize Monthly Board Report\",\n    \"description\": \"Ensure all data is accurate and insights are clearly presented.\",\n    \"suggestedCategory\": \"Reporting\",\n    \"suggestedPr"
+}
+2026-01-06 16:46:28 [[31m[31merror[31m[39m] : Error: Invalid AI response format
+    at parseJSONResponse (file:///C:/Task-Manager-Backend/services/ai/aiHelpers.js:25:11)
+    at AIService.generateTaskSuggestions (file:///C:/Task-Manager-Backend/services/ai/aiService.js:250:32)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testFreePlanSuggestions (file:///C:/Task-Manager-Backend/test_free_ai.js:35:27)
+{
+  "service": "task-manager-api",
+  "environment": "development",
+  "error": "Invalid AI response format",
+  "errorType": "Error",
+  "context": "generateTaskSuggestions"
+}
+2026-01-06 16:46:28 [[33m[33mwarn[33m[39m] : [33m[33mUnhandled AI error type Invalid AI response format[33m[39m
+{
+  "service": "task-manager-api",
+  "environment": "development"
+}
+❌ FAILED: Unexpected response format {
+  error: 'Failed to generate AI suggestions: Invalid AI response format'
+}
+
+--- TEST 2: Voice Task / NLP (Should be Blocked) ---
+✅ SUCCESS: Voice Task correctly blocked. Reason: The VOICE_TASK feature is not available on your current plan. Please upgrade to access this.
+
+--- TEST 3: Check isEnabled() ---
+AIService.isEnabled(): true
+2026-01-06 16:46:28 [[33m[33mwarn[33m[39m] : [33m[33mMongoose disconnected from MongoDB[33m[39m
+{
+  "service": "task-manager-api",
+  "environment": "development"
+}

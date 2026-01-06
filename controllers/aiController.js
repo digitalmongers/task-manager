@@ -378,7 +378,7 @@ class AIController {
       throw ApiError.badRequest('Message is required');
     }
 
-    const intent = await ChatbotService.analyzeIntent(message);
+    const intent = await ChatbotService.analyzeIntent(req.user._id, message);
 
     if (intent && intent.error) {
       throw ApiError.serviceUnavailable(intent.error);
@@ -415,11 +415,13 @@ class AIController {
         );
       }
 
-      // Try a simple API call
-      const testResult = await AIService.callOpenAI(
-        'You are a helpful assistant.',
-        'Reply with just "OK" if you can read this.'
-      );
+      // Try a simple API call using run() to verify complete flow
+      const testResult = await AIService.run({
+        userId: req.user._id,
+        feature: 'TASK_SUGGESTION', // Using a standard feature for test
+        prompt: 'Reply with just "OK" if you can read this.',
+        systemPrompt: 'You are a helpful assistant.'
+      });
 
       return ApiResponse.success(
         res,
