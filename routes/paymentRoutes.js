@@ -1,3 +1,4 @@
+import express from 'express';
 import { createSubscription, checkPaymentStatus, handleWebhook, cancelPayment, syncPaymentStatus, getInvoice } from '../controllers/paymentController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import rateLimit from 'express-rate-limit';
