@@ -401,30 +401,35 @@ class ChatService {
 
     // 2. Atomic Upsert of Read State (High-Water Mark Model)
     // This replaces the per-message readBy update for MASSIVE scalability
-    try {
-      await ChatReadState.findOneAndUpdate(
-        { user: userId, [field]: taskId },
-        { 
-          lastReadSequence: latestMessage.sequenceNumber,
-          lastReadAt: now,
-          isVital
-        },
-        { upsert: true, new: true }
-      );
-    } catch (error) {
-      // Handle MongoDB race condition (Duplicate Key Error 11000 during concurrent upserts)
-      if (error.code === 11000) {
-        // Retry the operation - the second time it will find the existing record created by the concurrent request
-        await ChatReadState.findOneAndUpdate(
+    let retries = 2;
+    while (retries >= 0) {
+      try {
+        await ChatReadState.updateOne(
           { user: userId, [field]: taskId },
           { 
-            lastReadSequence: latestMessage.sequenceNumber,
-            lastReadAt: now,
-            isVital
+            $set: {
+              lastReadSequence: latestMessage.sequenceNumber,
+              lastReadAt: now,
+              isVital
+            }
           },
-          { upsert: true, new: true }
+          { upsert: true }
         );
-      } else {
+        break; // Success
+      } catch (error) {
+        if (error.code === 11000 && retries > 0) {
+          Logger.warn('[markAsRead] Retrying due to 11000 error (race condition)', { 
+             userId, taskId, isVital, retriesLeft: retries 
+          });
+          retries--;
+          continue;
+        }
+        Logger.error('[markAsRead] Failed even after retries or non-11000 error', {
+          error: error.message,
+          code: error.code,
+          userId,
+          taskId
+        });
         throw error;
       }
     }

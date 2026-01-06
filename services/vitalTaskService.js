@@ -687,17 +687,25 @@ class VitalTaskService {
    */
   async convertToRegularTask(userId, taskId) {
     try {
+      // Check access permission (Owner or Editor can convert)
+      const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
+      if (!access.canAccess || (access.role !== 'owner' && access.role !== 'editor')) {
+        throw ApiError.forbidden('Only owners and editors can convert tasks');
+      }
+
       // Get the vital task
-      const vitalTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      const vitalTask = await VitalTask.findById(taskId);
 
       if (!vitalTask) {
         throw ApiError.notFound('Vital task not found');
       }
 
+      const originalOwnerId = vitalTask.user;
+
       // Import TaskRepository dynamically to avoid circular dependency
       const TaskRepository = (await import('../repositories/taskRepository.js')).default;
 
-      // Create regular task with same data
+      // Create regular task with original owner's ID
       const task = await TaskRepository.createTask(
         {
           title: vitalTask.title,
@@ -710,16 +718,47 @@ class VitalTaskService {
           image: vitalTask.image,
           steps: vitalTask.steps,
         },
-        userId
+        originalOwnerId
       );
 
+      // Migrate collaborators if vital task is shared
+      if (vitalTask.isShared) {
+        const collaborators = await CollaborationRepository.getVitalTaskCollaborators(taskId, 'active');
+        const TaskCollaborator = (await import('../models/TaskCollaborator.js')).default;
+        
+        const migrationPromises = collaborators.map(c => {
+          // If collaborator is owner, skip (model/repo handles owner)
+          if (c.collaborator._id.toString() === originalOwnerId.toString()) return null;
+          
+          return TaskCollaborator.create({
+            task: task._id,
+            taskOwner: originalOwnerId,
+            collaborator: c.collaborator._id,
+            role: c.role,
+            status: 'active',
+            sharedBy: c.sharedBy || userId,
+            shareMessage: c.shareMessage
+          });
+        }).filter(Boolean);
+
+        if (migrationPromises.length > 0) {
+          await Promise.all(migrationPromises);
+          
+          // Update task metadata
+          task.isShared = true;
+          task.collaboratorCount = migrationPromises.length;
+          await task.save();
+        }
+      }
+
       // Soft delete the vital task
-      await VitalTaskRepository.deleteVitalTask(taskId, userId);
+      await vitalTask.softDelete();
 
       Logger.logAuth('VITAL_TASK_CONVERTED_TO_REGULAR', userId, {
         vitalTaskId: taskId,
         regularTaskId: task._id,
         title: vitalTask.title,
+        convertedBy: userId
       });
 
       return {
