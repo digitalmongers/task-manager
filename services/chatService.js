@@ -401,15 +401,33 @@ class ChatService {
 
     // 2. Atomic Upsert of Read State (High-Water Mark Model)
     // This replaces the per-message readBy update for MASSIVE scalability
-    await ChatReadState.findOneAndUpdate(
-      { user: userId, [field]: taskId },
-      { 
-        lastReadSequence: latestMessage.sequenceNumber,
-        lastReadAt: now,
-        isVital
-      },
-      { upsert: true, new: true }
-    );
+    try {
+      await ChatReadState.findOneAndUpdate(
+        { user: userId, [field]: taskId },
+        { 
+          lastReadSequence: latestMessage.sequenceNumber,
+          lastReadAt: now,
+          isVital
+        },
+        { upsert: true, new: true }
+      );
+    } catch (error) {
+      // Handle MongoDB race condition (Duplicate Key Error 11000 during concurrent upserts)
+      if (error.code === 11000) {
+        // Retry the operation - the second time it will find the existing record created by the concurrent request
+        await ChatReadState.findOneAndUpdate(
+          { user: userId, [field]: taskId },
+          { 
+            lastReadSequence: latestMessage.sequenceNumber,
+            lastReadAt: now,
+            isVital
+          },
+          { upsert: true, new: true }
+        );
+      } else {
+        throw error;
+      }
+    }
 
     // 3. Broadcast globally that this user has read up to this point (for OTHER users)
     // 3. Broadcast globally that this user has read up to this point (for OTHER users)

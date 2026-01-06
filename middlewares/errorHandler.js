@@ -15,7 +15,16 @@ const convertToApiError = (err) => {
   // Mongoose duplicate key error
   if (err.code === 11000) {
     const field = Object.keys(err.keyPattern)[0];
-    error = ApiError.conflict(`${field} already exists`);
+    // If it's a simple unique index on email/phone/username, keep specific message
+    const specificFields = ['email', 'phone', 'username', 'email_1', 'phone_1', 'username_1'];
+    const isSpecific = specificFields.some(f => field.startsWith(f));
+    
+    if (isSpecific) {
+      const displayField = field.replace('_1', '');
+      error = ApiError.conflict(`${displayField.charAt(0).toUpperCase() + displayField.slice(1)} already registered`);
+    } else {
+      error = ApiError.conflict(ERROR_MESSAGES.DUPLICATE_RESOURCE || 'Resource already exists');
+    }
   }
 
   // Mongoose cast error (invalid ObjectId)
