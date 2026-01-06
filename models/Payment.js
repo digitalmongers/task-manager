@@ -27,8 +27,13 @@ const paymentSchema = new mongoose.Schema(
     },
     razorpayOrderId: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true, // Make optional for subscriptions
+    },
+    razorpaySubscriptionId: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
     razorpayPaymentId: {
       type: String,
@@ -57,7 +62,8 @@ const paymentSchema = new mongoose.Schema(
 );
 
 paymentSchema.index({ user: 1, createdAt: -1 });
-paymentSchema.index({ razorpayOrderId: 1 });
+paymentSchema.index({ razorpayOrderId: 1 }, { sparse: true });
+paymentSchema.index({ razorpaySubscriptionId: 1 }, { sparse: true });
 
 const Payment = mongoose.model('Payment', paymentSchema);
 

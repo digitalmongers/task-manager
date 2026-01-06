@@ -42,3 +42,17 @@ export const AI_CONSTANTS = {
   COMPRESS_THRESHOLD_TOKENS: 1200,
   ABSOLUTE_FAILSAFE_TOKENS: 4000
 };
+export const RAZORPAY_PLANS = {
+  STARTER: {
+    MONTHLY: 'plan_S0ZzfdHQXxmTz4',
+    YEARLY: 'plan_S0a8hfrbEqtlwA'
+  },
+  PRO: {
+    MONTHLY: 'plan_S0a0PjKXU7bdfy',
+    YEARLY: 'plan_S0a9RW9UJcMsP1'
+  },
+  TEAM: {
+    MONTHLY: 'plan_S0a0tJ2nJDmv50',
+    YEARLY: 'plan_S0aB2BETGdvfgQ'
+  }
+};
