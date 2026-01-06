@@ -43,6 +43,7 @@ export const createSubscription = expressAsyncHandler(async (req, res) => {
   res.status(201).json({
     success: true,
     subscription,
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID
   });
 });
 
