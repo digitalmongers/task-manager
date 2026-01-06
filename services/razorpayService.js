@@ -27,7 +27,7 @@ class RazorpayService {
       const options = {
         amount: amount * 100, 
         currency: "USD",
-        receipt: `receipt_order_${userId}_${Date.now()}`,
+        receipt: `rcpt_${userId.toString().slice(-8)}_${Date.now()}`,
         notes: {
           userId: userId.toString(),
           plan: planKey,

@@ -4,6 +4,8 @@ import mongoose from 'mongoose';
 import Logger from './logger.js';
 import TaskCollaborator from '../models/TaskCollaborator.js';
 import VitalTaskCollaborator from '../models/VitalTaskCollaborator.js';
+import Task from '../models/Task.js';
+import VitalTask from '../models/VitalTask.js';
 import redisClient from './redis.js';
 import { v4 as uuidv4 } from 'uuid';
 import MetricsService from '../services/metricsService.js';
