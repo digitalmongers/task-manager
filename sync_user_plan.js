@@ -7,9 +7,9 @@ import User from './models/User.js';
 dotenv.config();
 
 const syncUser = async () => {
-    const userId = "695cfdf8eb7b599274cf3e8f"; // User from logs
+    const userId = "695e164bc38a00205c5fe78d"; // User from logs
     const planKey = "STARTER";
-    const billingCycle = "MONTHLY";
+    const billingCycle = "YEARLY";
 
     try {
         console.log(`Connecting to DB to upgrade user ${userId} to ${planKey} (${billingCycle})...`);

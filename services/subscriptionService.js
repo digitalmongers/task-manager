@@ -11,7 +11,10 @@ class SubscriptionService {
   async upgradeUserPlan(userId, planKey, billingCycle) {
     try {
       const user = await User.findById(userId);
-      if (!user) throw new Error('User not found');
+      if (!user) {
+        Logger.error(`[SubscriptionService] User not found during upgrade. UserID: ${userId}`);
+        throw new Error('User not found');
+      }
 
       const plan = PLAN_LIMITS[planKey];
       

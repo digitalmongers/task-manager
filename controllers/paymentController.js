@@ -256,7 +256,10 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     Logger.info(`[WEBHOOK TRACE] ✅ Payment Saved Successfully.`);
 
     Logger.info(`[WEBHOOK TRACE] triggers User Plan Upgrade...`);
-    await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle);
+    const userIdStr = payment.user.toString();
+    Logger.info(`[WEBHOOK TRACE] Passing UserID to Service: '${userIdStr}' (Original Type: ${typeof payment.user})`);
+    
+    await SubscriptionService.upgradeUserPlan(userIdStr, payment.plan, payment.billingCycle);
     Logger.info(`[WEBHOOK TRACE] ✅ User Plan Upgrade Function Completed.`);
       
       const user = await User.findById(payment.user);
