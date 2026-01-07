@@ -28,7 +28,7 @@ import TaskPriority from '../../models/TaskPriority.js';
 import TaskStatus from '../../models/TaskStatus.js';
 import Task from '../../models/Task.js';
 import VitalTask from '../../models/VitalTask.js';
-import AIServiceModel from '../../models/AIPlan.js';
+import AIPlan from '../../models/AIPlan.js';
 import EmailService from '../emailService.js';
 import User from '../../models/User.js';
 import AIUsage from '../../models/AIUsage.js';

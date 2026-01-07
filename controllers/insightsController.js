@@ -10,10 +10,10 @@ export const getInsights = async (req, res) => {
   } catch (error) {
     Logger.error('Error in getInsights', { error: error.message, userId: req.user?._id });
     // Use proper error handling that server expects
-    if (error.status || error.statusCode) {
-        ApiResponse.error(res, error.status || error.statusCode, error.message);
+    if (error.statusCode) {
+        ApiResponse.error(res, error.statusCode, error.message);
     } else {
-        ApiResponse.error(res, 500, 'Failed to generate insights');
+        ApiResponse.error(res, 500, error.message || 'Failed to generate insights');
     }
   }
 };

@@ -100,11 +100,12 @@ class InsightsService {
         }
       };
 
-      // Generate AI analysis
-      const systemPrompt = SYSTEM_PROMPTS.TASK_ASSISTANT;
-      const userPrompt = INSIGHTS_PROMPTS.ANALYZE_COMPREHENSIVE_INSIGHTS(aiInput);
-
-      const aiResponse = await aiService.callOpenAI(systemPrompt, userPrompt);
+      const aiResponse = await aiService.run({
+        userId,
+        feature: 'AI_INSIGHTS',
+        prompt: userPrompt,
+        systemPrompt
+      });
       const aiAnalysis = parseJSONResponse(aiResponse);
 
       // Construct final response
