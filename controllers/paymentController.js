@@ -171,6 +171,12 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     return res.status(400).send('Raw body missing');
   }
 
+  Logger.info('WEBHOOK HIT RAW:', { 
+    event: req.body.event, 
+    subId: req.body.payload?.subscription?.entity?.id,
+    payId: req.body.payload?.payment?.entity?.id 
+  });
+
   // 1. Verify Signature using raw body for maximum security
   const shasum = crypto.createHmac('sha256', secret);
   shasum.update(req.rawBody);
@@ -203,11 +209,22 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     }
   }
 
-  // 2. Subscription Charged / Activated (Successful payment)
-  else if (event === 'subscription.charged' || event === 'payment.captured' || event === 'subscription.activated') {
-    const data = payload.payment.entity;
-    const subscriptionId = data.subscription_id;
+  // 2. Subscription Charged / Activated / Completed (Successful payment state)
+  else if (['subscription.charged', 'payment.captured', 'subscription.activated', 'subscription.completed', 'subscription.updated'].includes(event)) {
+    // For 'subscription.updated', we check if it was a plan change or just a detail update
+    if (event === 'subscription.updated' && !payload.payment) {
+        Logger.info(`[WEBHOOK TRACE] Event is ${event} without payment payload. Skipping logic.`);
+        return res.status(200).send('OK');
+    }
+
+    const data = payload.payment ? payload.payment.entity : payload.subscription.entity;
+    Logger.info(`[WEBHOOK TRACE] Extracted Entity Data`, { entityId: data.id, orderId: data.order_id, subId: data.subscription_id });
+
+    // Handle case where subscription.activated/completed might not have payment entity immediately
+    const subscriptionId = data.subscription_id || data.id;
     
+    Logger.info(`[WEBHOOK TRACE] Searching Database with SubID: ${subscriptionId} OR OrderID: ${data.order_id}`);
+
     const payment = await Payment.findOne({
       $or: [
         { razorpaySubscriptionId: subscriptionId },
@@ -215,37 +232,49 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
       ]
     });
 
-    if (payment) {
-      if (payment.razorpayPaymentId === data.id) {
-        return res.status(200).send('Already processed');
-      }
+    if (!payment) {
+        Logger.error('[WEBHOOK TRACE] ❌ FATAL: Payment record NOT FOUND in DB', { subscriptionId, orderId: data.order_id });
+        return res.status(200).send('Payment not found');
+    }
 
-      payment.status = 'captured';
-      payment.razorpayPaymentId = data.id;
-      payment.razorpayOrderId = data.order_id;
-      payment.razorpaySignature = signature;
-      await payment.save();
+    Logger.info(`[WEBHOOK TRACE] ✅ Payment Record FOUND: ${payment._id}`, { currentStatus: payment.status, user: payment.user });
 
-      await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle);
+    if (payment.status === 'captured') {
+        Logger.info('[WEBHOOK TRACE] ⚠️ Payment is ALREADY CAPTURED. Logic ensures plan is synced, but this might be a duplicate event.');
+    }
+
+    Logger.info(`[WEBHOOK TRACE] Updating Payment Status to 'captured' and saving...`);
+    payment.status = 'captured';
+    payment.razorpayPaymentId = payload.payment?.entity?.id || data.id; 
+    payment.razorpaySignature = signature;
+    await payment.save();
+    Logger.info(`[WEBHOOK TRACE] ✅ Payment Saved Successfully.`);
+
+    Logger.info(`[WEBHOOK TRACE] triggers User Plan Upgrade...`);
+    await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle);
+    Logger.info(`[WEBHOOK TRACE] ✅ User Plan Upgrade Function Completed.`);
       
       const user = await User.findById(payment.user);
       if (user) {
+        Logger.info(`[WEBHOOK TRACE] Generating Invoice for User: ${user._id}`);
         const invoice = await RazorpayService.createInvoice(user, payment);
         if (invoice) {
           payment.razorpayInvoiceId = invoice.id;
           payment.invoiceUrl = invoice.short_url;
           await payment.save();
+          Logger.info(`[WEBHOOK TRACE] Invoice Generated & Saved: ${invoice.short_url}`);
         }
 
         try {
+          Logger.info(`[WEBHOOK TRACE] Sending Success Emails...`);
           await EmailService.sendPlanPurchaseEmail(user, payment.plan, payment.billingCycle, payment.amount, payment.invoiceUrl);
           await EmailService.sendAdminPlanPurchaseNotification(user, payment.plan, payment.billingCycle, payment.amount);
+          Logger.info(`[WEBHOOK TRACE] Emails Sent Successfully.`);
         } catch (emailError) {
-          Logger.error('Email sending failed during sub charged', { error: emailError.message });
+          Logger.error('[WEBHOOK TRACE] ❌ Email sending FAILED', { error: emailError.message });
         }
       }
-      Logger.info('Plan successfully processed via Webhook', { userId: payment.user, event });
-    }
+      Logger.info('[WEBHOOK TRACE] 🎉 FULL SUCCESS: Webhook processing completed perfectly.', { userId: payment.user, event });
   }
 
   // 3. Subscription Cancelled
