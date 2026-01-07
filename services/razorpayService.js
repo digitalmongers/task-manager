@@ -124,14 +124,16 @@ class RazorpayService {
    */
   async createInvoice(user, payment) {
     try {
+      const customer = {
+        name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Customer',
+        email: user.email,
+        contact: user.phoneNumber || undefined,
+      };
+
       const invoiceData = {
         type: "invoice",
         description: `Invoice for ${payment.plan} Plan - ${payment.billingCycle}`,
-        customer: {
-          name: user.name || 'Customer',
-          email: user.email,
-          contact: user.phone || '',
-        },
+        customer,
         line_items: [
           {
             name: `${payment.plan} Subscription (${payment.billingCycle})`,
@@ -140,7 +142,7 @@ class RazorpayService {
             quantity: 1,
           },
         ],
-        sms_notify: 1,
+        sms_notify: customer.contact ? 1 : 0,
         email_notify: 1,
         notes: {
           paymentId: payment._id.toString(),
