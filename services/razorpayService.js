@@ -124,10 +124,16 @@ class RazorpayService {
    */
   async createInvoice(user, payment) {
     try {
+      // Sanitize phone number (remove spaces, dashes, parentheses)
+      let contact = undefined;
+      if (user.phoneNumber) {
+        contact = user.phoneNumber.replace(/[^0-9+]/g, '');
+      }
+
       const customer = {
         name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Customer',
         email: user.email,
-        contact: user.phoneNumber || undefined,
+        contact: contact,
       };
 
       const invoiceData = {
@@ -137,12 +143,12 @@ class RazorpayService {
         line_items: [
           {
             name: `${payment.plan} Subscription (${payment.billingCycle})`,
-            amount: payment.amount * 100, // in cents
+            amount: Math.round(payment.amount * 100), // Ensure integer (cents)
             currency: "USD",
             quantity: 1,
           },
         ],
-        sms_notify: customer.contact ? 1 : 0,
+        sms_notify: contact ? 1 : 0,
         email_notify: 1,
         notes: {
           paymentId: payment._id.toString(),
@@ -150,12 +156,19 @@ class RazorpayService {
         },
       };
 
+      Logger.info('Creating Razorpay Invoice with Data:', { invoiceData });
+
       const invoice = await this.instance.invoices.create(invoiceData);
       Logger.info('Razorpay Invoice Created', { invoiceId: invoice.id, paymentId: payment._id });
       return invoice;
     } catch (error) {
-      Logger.error('Razorpay Invoice Creation Failed', { error: error.message, paymentId: payment._id });
-      // Don't throw here to avoid failing the whole webhook if invoice fails
+      // Log detailed error from Razorpay
+      Logger.error('Razorpay Invoice Creation Failed', { 
+        message: error.message,
+        error: error.error, // Razorpay error body often here
+        description: error.description,
+        paymentId: payment._id,
+      });
       return null;
     }
   }
