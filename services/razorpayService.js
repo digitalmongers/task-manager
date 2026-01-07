@@ -136,15 +136,18 @@ class RazorpayService {
         contact: contact,
       };
 
+      const currency = payment.currency || 'USD';
+      
       const invoiceData = {
         type: "invoice",
         description: `Invoice for ${payment.plan} Plan - ${payment.billingCycle}`,
+        currency, // Set root currency explicitly
         customer,
         line_items: [
           {
             name: `${payment.plan} Subscription (${payment.billingCycle})`,
             amount: Math.round(payment.amount * 100), // Ensure integer (cents)
-            currency: "USD",
+            currency, // Match root currency
             quantity: 1,
           },
         ],
