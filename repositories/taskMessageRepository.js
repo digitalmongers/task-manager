@@ -12,7 +12,7 @@ class TaskMessageRepository {
       await message.populate([
         { path: 'sender', select: 'firstName lastName email avatar' }
       ]);
-
+ 
       return message;
     } catch (error) {
       Logger.error('Error creating chat message', { error: error.message });
