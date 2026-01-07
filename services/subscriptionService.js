@@ -9,6 +9,7 @@ class SubscriptionService {
    * Upgrade user plan after successful payment
    */
   async upgradeUserPlan(userId, planKey, billingCycle) {
+    Logger.info('Starting upgradeUserPlan', { userId, planKey, billingCycle });
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -39,13 +40,7 @@ class SubscriptionService {
       Logger.info('User Plan Upgraded', { userId, plan: planKey, cycle: billingCycle });
 
       // Notify User
-      await NotificationService.createNotification({
-        recipient: userId,
-        type: 'plan_upgraded',
-        title: 'Plan Upgraded! 🎉',
-        message: `Welcome to the ${planKey} plan. Your ${billingCycle.toLowerCase()} subscription is now active until ${expiryDate.toLocaleDateString()}.`,
-        priority: 'high'
-      });
+      await NotificationService.notifyPlanUpgraded(user, planKey, user.billingCycle, expiryDate);
 
       return user;
     } catch (error) {

@@ -376,3 +376,36 @@ export const getInvoice = expressAsyncHandler(async (req, res) => {
     invoiceUrl: payment.invoiceUrl,
   });
 });
+
+/**
+ * @desc    Get Payment History and Current Plan Status
+ * @route   GET /api/payments/history
+ * @access  Private
+ */
+export const getPaymentHistory = expressAsyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  // 1. Fetch User details for current plan status
+  const user = await User.findById(userId).select('plan billingCycle subscriptionStatus currentPeriodEnd totalBoosts usedBoosts');
+  
+  // 2. Fetch Payment history
+  const payments = await Payment.find({ user: userId })
+    .sort({ createdAt: -1 })
+    .select('plan billingCycle amount currency status createdAt invoiceUrl razorpayPaymentId');
+
+  res.json({
+    success: true,
+    currentPlan: {
+      plan: user.plan,
+      billingCycle: user.billingCycle,
+      status: user.subscriptionStatus,
+      expiryDate: user.currentPeriodEnd,
+      boosts: {
+        total: user.totalBoosts,
+        used: user.usedBoosts,
+        remaining: Math.max(0, user.totalBoosts - user.usedBoosts)
+      }
+    },
+    history: payments
+  });
+});

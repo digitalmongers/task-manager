@@ -746,6 +746,38 @@ class NotificationService {
 
     return this.createBulkNotifications(notifications);
   }
+
+  /**
+   * Notify user when plan is upgraded
+   */
+  async notifyPlanUpgraded(user, planKey, billingCycle, expiryDate) {
+    let title = 'Plan Upgraded! 🎉';
+    let message = `Welcome to the ${planKey} plan. Your ${billingCycle.toLowerCase()} subscription is now active until ${expiryDate.toLocaleDateString()}.`;
+
+    if (planKey === 'STARTER') {
+      title = 'Welcome to STARTER! 🚀';
+      message = `Great choice! You now have access to ${PLAN_LIMITS.STARTER.monthlyBoosts} monthly boosts and up to 5 collaborators. Your ${billingCycle.toLowerCase()} plan is active until ${expiryDate.toLocaleDateString()}.`;
+    } else if (planKey === 'PRO') {
+      title = 'You are now PRO! 🔥';
+      message = `Awesome! Enjoy ${PLAN_LIMITS.PRO.monthlyBoosts} boosts, AI Insights, and AI Planner. Your ${billingCycle.toLowerCase()} plan is active until ${expiryDate.toLocaleDateString()}.`;
+    } else if (planKey === 'TEAM') {
+      title = 'TEAM Power Unleashed! 💎';
+      message = `Your team is ready! ${PLAN_LIMITS.TEAM.monthlyBoosts} boosts and full AI access for your team. Your ${billingCycle.toLowerCase()} plan is active until ${expiryDate.toLocaleDateString()}.`;
+    }
+
+    return this.createNotification({
+      recipient: user._id,
+      type: 'plan_upgraded',
+      title,
+      message,
+      priority: 'high',
+      metadata: {
+        plan: planKey,
+        billingCycle,
+        expiryDate
+      }
+    });
+  }
 }
 
 
