@@ -165,6 +165,11 @@ export const syncPaymentStatus = expressAsyncHandler(async (req, res) => {
 export const handleWebhook = expressAsyncHandler(async (req, res) => {
   const signature = req.headers['x-razorpay-signature'];
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  
+  if (!req.rawBody) {
+    Logger.error('Webhook Error: req.rawBody is missing! Signature verification will fail.');
+    return res.status(400).send('Raw body missing');
+  }
 
   // 1. Verify Signature using raw body for maximum security
   const shasum = crypto.createHmac('sha256', secret);
@@ -172,13 +177,16 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
   const digest = shasum.digest('hex');
 
   if (digest !== signature) {
-    Logger.error('SECURITY ALERT: Invalid Razorpay Webhook Signature');
+    Logger.error('SECURITY ALERT: Invalid Razorpay Webhook Signature', { received: signature, calculated: digest });
     return res.status(400).send('Invalid signature');
   }
 
   const { event, payload } = req.body;
   
-  Logger.info(`Razorpay Webhook Received: ${event}`);
+  Logger.info(`Razorpay Webhook Verified & Received: ${event}`, { 
+    subscriptionId: payload?.subscription?.entity?.id,
+    paymentId: payload?.payment?.entity?.id 
+  });
 
   // 1. Subscription Authenticated (Initial setup successful)
   if (event === 'subscription.authenticated') {

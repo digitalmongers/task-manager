@@ -60,7 +60,7 @@ app.use(responseTime((req, res, time) => {
 app.use(express.json({ 
   limit: '10mb',
   verify: (req, res, buf) => {
-    if (req.originalUrl.startsWith('/api/payments/webhook')) {
+    if (req.originalUrl && req.originalUrl.includes('/payments/webhook')) {
       req.rawBody = buf;
     }
   }

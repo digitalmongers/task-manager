@@ -27,13 +27,9 @@ const paymentSchema = new mongoose.Schema(
     },
     razorpayOrderId: {
       type: String,
-      unique: true,
-      sparse: true, // Make optional for subscriptions
     },
     razorpaySubscriptionId: {
       type: String,
-      unique: true,
-      sparse: true,
     },
     razorpayPaymentId: {
       type: String,

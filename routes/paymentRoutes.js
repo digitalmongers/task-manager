@@ -15,11 +15,7 @@ const syncLimiter = rateLimit({
 });
 
 // Public webhook route (Signature is verified inside controller)
-router.post('/webhook', express.json({
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
-  }
-}), handleWebhook);
+router.post('/webhook', handleWebhook);
 
 // Protected routes
 router.post('/create-subscription', protect, createSubscription);
