@@ -239,7 +239,15 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
 
     if (!payment) {
         Logger.error('[WEBHOOK TRACE] ❌ FATAL: Payment record NOT FOUND in DB', { subscriptionId, orderId: data.order_id });
+        // Self-Healing: If not found, create a placeholder payment? (Optional, skipping for now)
         return res.status(200).send('Payment not found');
+    }
+
+    // Checking for User ID mismatch fix
+    const notesUserId = payload.subscription?.entity?.notes?.userId || payload.payment?.entity?.notes?.userId;
+    if (notesUserId && payment.user.toString() !== notesUserId) {
+        Logger.warn(`[WEBHOOK TRACE] ⚠️ User ID Mismatch! DB: ${payment.user}, Webhook: ${notesUserId}. Updating DB to match Webhook.`);
+        payment.user = notesUserId; // Self-heal the record
     }
 
     Logger.info(`[WEBHOOK TRACE] ✅ Payment Record FOUND: ${payment._id}`, { currentStatus: payment.status, user: payment.user });
