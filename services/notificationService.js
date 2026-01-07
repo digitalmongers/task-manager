@@ -3,6 +3,7 @@ import WebSocketService from '../config/websocket.js';
 import PushService from './pushService.js';
 import Logger from '../config/logger.js';
 import TeamMember from '../models/TeamMember.js';
+import { PLAN_LIMITS } from '../config/aiConfig.js';
 
 const CLIENT_URL = process.env.REDIRECT_URL || process.env.FRONTEND_URL?.split(',')[0] || 'http://localhost:3000';
 

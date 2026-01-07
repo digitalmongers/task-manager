@@ -1,0 +1,5 @@
+ReferenceError: PLAN_LIMITS is not defined\nReferenceError: PLAN_LIMITS is not defined
+    at NotificationService.notifyPlanUpgraded (file:///C:/Task-Manager-Backend/services/notificationService.js:762:35)
+    at SubscriptionService.upgradeUserPlan (file:///C:/Task-Manager-Backend/services/subscriptionService.js:44:33)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async runVerification (file:///C:/Task-Manager-Backend/verify_cache_clear.mjs:50:5)
