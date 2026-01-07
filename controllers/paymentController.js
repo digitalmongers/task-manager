@@ -176,6 +176,8 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
   shasum.update(req.rawBody);
   const digest = shasum.digest('hex');
 
+  Logger.info(`Webhook Debug: Secret=${secret?.substring(0,4)}... Received=${signature}, Calculated=${digest}`);
+
   if (digest !== signature) {
     Logger.error('SECURITY ALERT: Invalid Razorpay Webhook Signature', { received: signature, calculated: digest });
     return res.status(400).send('Invalid signature');
@@ -201,8 +203,8 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     }
   }
 
-  // 2. Subscription Charged (Successful periodic payment)
-  else if (event === 'subscription.charged' || event === 'payment.captured') {
+  // 2. Subscription Charged / Activated (Successful payment)
+  else if (event === 'subscription.charged' || event === 'payment.captured' || event === 'subscription.activated') {
     const data = payload.payment.entity;
     const subscriptionId = data.subscription_id;
     
