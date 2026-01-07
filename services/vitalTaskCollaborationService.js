@@ -39,12 +39,10 @@ class VitalTaskCollaborationService {
 
       // --- PLAN LIMIT CHECK ---
       const plan = PLAN_LIMITS[inviter.plan || 'FREE'];
-      const currentCollaboratorsCount = await CollaborationRepository.getVitalTaskCollaborators(vitalTaskId, 'active');
-      const pendingInvitationsCount = await CollaborationRepository.getVitalTaskInvitations(vitalTaskId, 'pending');
-      const totalCount = currentCollaboratorsCount.length + pendingInvitationsCount.length;
+      const globalCollaborators = await CollaborationRepository.getGlobalCollaboratorEmails(inviterUserId);
 
-      if (totalCount >= plan.maxCollaborators) {
-        throw ApiError.badRequest(`Your ${inviter.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} collaborator(s). Please upgrade for more.`);
+      if (!globalCollaborators.has(inviteeEmail.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
+        throw ApiError.badRequest(`Your ${inviter.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} unique collaborator(s) globally. Please upgrade for more.`);
       }
       // -------------------------
 
@@ -128,18 +126,6 @@ class VitalTaskCollaborationService {
         throw ApiError.forbidden('You do not have permission to share this vital task');
       }
 
-      // --- PLAN LIMIT CHECK ---
-      const owner = await User.findById(ownerId);
-      const plan = PLAN_LIMITS[owner.plan || 'FREE'];
-      const currentCollaboratorsCount = await CollaborationRepository.getVitalTaskCollaborators(vitalTaskId, 'active');
-      const pendingInvitationsCount = await CollaborationRepository.getVitalTaskInvitations(vitalTaskId, 'pending');
-      const totalCount = currentCollaboratorsCount.length + pendingInvitationsCount.length;
-
-      if (totalCount + memberIds.length > plan.maxCollaborators) {
-        throw ApiError.badRequest(`Your ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} collaborator(s). Sharing with these members would exceed your limit.`);
-      }
-      // -------------------------
-
       // Verify all memberIds are valid team members
       const teamMembers = await TeamMember.find({
         _id: { $in: memberIds },
@@ -150,6 +136,23 @@ class VitalTaskCollaborationService {
       if (teamMembers.length !== memberIds.length) {
         throw ApiError.badRequest('Some team members are invalid');
       }
+
+      // --- PLAN LIMIT CHECK ---
+      const owner = await User.findById(ownerId);
+      const plan = PLAN_LIMITS[owner.plan || 'FREE'];
+      const globalCollaborators = await CollaborationRepository.getGlobalCollaboratorEmails(ownerId);
+      
+      let newPeopleCount = 0;
+      teamMembers.forEach(tm => {
+          if (!globalCollaborators.has(tm.memberEmail.toLowerCase())) {
+              newPeopleCount++;
+          }
+      });
+
+      if (globalCollaborators.size + newPeopleCount > plan.maxCollaborators) {
+        throw ApiError.badRequest(`Your ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} unique collaborator(s) globally. Sharing with these members would exceed your limit.`);
+      }
+      // -------------------------
 
       const results = [];
       const errors = [];
@@ -744,6 +747,17 @@ class VitalTaskCollaborationService {
         };
       }
 
+      // --- PLAN LIMIT CHECK ---
+      const owner = await User.findById(vitalTask.user);
+      const plan = PLAN_LIMITS[owner.plan || 'FREE'];
+      const globalCollaborators = await CollaborationRepository.getGlobalCollaboratorEmails(vitalTask.user);
+      
+      const acceptor = await User.findById(userId);
+      if (!globalCollaborators.has(acceptor.email.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
+          throw ApiError.badRequest(`The vital task owner's ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} collaborator(s).`);
+      }
+      // -------------------------
+
       // Add user as viewer
       await CollaborationRepository.addVitalTaskCollaborator({
         vitalTask: vitalTask._id,
@@ -769,8 +783,6 @@ class VitalTaskCollaborationService {
       });
 
       // Notification: Notify owner
-      const owner = await User.findById(vitalTask.user._id || vitalTask.user);
-      const acceptor = await User.findById(userId);
       await NotificationService.notifyCollaboratorAdded(vitalTask, owner, acceptor, true);
 
       return {

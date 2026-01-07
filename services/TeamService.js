@@ -21,13 +21,11 @@ class TeamService {
 
       // --- PLAN LIMIT CHECK ---
       const plan = PLAN_LIMITS[owner.plan || 'FREE'];
-      const currentMembersCount = await TeamMember.countDocuments({
-        owner: ownerId,
-        status: { $in: ['pending', 'active'] }
-      });
+      const CollaborationRepository = (await import('../repositories/collaborationRepository.js')).default;
+      const globalCollaborators = await CollaborationRepository.getGlobalCollaboratorEmails(ownerId);
 
-      if (currentMembersCount >= plan.maxCollaborators) {
-        throw ApiError.badRequest(`Your ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} team member(s). Please upgrade for more.`);
+      if (!globalCollaborators.has(email.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
+        throw ApiError.badRequest(`Your ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} unique collaborator(s) globally. Please upgrade for more.`);
       }
       // -------------------------
 

@@ -676,15 +676,89 @@ class CollaborationRepository {
    */
   async cancelVitalTaskInvitation(invitationId) {
     try {
-      const invitation = await VitalTaskInvitation.findById(invitationId);
+      const invitation = await (await import('../models/VitalTaskInvitation.js')).default.findById(invitationId);
       if (!invitation) return null;
-      
+
       await invitation.cancel();
       Logger.info('Vital task invitation cancelled', { invitationId });
       return invitation;
     } catch (error) {
       Logger.error('Error cancelling vital task invitation', { error: error.message });
       throw error;
+    }
+  }
+
+  /**
+   * Get global unique collaborator emails for a user
+   * (Across Teams, Tasks, and Vital Tasks)
+   */
+  async getGlobalCollaboratorEmails(userId) {
+    try {
+      // 1. Get Team Members (active & pending)
+      const teamMembers = await TeamMember.find({
+        owner: userId,
+        status: { $in: ['active', 'pending'] }
+      }).select('memberEmail');
+
+      // 2. Get Task Collaborators (active)
+      const taskCollabs = await TaskCollaborator.find({
+        taskOwner: userId,
+        status: 'active'
+      }).populate('collaborator', 'email');
+
+      // 3. Get Task Invitations (pending)
+      const taskInvites = await TaskInvitation.find({
+        inviter: userId,
+        status: 'pending'
+      }).select('inviteeEmail');
+
+      // 4. Get Vital Task Collaborators (active)
+      const vitalCollabs = await VitalTaskCollaborator.find({
+        taskOwner: userId,
+        status: 'active'
+      }).populate('collaborator', 'email');
+
+      // 5. Get Vital Task Invitations (pending)
+      const vitalInvites = await VitalTaskInvitation.find({
+        inviter: userId,
+        status: 'pending'
+      }).select('inviteeEmail');
+
+      const uniqueEmails = new Set();
+
+      // Collect emails from TeamMembers
+      teamMembers.forEach(tm => {
+        if (tm.memberEmail) uniqueEmails.add(tm.memberEmail.toLowerCase());
+      });
+
+      // Collect emails from Task Collaborators
+      taskCollabs.forEach(tc => {
+        if (tc.collaborator && tc.collaborator.email) {
+          uniqueEmails.add(tc.collaborator.email.toLowerCase());
+        }
+      });
+
+      // Collect emails from Task Invitations
+      taskInvites.forEach(ti => {
+        if (ti.inviteeEmail) uniqueEmails.add(ti.inviteeEmail.toLowerCase());
+      });
+
+      // Collect emails from Vital Task Collaborators
+      vitalCollabs.forEach(vc => {
+        if (vc.collaborator && vc.collaborator.email) {
+          uniqueEmails.add(vc.collaborator.email.toLowerCase());
+        }
+      });
+
+      // Collect emails from Vital Task Invitations
+      vitalInvites.forEach(vi => {
+        if (vi.inviteeEmail) uniqueEmails.add(vi.inviteeEmail.toLowerCase());
+      });
+
+      return uniqueEmails;
+    } catch (error) {
+      Logger.error('Error getting global unique collaborator emails', { error: error.message });
+      return new Set();
     }
   }
 }
