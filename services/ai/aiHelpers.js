@@ -20,7 +20,9 @@ export const parseJSONResponse = (response) => {
   } catch (error) {
     Logger.error('Failed to parse AI response', { 
       error: error.message,
-      response: response.substring(0, 200)
+      responseLength: response.length,
+      responseEnd: response.substring(response.length - 100), // Log the end of string to see if it's truncated
+      fullResponse: response // Adding full response for debugging as it's usually not that large (~1kb)
     });
     throw new Error('Invalid AI response format');
   }

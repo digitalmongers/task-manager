@@ -133,12 +133,23 @@ class AIService {
       const response = await this.openai.chat.completions.create({
         model: "gpt-4o-mini", // Forced as per instructions
         messages: openaiMessages,
-        max_tokens: plan.maxOutputTokens, // Plan-based hard cap
+        max_tokens: Math.max(plan.maxOutputTokens, config.maxTokens || 0), // Use plan limit or env override, whichever is higher
         temperature: config.temperature || 0.7,
       });
 
-      const content = response.choices[0].message.content;
+      const choice = response.choices[0];
+      const content = choice.message.content;
       const usage = response.usage;
+
+      // Handle truncation error
+      if (choice.finish_reason === 'length') {
+        Logger.error('AI response truncated due to token limit', {
+          userId,
+          finishReason: choice.finish_reason,
+          maxTokens: Math.max(plan.maxOutputTokens, config.maxTokens || 0)
+        });
+        throw new Error('AI response was too long and got truncated. Please try a shorter request or upgrade your plan.');
+      }
 
       // 6. Boost Calculation (AFTER AI RESPONSE)
       const totalTokens = usage.total_tokens;

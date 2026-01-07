@@ -2,7 +2,7 @@ export const PLAN_LIMITS = {
   FREE: {
     monthlyBoosts: 20,
     maxBoostsPerRequest: 1,
-    maxOutputTokens: 300,
+    maxOutputTokens: 1000, // Increased from 300 to 1000 to prevent truncation
     aiFeatures: ["TASK_SUGGESTION"],
     maxCollaborators: 1,
     pricing: { monthly: 0, yearly: 0 }
@@ -11,7 +11,7 @@ export const PLAN_LIMITS = {
   STARTER: {
     monthlyBoosts: 200,
     maxBoostsPerRequest: 1,
-    maxOutputTokens: 600,
+    maxOutputTokens: 1000, // Increased from 600 to 1000
     aiFeatures: ["TASK_SUGGESTION", "VOICE_TASK"],
     maxCollaborators: 5,
     pricing: { monthly: 12, yearly: 120 }
