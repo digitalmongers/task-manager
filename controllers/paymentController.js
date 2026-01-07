@@ -220,10 +220,15 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     const data = payload.payment ? payload.payment.entity : payload.subscription.entity;
     Logger.info(`[WEBHOOK TRACE] Extracted Entity Data`, { entityId: data.id, orderId: data.order_id, subId: data.subscription_id });
 
-    // Handle case where subscription.activated/completed might not have payment entity immediately
-    const subscriptionId = data.subscription_id || data.id;
+    // Correctly extract subscription_id based on event type
+    let subscriptionId;
+    if (payload.payment && payload.payment.entity) {
+        subscriptionId = payload.payment.entity.subscription_id; 
+    } else {
+        subscriptionId = data.subscription_id || data.id;
+    }
     
-    Logger.info(`[WEBHOOK TRACE] Searching Database with SubID: ${subscriptionId} OR OrderID: ${data.order_id}`);
+    Logger.info(`[WEBHOOK TRACE] Extracted Real SubID: ${subscriptionId}, OrderID: ${data.order_id}`);
 
     const payment = await Payment.findOne({
       $or: [
