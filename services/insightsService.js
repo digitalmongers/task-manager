@@ -100,6 +100,9 @@ class InsightsService {
         }
       };
 
+      const userPrompt = INSIGHTS_PROMPTS.ANALYZE_COMPREHENSIVE_INSIGHTS(aiInput);
+      const systemPrompt = SYSTEM_PROMPTS.TASK_ASSISTANT;
+
       const aiResponse = await aiService.run({
         userId,
         feature: 'AI_INSIGHTS',

@@ -3,6 +3,7 @@ import { PLAN_LIMITS } from '../config/aiConfig.js';
 import Logger from '../config/logger.js';
 import NotificationService from '../services/notificationService.js';
 import EmailService from './emailService.js';
+import cacheService from './cacheService.js';
 
 class SubscriptionService {
   /**
@@ -41,6 +42,9 @@ class SubscriptionService {
 
       // Notify User
       await NotificationService.notifyPlanUpgraded(user, planKey, user.billingCycle, expiryDate);
+
+      // Invalidate User Cache (so /me endpoint reflects new plan immediately)
+      await cacheService.deletePattern(`user:${userId}:*`);
 
       return user;
     } catch (error) {

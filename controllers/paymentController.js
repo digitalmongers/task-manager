@@ -248,8 +248,7 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     });
 
     if (!payment) {
-        Logger.error('[WEBHOOK TRACE] ❌ FATAL: Payment record NOT FOUND in DB', { subscriptionId, orderId: data.order_id });
-        // Self-Healing: If not found, create a placeholder payment? (Optional, skipping for now)
+        Logger.warn('[WEBHOOK TRACE] ⚠️ Payment record NOT FOUND in DB. Ignoring orphaned event.', { subscriptionId, orderId: data.order_id });
         return res.status(200).send('Payment not found');
     }
 
