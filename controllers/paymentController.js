@@ -222,9 +222,19 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
 
     // Correctly extract subscription_id based on event type
     let subscriptionId;
-    if (payload.payment && payload.payment.entity) {
-        subscriptionId = payload.payment.entity.subscription_id; 
-    } else {
+
+    // 1. Try from Payment Entity
+    if (payload.payment && payload.payment.entity && payload.payment.entity.subscription_id) {
+        subscriptionId = payload.payment.entity.subscription_id;
+    }
+    
+    // 2. Fallback: Try from Subscription Entity (Crucial for subscription.activated)
+    if (!subscriptionId && payload.subscription && payload.subscription.entity) {
+        subscriptionId = payload.subscription.entity.id;
+    }
+
+    // 3. Final Fallback
+    if (!subscriptionId) {
         subscriptionId = data.subscription_id || data.id;
     }
     
