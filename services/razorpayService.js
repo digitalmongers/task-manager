@@ -120,6 +120,20 @@ class RazorpayService {
   }
 
   /**
+   * Fetch invoices for a subscription
+   */
+  async getSubscriptionInvoices(subscriptionId) {
+    try {
+      return await this.instance.invoices.all({
+        subscription_id: subscriptionId,
+      });
+    } catch (error) {
+      Logger.error('Failed to fetch subscription invoices', { subscriptionId, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
    * Create Razorpay Invoice for a captured payment
    */
   async createInvoice(user, payment) {

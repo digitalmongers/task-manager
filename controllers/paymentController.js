@@ -358,15 +358,59 @@ export const getInvoice = expressAsyncHandler(async (req, res) => {
   }
 
   if (!payment.invoiceUrl) {
-    // If invoice doesn't exist, try to create it now (fallback)
-    const user = await User.findById(userId);
-    const invoice = await RazorpayService.createInvoice(user, payment);
-    if (invoice) {
-      payment.razorpayInvoiceId = invoice.id;
-      payment.invoiceUrl = invoice.short_url;
+    let invoiceUrl = null;
+    let invoiceId = null;
+
+    // A. For Subscriptions: Fetch the auto-generated invoice
+    if (payment.razorpaySubscriptionId) {
+      try {
+        const invoices = await RazorpayService.getSubscriptionInvoices(payment.razorpaySubscriptionId);
+        
+        // Find the invoice corresponding to this payment (or the latest paid one)
+        // Ideally match by order_id, but subscription invoices might not always link clearly.
+        // We prioritize 'paid' status and proximity to payment date.
+        if (invoices && invoices.items && invoices.items.length > 0) {
+           const match = invoices.items.find(inv => 
+             inv.order_id === payment.razorpayOrderId || inv.status === 'paid'
+           );
+           
+           if (match) {
+             invoiceUrl = match.short_url;
+             invoiceId = match.id;
+             Logger.info('Found existing subscription invoice', { invoiceId, paymentId: payment._id });
+           }
+        }
+      } catch (err) {
+        Logger.warn('Failed to fetch subscription invoices', { error: err.message });
+      }
+    }
+
+    // B. Fallback: If not found, try create (Caution: Creates unpaid invoice)
+    if (!invoiceUrl) {
+       // Only create if we are desperate, but user complained about "Proceed to Pay".
+       // If it's a subscription and we didn't find a paid invoice, it might mean payment failed 
+       // or Razorpay hasn't generated it yet. 
+       // Creating a new one creates a DUPLICATE demand for payment.
+       // Better to NOT create if it's a subscription.
+       if (payment.razorpaySubscriptionId) {
+          throw ApiError.notFound('Invoice not available yet from payment provider. Please wait for the system to sync.');
+       }
+
+       // For One-time orders, we might still need to create one if not exists
+       const user = await User.findById(userId);
+       const invoice = await RazorpayService.createInvoice(user, payment);
+       if (invoice) {
+         invoiceId = invoice.id;
+         invoiceUrl = invoice.short_url;
+       }
+    }
+
+    if (invoiceUrl) {
+      payment.razorpayInvoiceId = invoiceId;
+      payment.invoiceUrl = invoiceUrl;
       await payment.save();
     } else {
-      throw ApiError.internal('Invoice not available yet. Please try again later.');
+      throw ApiError.internal('Invoice could not be retrieved.');
     }
   }
 
