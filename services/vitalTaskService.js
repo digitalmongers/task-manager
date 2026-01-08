@@ -469,16 +469,20 @@ class VitalTaskService {
       if (vitalTask.isCompleted) {
         // Fetch collaborators
         const collaborators = await CollaborationRepository.getVitalTaskCollaborators(taskId, 'active');
-        const teamMembers = collaborators.map(c => ({ member: c.collaborator }));
+        const recipientIds = collaborators.map(c => c.collaborator._id || c.collaborator);
         
         // Add owner if needed
-        if (vitalTask.user && !teamMembers.some(m => m.member._id.toString() === vitalTask.user.toString())) {
-             const ownerUser = await (await import('../models/User.js')).default.findById(vitalTask.user);
-             if (ownerUser) teamMembers.push({ member: ownerUser });
+        if (vitalTask.user && !recipientIds.some(id => id.toString() === vitalTask.user.toString())) {
+             recipientIds.push(vitalTask.user);
         }
         
-        const completer = await (await import('../models/User.js')).default.findById(userId);
-        await NotificationService.notifyVitalTaskCompleted(vitalTask, completer, teamMembers);
+        // Filter out the person who completed it
+        const finalRecipients = recipientIds.filter(id => id.toString() !== userId.toString());
+
+        if (finalRecipients.length > 0) {
+          const completer = await (await import('../models/User.js')).default.findById(userId);
+          await NotificationService.notifyVitalTaskCompleted(vitalTask, completer, finalRecipients);
+        }
       }
 
       return {
