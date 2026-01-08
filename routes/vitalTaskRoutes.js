@@ -9,8 +9,7 @@ import {
   invalidateCache,
 } from '../middlewares/cacheMiddleware.js';
 import {
-  createVitalTaskSchema,
-  updateVitalTaskSchema,
+  vitalTaskValidation,
 } from '../validators/vitalTask.validation.js';
 import { 
   canAccessVitalTask, 
@@ -73,7 +72,7 @@ router.post(
   '/',
   vitalTaskLimiter,
   upload.single('image'),
-  validate(createVitalTaskSchema),
+  validate(vitalTaskValidation.createVitalTask),
   // Invalidate all vital task caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
   asyncHandler(VitalTaskController.createVitalTask)
@@ -122,7 +121,7 @@ router.patch(
   vitalTaskLimiter,
   canEditVitalTask,
   upload.single('image'),
-  validate(updateVitalTaskSchema),
+  validate(vitalTaskValidation.updateVitalTask),
   // Invalidate all caches for this user
   invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
   asyncHandler(VitalTaskController.updateVitalTask)

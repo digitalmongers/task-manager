@@ -55,6 +55,13 @@ export const taskValidation = {
         .messages({
           'boolean.base': 'isCompleted must be a boolean value',
         }),
+      
+      steps: Joi.alternatives().try(
+        Joi.array().items(Joi.any()),
+        Joi.string().allow('', null)
+      ).messages({
+        'alternatives.types': 'Steps must be an array or a string',
+      }),
     }),
   },
 
@@ -118,6 +125,13 @@ export const taskValidation = {
         .messages({
           'boolean.base': 'isCompleted must be a boolean value',
         }),
+
+      steps: Joi.alternatives().try(
+        Joi.array().items(Joi.any()),
+        Joi.string().allow('', null)
+      ).messages({
+        'alternatives.types': 'Steps must be an array or a string',
+      }),
     })
   },
 
