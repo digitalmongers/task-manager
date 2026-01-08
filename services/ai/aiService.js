@@ -209,6 +209,8 @@ class AIService {
         _id: user._id,
         usedBoosts: user.usedBoosts,
         totalBoosts: user.totalBoosts,
+        monthlyUsedBoosts: user.monthlyUsedBoosts,
+        monthlyLimit: plan.monthlyBoosts,
         aiUsageBlocked: user.aiUsageBlocked
       });
 

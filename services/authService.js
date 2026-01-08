@@ -7,6 +7,7 @@ import { HTTP_STATUS } from "../config/constants.js";
 import SessionService from "./sessionService.js";
 import SecurityService from "./securityService.js";
 import RequestInfoService from "./requestInfoService.js";
+import { PLAN_LIMITS } from "../config/aiConfig.js";
 
 class AuthService {
   /**
@@ -113,8 +114,8 @@ class AuthService {
     // This ensures users who accepted invitations anonymously get linked
     await this.handlePendingInvitation(user, invitationToken);
 
-    // Return user without password
-    const userResponse = user.toObject();
+    // Return enriched user without password
+    const userResponse = this._enrichUserWithBoosts(user);
     delete userResponse.password;
 
     return {
@@ -469,8 +470,8 @@ class AuthService {
       );
     }
 
-    // Return user without password
-    const userResponse = user.toObject();
+    // Return enriched user without password
+    const userResponse = this._enrichUserWithBoosts(user);
     delete userResponse.password;
     delete userResponse.emailVerificationToken;
     delete userResponse.emailVerificationExpires;
@@ -867,8 +868,8 @@ class AuthService {
       throw ApiError.notFound("User not found");
     }
 
-    // Remove sensitive fields
-    const userResponse = user.toObject();
+    // Enrich and remove sensitive fields
+    const userResponse = this._enrichUserWithBoosts(user);
     delete userResponse.password;
     delete userResponse.passwordHistory;
     delete userResponse.emailVerificationToken;
@@ -1292,8 +1293,8 @@ class AuthService {
         });
       });
 
-      // Remove sensitive fields
-      const userResponse = user.toObject();
+      // Enrich and remove sensitive fields
+      const userResponse = this._enrichUserWithBoosts(user);
       delete userResponse.password;
       delete userResponse.passwordHistory;
       delete userResponse.googleId;
@@ -1437,7 +1438,8 @@ class AuthService {
         });
       });
 
-      const userResponse = user.toObject();
+      // Enrich and remove sensitive fields
+      const userResponse = this._enrichUserWithBoosts(user);
       delete userResponse.password;
       delete userResponse.passwordHistory;
       delete userResponse.facebookId;
@@ -1538,6 +1540,31 @@ class AuthService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Enrich user response with boost summary for frontend display
+   */
+  _enrichUserWithBoosts(user) {
+    const userObj = user.toObject ? user.toObject() : user;
+    const plan = PLAN_LIMITS[userObj.plan || 'FREE'] || PLAN_LIMITS.FREE;
+    
+    // Calculate Next Reset Date
+    const lastReset = userObj.lastMonthlyReset || userObj.createdAt || new Date();
+    const nextReset = new Date(lastReset);
+    nextReset.setDate(nextReset.getDate() + 30);
+
+    userObj.boosts = {
+      total: userObj.totalBoosts,
+      remaining: Math.max(0, userObj.totalBoosts - userObj.usedBoosts),
+      monthlyLimit: plan.monthlyBoosts,
+      monthlyUsed: userObj.monthlyUsedBoosts || 0,
+      monthlyRemaining: Math.max(0, plan.monthlyBoosts - (userObj.monthlyUsedBoosts || 0)),
+      nextResetDate: nextReset,
+      isMonthlyLimitReached: (userObj.monthlyUsedBoosts || 0) >= plan.monthlyBoosts
+    };
+
+    return userObj;
   }
 }
 
