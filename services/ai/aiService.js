@@ -36,6 +36,7 @@ import { PLAN_LIMITS, AI_CONSTANTS } from '../../config/aiConfig.js';
 import { countTokens, compressPrompt } from '../../utils/aiTokenUtils.js';
 import ApiError from '../../utils/ApiError.js';
 import cacheService from '../cacheService.js';
+import WebSocketService from '../../config/websocket.js';
 class AIService {
   constructor() {
     this.openai = openai;
@@ -174,6 +175,14 @@ class AIService {
 
       // Invalidate user cache to reflect new boost count immediately
       await cacheService.deletePattern(`user:${userId}:*`);
+
+      // Real-time Update via WebSocket (New)
+      WebSocketService.sendToUser(userId, 'user:updated', {
+        _id: user._id,
+        usedBoosts: user.usedBoosts,
+        totalBoosts: user.totalBoosts,
+        aiUsageBlocked: user.aiUsageBlocked
+      });
 
       await AIUsage.create({
         user: userId,
@@ -474,16 +483,29 @@ class AIService {
    */
   async getTaskInsights(userId) {
     try {
-      // Get user's tasks
+      // Get user's tasks (Regular)
       const tasks = await Task.find({ user: userId, isDeleted: false })
         .select('title description isCompleted dueDate priority status category createdAt completedAt')
         .populate('category', 'title')
         .populate('priority', 'name')
         .populate('status', 'name')
-        .limit(50)
+        .sort({ updatedAt: -1 })
+        .limit(30)
         .lean();
 
-      if (tasks.length === 0) {
+      // Get user's Vital Tasks
+      const vitalTasks = await VitalTask.find({ user: userId, isDeleted: false })
+        .select('title description isCompleted dueDate priority status createdAt completedAt')
+        .limit(20)
+        .lean();
+
+      // Combine them (mark vital tasks for context)
+      const allTasks = [
+        ...tasks.map(t => ({ ...t, type: 'Regular' })),
+        ...vitalTasks.map(t => ({ ...t, type: 'Vital', priority: { name: 'Urgent' } })) // Vital tasks are inherently urgent
+      ];
+
+      if (allTasks.length === 0) {
         return {
           insights: ['No tasks found. Create some tasks to get insights!'],
           recommendations: [],
@@ -491,7 +513,7 @@ class AIService {
         };
       }
 
-      const prompt = INSIGHTS_PROMPTS.ANALYZE_TASKS(tasks);
+      const prompt = INSIGHTS_PROMPTS.ANALYZE_TASKS(allTasks);
 
       const response = await this.run({
         userId,
@@ -502,7 +524,7 @@ class AIService {
 
       const insights = parseJSONResponse(response);
 
-      Logger.info('Task insights generated', { userId, taskCount: tasks.length });
+      Logger.info('Task insights generated', { userId, taskCount: allTasks.length });
 
       return insights;
     } catch (error) {
@@ -654,16 +676,21 @@ class AIService {
       .lean();
 
       // Filter to only high/urgent normal tasks if priority is populated
-      const filteredNormal = normalTasks.filter(t => 
+      let finalTasksToPlan = normalTasks.filter(t => 
         !t.priority || ['high', 'urgent', 'High', 'Urgent'].includes(t.priority.name)
       );
 
-      if (vitalTasks.length === 0 && filteredNormal.length === 0) {
-        return { error: 'No active Vital or High-Priority tasks found to plan against.' };
+      // FALLBACK: If no high priority tasks found, but we have normal tasks, use them!
+      if (finalTasksToPlan.length === 0 && normalTasks.length > 0) {
+         finalTasksToPlan = normalTasks;
+      }
+
+      if (vitalTasks.length === 0 && finalTasksToPlan.length === 0) {
+        return { error: 'No active tasks found to generate a plan. Create some tasks first!' };
       }
 
       // 3. Call AI
-      const prompt = INSIGHTS_PROMPTS.STRATEGIC_PLAN(vitalTasks, filteredNormal);
+      const prompt = INSIGHTS_PROMPTS.STRATEGIC_PLAN(vitalTasks, finalTasksToPlan);
       const response = await this.run({
         userId,
         feature: 'AI_PLANNER',
@@ -685,7 +712,7 @@ class AIService {
         focusSummary: planData.focusArea,
         sourceTasks: [
           ...vitalTasks.map(t => ({ taskId: t._id, taskModel: 'VitalTask', title: t.title })),
-          ...filteredNormal.map(t => ({ taskId: t._id, taskModel: 'Task', title: t.title }))
+          ...finalTasksToPlan.map(t => ({ taskId: t._id, taskModel: 'Task', title: t.title }))
         ],
         expiresAt
       });

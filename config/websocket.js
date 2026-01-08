@@ -86,7 +86,14 @@ class WebSocketService {
       
       this.subClient.on('message', (channel, message) => {
         try {
-          const { event, data, userId, taskId, room } = JSON.parse(message);
+          const parsedMessage = JSON.parse(message);
+          const { event, data, userId, taskId, room, serverId } = parsedMessage;
+
+          // Ignore messages originating from this server instance to prevent duplication
+          if (serverId === this.serverId) {
+            return;
+          }
+
           if (userId) {
             this.io.to(`user:${userId}`).emit(event, data);
           } else if (taskId) {
@@ -358,7 +365,7 @@ class WebSocketService {
     try {
       // Broadcast to a global user channel so all instances where the user is connected receive it
       redisClient.publish('relay:global_user', JSON.stringify({
-        userId, event, data
+        userId, event, data, serverId: this.serverId
       }));
     } catch (e) {
       Logger.error('User relay failed', { error: e.message, userId });
@@ -390,7 +397,7 @@ class WebSocketService {
     
     // Broadcast to all servers via global relay channel
     redisClient.publish('relay:global_chat', JSON.stringify({
-      event, data, taskId
+      event, data, taskId, serverId: this.serverId
     }));
 
     return true;
