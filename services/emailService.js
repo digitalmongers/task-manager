@@ -3946,7 +3946,7 @@ async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
           <div class="header">
             <div class="header-branding">
               <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>Purchase Confirmed! 🎉</h1>
+              <h1>Purchase Confirmed!</h1>
             </div>
           </div>
           <div class="content">
@@ -3977,7 +3977,7 @@ async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
   `;
 
   const text = `
-    Purchase Confirmed! 🎉
+    Purchase Confirmed!
     
     Hello ${user.firstName},
     
@@ -4005,7 +4005,7 @@ async sendAdminPlanPurchaseNotification(user, planKey, billingCycle, amount) {
   const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM;
   
   const html = `
-    <h2>New Subscription! 🚀</h2>
+    <h2>New Subscription! </h2>
     <p>A user has just purchased a new plan.</p>
     <ul>
       <li><strong>User:</strong> ${user.firstName} ${user.lastName} (${user.email})</li>
@@ -4054,7 +4054,7 @@ async sendBoostExhaustionEmail(user) {
           <div class="header">
             <div class="header-branding">
               <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>Action Required: AI Boosts Exhausted ⚡</h1>
+              <h1>Action Required: AI Boosts Exhausted</h1>
             </div>
           </div>
           <div class="content">
@@ -4069,7 +4069,7 @@ async sendBoostExhaustionEmail(user) {
             <p>To continue using AI features without interruption, you can upgrade to a higher plan or wait for your boosts to reset.</p>
             
             <div class="button-container">
-              <a href="${process.env.FRONTEND_URL.split(',')[0].trim()}/billing" class="button">View Plans & Upgrade</a>
+              <a href="${process.env.FRONTEND_URL.split(',')[0].trim()}/pricing" class="button">View Plans & Upgrade</a>
             </div>
 
             <p>Best regards,<br><strong>The Tasskr Team</strong></p>
@@ -4083,12 +4083,12 @@ async sendBoostExhaustionEmail(user) {
   `;
 
   const text = `
-    AI Boosts Exhausted! ⚡
+    AI Boosts Exhausted!
     
     Hello ${user.firstName},
     
     You have used all your AI boosts for this month. AI features will be limited until your next cycle.
-    Upgrade your plan to get more boosts: ${process.env.FRONTEND_URL.split(',')[0].trim()}/billing
+    Upgrade your plan to get more boosts: ${process.env.FRONTEND_URL.split(',')[0].trim()}/pricing
     
     Best regards,
     The Tasskr Team
@@ -4096,7 +4096,7 @@ async sendBoostExhaustionEmail(user) {
 
   return await this.sendEmail({
     to: user.email,
-    subject: 'AI Boosts Exhausted - Upgrade for More! ⚡',
+    subject: 'AI Boosts Exhausted - Upgrade for More!',
     html,
     text,
   });
@@ -4127,7 +4127,7 @@ async sendSubscriptionExpiryReminder(user, daysRemaining) {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Subscription Expiry Reminder ⏳</h1>
+            <h1>Subscription Expiry Reminder</h1>
           </div>
           <div class="content">
             <p>Hello ${user.firstName},</p>

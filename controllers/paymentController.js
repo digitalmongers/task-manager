@@ -261,9 +261,7 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
 
     Logger.info(`[WEBHOOK TRACE] ✅ Payment Record FOUND: ${payment._id}`, { currentStatus: payment.status, user: payment.user });
 
-    if (payment.status === 'captured') {
-        Logger.info('[WEBHOOK TRACE] ⚠️ Payment is ALREADY CAPTURED. Logic ensures plan is synced, but this might be a duplicate event.');
-    }
+    const isAlreadyCaptured = payment.status === 'captured';
 
     Logger.info(`[WEBHOOK TRACE] Updating Payment Status to 'captured' and saving...`);
     payment.status = 'captured';
@@ -272,13 +270,14 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     await payment.save();
     Logger.info(`[WEBHOOK TRACE] ✅ Payment Saved Successfully.`);
 
-    Logger.info(`[WEBHOOK TRACE] triggers User Plan Upgrade...`);
-    const userIdStr = payment.user.toString();
-    Logger.info(`[WEBHOOK TRACE] Passing UserID to Service: '${userIdStr}' (Original Type: ${typeof payment.user})`);
-    
-    await SubscriptionService.upgradeUserPlan(userIdStr, payment.plan, payment.billingCycle);
-    Logger.info(`[WEBHOOK TRACE] ✅ User Plan Upgrade Function Completed.`);
+    if (!isAlreadyCaptured) {
+      Logger.info(`[WEBHOOK TRACE] triggers User Plan Upgrade...`);
+      const userIdStr = payment.user.toString();
+      Logger.info(`[WEBHOOK TRACE] Passing UserID to Service: '${userIdStr}' (Original Type: ${typeof payment.user})`);
       
+      await SubscriptionService.upgradeUserPlan(userIdStr, payment.plan, payment.billingCycle);
+      Logger.info(`[WEBHOOK TRACE] ✅ User Plan Upgrade Function Completed.`);
+        
       const user = await User.findById(payment.user);
       if (user) {
         Logger.info(`[WEBHOOK TRACE] Generating Invoice for User: ${user._id}`);
@@ -300,6 +299,9 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
         }
       }
       Logger.info('[WEBHOOK TRACE] 🎉 FULL SUCCESS: Webhook processing completed perfectly.', { userId: payment.user, event });
+    } else {
+      Logger.info('[WEBHOOK TRACE] ⚠️ Skipping plan upgrade and notifications as they were already processed for this payment.', { subscriptionId, event });
+    }
   }
 
   // 3. Subscription Cancelled
