@@ -35,8 +35,22 @@ class TaskService {
       }
 
       // Parse steps using robust logic (handles stringified JSON, real arrays, or mixed)
-      const parsedSteps = this._parseSteps(steps);
-      Logger.debug('Parsed steps for task creation', { count: parsedSteps.length, taskId: null });
+    Logger.info('[TASK CREATE] Raw steps received', { 
+      steps, 
+      stepsType: typeof steps,
+      isArray: Array.isArray(steps),
+      userId,
+      taskTitle: title
+    });
+    
+    const parsedSteps = this._parseSteps(steps);
+    
+    Logger.info('[TASK CREATE] Steps after parsing', { 
+      parsedSteps, 
+      count: parsedSteps.length,
+      userId,
+      taskTitle: title
+    });
 
       // Create task
       const task = await TaskRepository.createTask(
@@ -316,27 +330,57 @@ class TaskService {
       }
 
       // Robust steps parsing for updates
-      if (updateData.steps) {
-        if (typeof updateData.steps === 'string') {
-          try {
-            const parsed = JSON.parse(updateData.steps);
-            updateData.steps = Array.isArray(parsed) ? parsed : [parsed];
-          } catch (e) {
-            // Keep as is, let Mongoose handle
-          }
-        } else if (Array.isArray(updateData.steps)) {
-          updateData.steps = updateData.steps.map(s => {
-            if (typeof s === 'string') {
-              try { return JSON.parse(s); } catch (e) { return s; }
-            }
-            return s;
-          });
-        }
-      }
+    if (updateData.steps !== undefined) {
+      Logger.info('[TASK UPDATE] Raw steps received', {
+        steps: updateData.steps,
+        stepsType: typeof updateData.steps,
+        isArray: Array.isArray(updateData.steps),
+        userId,
+        taskId
+      });
 
-      // Update task using set() for better Mongoose casting behavior
-      task.set(updateData);
-      await task.save();
+      if (typeof updateData.steps === 'string') {
+        try {
+          const parsed = JSON.parse(updateData.steps);
+          updateData.steps = Array.isArray(parsed) ? parsed : [parsed];
+          Logger.info('[TASK UPDATE] Parsed string steps to array', {
+            parsedSteps: updateData.steps,
+            count: updateData.steps.length,
+            taskId
+          });
+        } catch (e) {
+          Logger.warn('[TASK UPDATE] Failed to parse steps string', {
+            error: e.message,
+            stepsValue: updateData.steps,
+            taskId
+          });
+          // Keep as is, let Mongoose handle
+        }
+      } else if (Array.isArray(updateData.steps)) {
+        updateData.steps = updateData.steps.map(s => {
+          if (typeof s === 'string') {
+            try { return JSON.parse(s); } catch (e) { return s; }
+          }
+          return s;
+        });
+        Logger.info('[TASK UPDATE] Processed array steps', {
+          processedSteps: updateData.steps,
+          count: updateData.steps.length,
+          taskId
+        });
+      }
+    }
+
+    // Update task using set() for better Mongoose casting behavior
+    task.set(updateData);
+    await task.save();
+      
+      Logger.info('[TASK UPDATE] Task saved to database', {
+        taskId: task._id,
+        stepsInDb: task.steps,
+        stepsCount: task.steps?.length || 0,
+        userId
+      });
       
       // Populate
       await task.populate([
@@ -344,6 +388,13 @@ class TaskService {
         { path: 'status', select: 'name color' },
         { path: 'priority', select: 'name color' },
       ]);
+
+      Logger.info('[TASK UPDATE] Task after populate', {
+        taskId: task._id,
+        stepsAfterPopulate: task.steps,
+        stepsCount: task.steps?.length || 0,
+        userId
+      });
 
       // Handle image upload if file exists
       if (file) {
