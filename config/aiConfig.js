@@ -1,15 +1,15 @@
 export const PLAN_LIMITS = {
   FREE: {
-    monthlyBoosts: 20,
+    monthlyBoosts: 100,
     maxBoostsPerRequest: 1,
     maxOutputTokens: 1000, // Increased from 300 to 1000 to prevent truncation
-    aiFeatures: ["TASK_SUGGESTION"],
+    aiFeatures: ["TASK_SUGGESTION", "VOICE_TASK", "AI_INSIGHTS", "AI_PLANNER"],
     maxCollaborators: 1,
     pricing: { monthly: 0, yearly: 0 }
   },
 
   STARTER: {
-    monthlyBoosts: 200,
+    monthlyBoosts: 1000,
     maxBoostsPerRequest: 1,
     maxOutputTokens: 1000, // Increased from 600 to 1000
     aiFeatures: ["TASK_SUGGESTION", "VOICE_TASK", "CHAT"],
@@ -18,7 +18,7 @@ export const PLAN_LIMITS = {
   },
 
   PRO: {
-    monthlyBoosts: 800,
+    monthlyBoosts: 2000,
     maxBoostsPerRequest: 2,
     maxOutputTokens: 1000,
     aiFeatures: ["TASK_SUGGESTION", "VOICE_TASK", "AI_INSIGHTS", "AI_PLANNER", "CHAT"],
@@ -27,7 +27,7 @@ export const PLAN_LIMITS = {
   },
 
   TEAM: {
-    monthlyBoosts: 3000,
+    monthlyBoosts: 4500,
     maxBoostsPerRequest: 3,
     maxOutputTokens: 1500,
     aiFeatures: ["ALL"],
