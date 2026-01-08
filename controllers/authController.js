@@ -189,20 +189,32 @@ class AuthController {
 
     const result = await AuthService.deleteAccount(req.user._id, password, req);
 
-    // Clear cookies
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
+    // Clear cookies with full security options
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    };
+
+    res.clearCookie("token", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
 
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }
 
   
   async logout(req, res) {
-    const result = await AuthService.logout(req.user._id, req);
+    const result = await AuthService.logout(req.user._id, req.sessionId, req);
 
-    // Clear cookies
-    res.clearCookie("token");
-    res.clearCookie("refreshToken");
+    // Clear cookies with full security options
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    };
+
+    res.clearCookie("token", cookieOptions);
+    res.clearCookie("refreshToken", cookieOptions);
 
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message);
   }

@@ -129,21 +129,26 @@ class SessionService {
         return false;
       }
 
-      // Update last active timestamp
-      parsed.lastActive = new Date().toISOString();
-      await redisClient.setex(sessionKey, SESSION_TTL, JSON.stringify(parsed));
+      // Update last active timestamp (Throttle: only if > 1 minute has passed)
+      const lastActive = new Date(parsed.lastActive);
+      const now = new Date();
+      const diffMs = now - lastActive;
+      
+      if (diffMs > 60000) { // 1 minute throttle
+        parsed.lastActive = now.toISOString();
+        await redisClient.setex(sessionKey, SESSION_TTL, JSON.stringify(parsed));
+      }
 
       return true;
     } catch (error) {
-      Logger.error('Session validation error', {
+      Logger.error('Session validation error - FAIL-OPEN triggered', {
         userId,
         sessionId: sessionId?.substring(0, 8) + '...',
         error: error.message,
       });
-      // Fail-open: If Redis is down, don't block all requests
-      // This is a trade-off between availability and security
-      // In production, you might want to fail-closed instead
-      return false;
+      // Fail-open: If Redis is down, don't block all requests. 
+      // The JWT is already verified by authMiddleware before calling this.
+      return true;
     }
   }
 

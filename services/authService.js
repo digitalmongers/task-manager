@@ -23,9 +23,9 @@ class AuthService {
     );
   }
 
-  generateRefreshToken(userId) {
+  generateRefreshToken(userId, sessionId) {
     return jwt.sign(
-      { userId, type: "refresh" },
+      { userId, sid: sessionId, type: "refresh" },
       process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
       { expiresIn: "30d" }
     );
@@ -427,7 +427,7 @@ class AuthService {
     });
 
     const token = this.generateToken(user._id, sessionId, rememberMe);
-    const refreshToken = this.generateRefreshToken(user._id);
+    const refreshToken = this.generateRefreshToken(user._id, sessionId);
 
     // Record login activity
     await SecurityService.recordLoginAttempt({
@@ -1190,7 +1190,17 @@ class AuthService {
   /**
    * Logout user
    */
-  async logout(userId, req) {
+  async logout(userId, sessionId, req) {
+    if (sessionId) {
+      await SessionService.revokeSession(userId, sessionId).catch(error => {
+        Logger.error("Failed to revoke session during logout", {
+          userId,
+          sessionId: sessionId.substring(0, 8) + '...',
+          error: error.message,
+        });
+      });
+    }
+
     Logger.logAuth("USER_LOGOUT", userId, {
       ip: req.ip,
       userAgent: req.get("user-agent"),
@@ -1230,9 +1240,9 @@ class AuthService {
         throw ApiError.unauthorized("Account is not active");
       }
 
-      // Generate new tokens
-      const token = this.generateToken(user._id);
-      const newRefreshToken = this.generateRefreshToken(user._id);
+      // Generate new tokens (Preserve session ID)
+      const token = this.generateToken(user._id, decoded.sid);
+      const newRefreshToken = this.generateRefreshToken(user._id, decoded.sid);
 
       return {
         token,
@@ -1276,7 +1286,7 @@ class AuthService {
 
       // Generate tokens with sessionId
       const token = this.generateToken(user._id, sessionId, rememberMe);
-      const refreshToken = this.generateRefreshToken(user._id);
+      const refreshToken = this.generateRefreshToken(user._id, sessionId);
 
       // Record login activity
       await SecurityService.recordLoginAttempt({
@@ -1421,7 +1431,7 @@ class AuthService {
       });
 
       const token = this.generateToken(user._id, sessionId, rememberMe);
-      const refreshToken = this.generateRefreshToken(user._id);
+      const refreshToken = this.generateRefreshToken(user._id, sessionId);
 
       // Record login activity
       await SecurityService.recordLoginAttempt({
