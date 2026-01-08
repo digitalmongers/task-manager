@@ -226,7 +226,7 @@ const userSchema = new mongoose.Schema(
     },
     totalBoosts: {
       type: Number,
-      default: 20, // Default for FREE plan
+      default: 100, // Default for FREE plan
     },
     usedBoosts: {
       type: Number,
