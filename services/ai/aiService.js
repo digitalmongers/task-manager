@@ -56,12 +56,34 @@ class AIService {
     const user = await User.findById(userId);
     if (!user) throw ApiError.notFound('User not found');
 
-    // 1. Plan Enforcement: Check if AI usage is blocked
     if (user.aiUsageBlocked) {
       throw ApiError.forbidden('AI usage limit reached for your plan. Upgrade for more boosts.');
     }
 
     const plan = PLAN_LIMITS[user.plan];
+
+    // --- NEW: Lazy Monthly Reset Check ---
+    // If it's been more than 30 days since the last monthly reset, reset the monthly counter.
+    // This ensures 'Yearly' plan users get a fresh 'monthly' batch of usage authorization.
+    const now = new Date();
+    const lastReset = user.lastMonthlyReset || user.createdAt; // Fallback
+    const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+
+    if (now - lastReset > thirtyDaysInMs) {
+      user.monthlyUsedBoosts = 0;
+      user.lastMonthlyReset = now;
+      
+      // AUTO-REFILL FOR FREE PLAN: Give them a fresh batch of 20 boosts
+      if (user.plan === 'FREE') {
+          user.usedBoosts = 0;
+          user.aiUsageBlocked = false;
+          Logger.info('Free plan boosts auto-refilled', { userId });
+      }
+
+      await user.save();
+      Logger.info('Monthly boost usage reset', { userId });
+    }
+    // -------------------------------------
     
     // 2. Feature Access Enforcement: Check if user has access to this specific feature
     if (!plan.aiFeatures.includes(feature) && !plan.aiFeatures.includes('ALL')) {
@@ -118,6 +140,11 @@ class AIService {
       throw new Error('You have reached your monthly AI boost limit. Please upgrade or wait for the next billing cycle.');
     }
 
+    // Check Monthly Cap (Vital for Yearly Plans)
+    if (user.monthlyUsedBoosts + potentialBoosts > plan.monthlyBoosts) {
+       throw new Error(`You have reached your monthly limit of ${plan.monthlyBoosts} boosts. Your yearly plan gives you more, but they are released monthly. Please wait for your next month's cycle.`);
+    }
+
     // Check maxBoostsPerRequest (Potential boosts)
     if (potentialBoosts > plan.maxBoostsPerRequest) {
       throw new Error(`This request might exceed your plan's boost limit per request. Please shorten your input.`);
@@ -171,6 +198,7 @@ class AIService {
 
       // 7. Deduct boosts and Log
       user.usedBoosts += boostsUsed;
+      user.monthlyUsedBoosts = (user.monthlyUsedBoosts || 0) + boostsUsed; // Increment monthly counter
       await user.save();
 
       // Invalidate user cache to reflect new boost count immediately
@@ -589,6 +617,13 @@ class AIService {
           .lean();
           
         if (!targetTask) {
+          // Check VitalTask if not found in Task
+          targetTask = await VitalTask.findOne({ _id: taskId, user: userId })
+             .select('title description priority')
+             .lean();
+        }
+
+        if (!targetTask) {
           throw new Error('Task not found');
         }
       } else if (typeof taskId === 'object' && taskId !== null) {
@@ -598,15 +633,28 @@ class AIService {
          throw new Error('Invalid task identifier or draft data');
       }
 
-      // Get all user tasks
-      const allTasks = await Task.find({
+      // Get all user tasks (Regular)
+      const regularTasks = await Task.find({
         user: userId,
-        _id: { $ne: targetTask._id }, // Exclude itself if it exists (for drafts _id might be undefined, which is fine)
+        _id: { $ne: targetTask._id }, 
         isDeleted: false,
       })
-        .select('title description category priority')
-        .limit(20)
-        .lean();
+      .select('title description category priority')
+      .limit(20)
+      .lean();
+
+      // Get user's Vital Tasks
+      const vitalTasks = await VitalTask.find({ 
+        user: userId, 
+        _id: { $ne: targetTask._id }, 
+        isDeleted: false 
+      })
+      .select('title description priority')
+      .limit(10)
+      .lean();
+
+      // Combine for comparison
+      const allTasks = [...regularTasks, ...vitalTasks];
 
       const prompt = SIMILARITY_PROMPTS.FIND_SIMILAR(targetTask, allTasks);
 

@@ -4,10 +4,13 @@ import { protect } from '../middlewares/authMiddleware.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import upload from '../middlewares/upload.js';
 
+import { requireFeature } from '../middlewares/featureMiddleware.js';
+
 const router = express.Router();
 
-// All chat routes require authentication
+// All chat routes require authentication AND 'CHAT' feature access
 router.use(protect);
+router.use(requireFeature('CHAT'));
  
 router.get('/sync', asyncHandler(chatController.syncMessages));
 router.get('/:taskId/history', asyncHandler(chatController.getHistory));

@@ -232,6 +232,15 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // Track usage within the current billing month (vital for Yearly plans)
+    monthlyUsedBoosts: {
+      type: Number,
+      default: 0,
+    },
+    lastMonthlyReset: {
+      type: Date,
+      default: Date.now,
+    },
     aiUsageBlocked: {
       type: Boolean,
       default: false,

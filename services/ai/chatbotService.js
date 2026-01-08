@@ -155,7 +155,7 @@ Respond naturally and conversationally.`;
       // 5. Call AIService.run (Centralized enforcement & boost deduction)
       const assistantMessage = await AIService.run({
         userId,
-        feature: 'AI_CHAT',
+        feature: 'AI_CHATBOT',
         messages: messages
       });
 
@@ -239,7 +239,7 @@ Provide 3-5 quick action suggestions. Return as JSON array:
 
       const response = await AIService.run({
         userId,
-        feature: 'AI_CHAT',
+        feature: 'AI_CHATBOT',
         prompt,
         systemPrompt: 'You are a helpful task assistant.'
       });

@@ -32,8 +32,15 @@ class SubscriptionService {
       user.currentPeriodEnd = expiryDate;
 
       // Reset/Update Boosts
-      user.totalBoosts = plan.monthlyBoosts;
-      user.usedBoosts = 0;
+      if (user.billingCycle === 'YEARLY') {
+        user.totalBoosts = plan.monthlyBoosts * 12; // Yearly allocation
+      } else {
+        user.totalBoosts = plan.monthlyBoosts; // Monthly allocation
+      }
+      
+      user.usedBoosts = 0; // Total used in current period (Year or Month)
+      user.monthlyUsedBoosts = 0; // Reset monthly counter
+      user.lastMonthlyReset = new Date(); // Start of new monthly cycle
       user.aiUsageBlocked = false;
 
       await user.save();
