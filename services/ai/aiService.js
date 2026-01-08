@@ -35,6 +35,7 @@ import AIUsage from '../../models/AIUsage.js';
 import { PLAN_LIMITS, AI_CONSTANTS } from '../../config/aiConfig.js';
 import { countTokens, compressPrompt } from '../../utils/aiTokenUtils.js';
 import ApiError from '../../utils/ApiError.js';
+import cacheService from '../cacheService.js';
 class AIService {
   constructor() {
     this.openai = openai;
@@ -170,6 +171,9 @@ class AIService {
       // 7. Deduct boosts and Log
       user.usedBoosts += boostsUsed;
       await user.save();
+
+      // Invalidate user cache to reflect new boost count immediately
+      await cacheService.deletePattern(`user:${userId}:*`);
 
       await AIUsage.create({
         user: userId,
