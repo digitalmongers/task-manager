@@ -147,9 +147,16 @@ Provide weekly plan in JSON format:
 }
 `,
 
-  STRATEGIC_PLAN: (vitalTasks, normalTasks) => `
-You are an Enterprise Strategic Planner. Analyze this user's current workload and provide a High-Level Execution Strategy.
-Priority: ALWAYS focus on Vital Tasks first.
+  STRATEGIC_PLAN: (vitalTasks, normalTasks, stats, recents = []) => `
+You are an Enterprise Strategic Planner and Behavioral Coach. Analyze this user's current workload and past behavior to provide a High-Level Execution Strategy and Learning Insights.
+
+Workload Overview:
+- Total Pending Tasks: ${stats.totalPending}
+- Due Today: ${stats.dueToday}
+- Overdue: ${stats.overdue}
+
+Recently Completed tasks (Context for Learning):
+${recents.length > 0 ? JSON.stringify(recents.map(t => ({ title: t.title, completedAt: t.completedAt })), null, 2) : 'No recent completions found yet.'}
 
 Vital Tasks (Top Priority):
 ${JSON.stringify(vitalTasks, null, 2)}
@@ -157,8 +164,7 @@ ${JSON.stringify(vitalTasks, null, 2)}
 High-Priority Standard Tasks:
 ${JSON.stringify(normalTasks, null, 2)}
 
-Goal: Provide a cohesive strategy that balances urgency and long-term momentum. 
-Do NOT just list tasks. Provide a Narrative Strategy.
+Goal: Provide a cohesive strategy that balances urgency and long-term momentum, PLUS provide "Sticky" insights about what the AI has learned about their work habits today/recently.
 
 Respond in JSON format:
 {
@@ -169,8 +175,64 @@ Respond in JSON format:
     { "phase": "Immediate (Next 4h)", "actions": ["action 1", "action 2"] },
     { "phase": "Momentum (Rest of Day)", "actions": ["action 1"] }
   ],
-  "risks": ["Potential bottleneck 1", "Dependency risk 2"],
+  "risks": [
+    { "risk": "Potential bottleneck 1", "solution": "Actionable fix to mitigate risk 1" },
+    { "risk": "Dependency risk 2", "solution": "Actionable fix to mitigate risk 2" }
+  ],
+  "workloadInsight": {
+    "todayLoad": "Heavy|Medium|Light",
+    "focusQuality": "e.g., Low after 6 PM",
+    "recommendation": "e.g., Move planning tasks to tomorrow morning"
+  },
+  "learningInsights": [
+    "You work best in short bursts (observed from rapid completions)",
+    "You tend to delay communication tasks (observed from pending tasks)",
+    "Execution > Planning speed (observed from your pattern)"
+  ],
   "motivation": "A brief, professional encouragement"
+}
+`,
+
+  ALTERNATIVE_STRATEGY: (vitalTasks, normalTasks, stats) => `
+You are a CEO-level Strategic Advisor. Analyze the user's workload and provide THREE distinct alternative execution approaches.
+
+Workload Overview:
+- Total Pending Tasks: ${stats.totalPending}
+- Due Today: ${stats.dueToday}
+- Overdue: ${stats.overdue}
+
+Tasks to consider:
+Vital: ${JSON.stringify(vitalTasks.map(t => t.title))}
+Standard: ${JSON.stringify(normalTasks.map(t => t.title))}
+
+Provide 3 strategies in JSON format:
+{
+  "strategies": [
+    {
+      "type": "The Sprinter (Fast & High Risk)",
+      "title": "Aggressive Execution Plan",
+      "description": "Focus on rapid completion of high-impact tasks. High intensity, risk of burnout.",
+      "steps": ["Step 1", "Step 2"],
+      "riskLevel": "High",
+      "expectedOutcome": "80% completion of urgent tasks within 24h"
+    },
+    {
+      "type": "The Marathoner (Safe & Sustainable)",
+      "title": "Burnout-Proof Workflow",
+      "description": "Focus on sustainability and quality. Slower pace, but more reliable.",
+      "steps": ["Step 1", "Step 2"],
+      "riskLevel": "Low",
+      "expectedOutcome": "Consistent progress with 0% error rate"
+    },
+    {
+      "type": "The Orchestrator (Delegate & Distribute)",
+      "title": "Efficiency Optimization Strategy",
+      "description": "Focus on breaking down complex tasks and identifying what can be delayed or delegated.",
+      "steps": ["Step 1", "Step 2"],
+      "riskLevel": "Medium",
+      "expectedOutcome": "Systematic completion with minimal personal strain"
+    }
+  ]
 }
 `,
 

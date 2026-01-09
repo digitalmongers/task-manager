@@ -213,16 +213,23 @@ router.get(
   asyncHandler(aiController.getPlannerStrategy.bind(aiController))
 );
 
-/**
- * @route   POST /api/ai/planner/refresh
- * @desc    Force generate a new strategic plan
- * @access  Private
- */
 router.post(
   '/planner/refresh',
   protect,
   aiRateLimit,
   asyncHandler(aiController.refreshPlannerStrategy.bind(aiController))
+);
+
+/**
+ * @route   POST /api/ai/planner/alternative
+ * @desc    Get 3 distinct strategic alternatives
+ * @access  Private
+ */
+router.post(
+  '/planner/alternative',
+  protect,
+  aiRateLimit,
+  asyncHandler(aiController.getAlternativeStrategies.bind(aiController))
 );
 
 export default router;
