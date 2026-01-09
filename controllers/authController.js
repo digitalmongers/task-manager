@@ -220,7 +220,13 @@ class AuthController {
   }
 
     async refreshToken(req, res) {
-    const { refreshToken } = req.body || req.cookies;
+    let refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
+
+    // Fallback: Check Authorization header if not found in body/cookies.
+    // This is crucial for users with strict third-party cookie blocking (e.g., Chrome 143+).
+    if (!refreshToken && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      refreshToken = req.headers.authorization.split(' ')[1];
+    }
 
     if (!refreshToken) {
       throw ApiError.unauthorized("Refresh token is required");
