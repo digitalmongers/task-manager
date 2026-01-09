@@ -62,24 +62,32 @@ class AIService {
 
     const plan = PLAN_LIMITS[user.plan];
 
-    // --- NEW: Lazy Monthly Reset Check ---
-    // If it's been more than 30 days since the last monthly reset, reset the monthly counter.
-    // This ensures 'Yearly' plan users get a fresh 'monthly' batch of usage authorization.
+    // --- NEW: Trial & Monthly Reset Check ---
     const now = new Date();
-    const lastReset = user.lastMonthlyReset || user.createdAt; // Fallback
+    const createdAt = user.createdAt || now;
+    const daysSinceCreation = (now - createdAt) / (1000 * 60 * 60 * 24);
+
+    // 1. FREE PLAN TRIAL EXPIRATION (30 Days)
+    if (user.plan === 'FREE' && daysSinceCreation > 30) {
+      if (!user.aiUsageBlocked) {
+        user.aiUsageBlocked = true;
+        await user.save();
+        Logger.info('Free trial expired (30 days reached)', { userId });
+      }
+      throw ApiError.forbidden('Your 30-day free trial for AI features has expired. Please upgrade to a paid plan to continue using AI.');
+    }
+
+    // 2. Monthly Reset Check (Paid Plans only for authorizations, etc.)
+    const lastReset = user.lastMonthlyReset || createdAt;
     const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
 
     if (now - lastReset > thirtyDaysInMs) {
       user.monthlyUsedBoosts = 0;
       user.lastMonthlyReset = now;
       
-      // AUTO-REFILL FOR FREE PLAN: Give them a fresh batch of 20 boosts
-      if (user.plan === 'FREE') {
-          user.usedBoosts = 0;
-          user.aiUsageBlocked = false;
-          Logger.info('Free plan boosts auto-refilled', { userId });
-      }
-
+      // NOTE: Removed AUTO-REFILL for FREE plan. 
+      // FREE plan boosts are now one-time (100) and do not reset/refill.
+      
       await user.save();
       Logger.info('Monthly boost usage reset', { userId });
     }
