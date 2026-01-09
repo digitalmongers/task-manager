@@ -22,10 +22,14 @@ export const createSubscription = expressAsyncHandler(async (req, res) => {
     throw ApiError.badRequest('Plan and billing cycle are required');
   }
 
-  // Security Check 1: Don't allow buying the same plan they already have
+  // Security Check 1: Don't allow buying the exact same plan + cycle they already have
   const user = await User.findById(userId);
-  if (user.plan === planKey && user.subscriptionStatus === 'active') {
-    throw ApiError.badRequest(`You are already on the ${planKey} plan`);
+  if (
+    user.plan === planKey && 
+    user.billingCycle === billingCycle.toUpperCase() && 
+    user.subscriptionStatus === 'active'
+  ) {
+    throw ApiError.badRequest(`You are already on the ${planKey} ${billingCycle} plan`);
   }
 
   const subscription = await RazorpayService.createSubscription(userId, planKey, billingCycle);
