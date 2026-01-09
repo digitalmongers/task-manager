@@ -31,15 +31,20 @@ class SubscriptionService {
       expiryDate.setDate(expiryDate.getDate() + durationDays);
       user.currentPeriodEnd = expiryDate;
 
-      // Reset/Update Boosts
+      // Reset/Update Subscription Boosts
       if (user.billingCycle === 'YEARLY') {
-        user.totalBoosts = plan.monthlyBoosts * 12; // Yearly allocation
+        user.subscriptionBoosts = plan.monthlyBoosts * 12; // Yearly allocation
       } else {
-        user.totalBoosts = plan.monthlyBoosts; // Monthly allocation
+        user.subscriptionBoosts = plan.monthlyBoosts; // Monthly allocation
       }
       
-      user.usedBoosts = 0; // Total used in current period (Year or Month)
-      user.monthlyUsedBoosts = 0; // Reset monthly counter
+      user.subscriptionBoostsUsed = 0; // Reset subscription boost usage
+      
+      // Reset top-up boosts (they expire with plan period)
+      user.topupBoosts = 0;
+      user.topupBoostsUsed = 0;
+      
+      user.monthlyUsedBoosts = 0; // Reset monthly counter (for yearly plan limits)
       user.lastMonthlyReset = new Date(); // Start of new monthly cycle
       user.aiUsageBlocked = false;
 
@@ -103,16 +108,21 @@ class SubscriptionService {
       const oldPlan = user.plan;
       user.subscriptionStatus = 'inactive';
       user.plan = 'FREE';
-      user.totalBoosts = PLAN_LIMITS.FREE.monthlyBoosts;
+      user.subscriptionBoosts = PLAN_LIMITS.FREE.monthlyBoosts;
+      
+      // Reset top-up boosts (they expire with plan)
+      user.topupBoosts = 0;
+      user.topupBoostsUsed = 0;
       
       // FREE plan specific logic: 
-      // 1. Do NOT reset usedBoosts to 0. They get 100 boosts ONCE per account.
+      // 1. Do NOT reset subscriptionBoostsUsed to 0. They get 100 boosts ONCE per account.
       // 2. Block AI usage if account is older than 30 days.
       const now = new Date();
       const createdAt = user.createdAt || now;
       const daysSinceCreation = (now - createdAt) / (1000 * 60 * 60 * 24);
       
-      if (daysSinceCreation > 30 || user.usedBoosts >= user.totalBoosts) {
+      const totalUsed = (user.subscriptionBoostsUsed || 0) + (user.topupBoostsUsed || 0);
+      if (daysSinceCreation > 30 || totalUsed >= user.subscriptionBoosts) {
         user.aiUsageBlocked = true;
       } else {
         user.aiUsageBlocked = false;

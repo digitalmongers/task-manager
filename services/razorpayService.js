@@ -72,6 +72,40 @@ class RazorpayService {
   }
 
   /**
+   * Create a Razorpay order for top-up purchase (One-time payment)
+   */
+  async createTopupOrder(userId, topupPackage) {
+    try {
+      const { TOPUP_PACKAGES } = await import('../config/aiConfig.js');
+      const packageInfo = TOPUP_PACKAGES[topupPackage];
+      
+      if (!packageInfo) {
+        throw ApiError.badRequest('Invalid top-up package selected');
+      }
+
+      // Razorpay expects amount in smallest currency unit (cents for USD)
+      const options = {
+        amount: packageInfo.price * 100,
+        currency: packageInfo.currency || "USD",
+        receipt: `topup_${userId.toString().slice(-8)}_${Date.now()}`,
+        notes: {
+          userId: userId.toString(),
+          purchaseType: 'topup',
+          topupPackage: topupPackage,
+          boosts: packageInfo.boosts,
+        }
+      };
+
+      const order = await this.instance.orders.create(options);
+      Logger.info('Razorpay Top-up Order Created', { orderId: order.id, userId, package: topupPackage });
+      return order;
+    } catch (error) {
+      Logger.error('Razorpay Top-up Order Creation Failed', { error: error.message, userId, topupPackage });
+      throw error;
+    }
+  }
+
+  /**
    * Fetch order details from Razorpay (Recovery Fallback)
    */
   async getOrder(orderId) {

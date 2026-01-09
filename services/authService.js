@@ -1565,8 +1565,18 @@ class AuthService {
     nextReset.setDate(nextReset.getDate() + 30);
 
     userObj.boosts = {
-      total: userObj.totalBoosts,
+      total: userObj.totalBoosts, // Virtual: subscription + topup
       remaining: Math.max(0, userObj.totalBoosts - userObj.usedBoosts),
+      subscription: {
+        total: userObj.subscriptionBoosts,
+        used: userObj.subscriptionBoostsUsed,
+        remaining: Math.max(0, userObj.subscriptionBoosts - userObj.subscriptionBoostsUsed)
+      },
+      topup: {
+        total: userObj.topupBoosts,
+        used: userObj.topupBoostsUsed,
+        remaining: Math.max(0, userObj.topupBoosts - userObj.topupBoostsUsed)
+      },
       monthlyLimit: plan.monthlyBoosts,
       monthlyUsed: userObj.monthlyUsedBoosts || 0,
       monthlyRemaining: Math.max(0, plan.monthlyBoosts - (userObj.monthlyUsedBoosts || 0)),

@@ -224,15 +224,29 @@ const userSchema = new mongoose.Schema(
       enum: ["FREE", "STARTER", "PRO", "TEAM"],
       default: "FREE",
     },
-    totalBoosts: {
+    
+    // Subscription boosts (from plan)
+    subscriptionBoosts: {
       type: Number,
       default: 100, // Default for FREE plan
     },
-    usedBoosts: {
+    subscriptionBoostsUsed: {
       type: Number,
       default: 0,
     },
+    
+    // Top-up boosts (from purchases)
+    topupBoosts: {
+      type: Number,
+      default: 0,
+    },
+    topupBoostsUsed: {
+      type: Number,
+      default: 0,
+    },
+    
     // Track usage within the current billing month (vital for Yearly plans)
+    // This tracks ONLY subscription boost usage for monthly limits
     monthlyUsedBoosts: {
       type: Number,
       default: 0,
@@ -334,6 +348,19 @@ userSchema.methods.generatePasswordResetToken = function () {
 
   return resetToken;
 };
+
+// Virtual fields for backward compatibility
+userSchema.virtual('totalBoosts').get(function() {
+  return (this.subscriptionBoosts || 0) + (this.topupBoosts || 0);
+});
+
+userSchema.virtual('usedBoosts').get(function() {
+  return (this.subscriptionBoostsUsed || 0) + (this.topupBoostsUsed || 0);
+});
+
+// Ensure virtuals are included in JSON and Object outputs
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 // Instance method to check if account is locked
 userSchema.methods.isLocked = function () {

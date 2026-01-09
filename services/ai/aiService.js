@@ -126,10 +126,16 @@ class AIService {
       Logger.info('Prompt compressed', { userId, originalTokens, compressedTokens: inputTokens });
     }
 
-    // 4. Boost Calculation (Pre-flight check)
+    // 4. Boost Calculation (Pre-flight check with separate tracking)
     const potentialBoosts = Math.ceil((inputTokens + plan.maxOutputTokens) / AI_CONSTANTS.BOOST_TOKEN_VALUE);
     
-    if (user.usedBoosts + potentialBoosts > user.totalBoosts) {
+    // Calculate available boosts from both sources
+    const subscriptionAvailable = (user.subscriptionBoosts || 0) - (user.subscriptionBoostsUsed || 0);
+    const topupAvailable = (user.topupBoosts || 0) - (user.topupBoostsUsed || 0);
+    const totalAvailable = subscriptionAvailable + topupAvailable;
+    
+    // Check if user has enough total boosts
+    if (totalAvailable < potentialBoosts) {
       user.aiUsageBlocked = true;
       await user.save();
       
@@ -140,17 +146,28 @@ class AIService {
         Logger.error('Failed to send boost exhaustion email', { error: error.message, userId });
       }
 
-      throw ApiError.forbidden('You have exhausted your AI boosts. Upgrade your plan to get more.');
+      throw ApiError.forbidden('You have exhausted your AI boosts. Upgrade your plan or purchase a top-up to get more.');
     }
 
-    // Does user have boosts remaining?
-    if (user.usedBoosts >= user.totalBoosts) {
-      throw new Error('You have reached your monthly AI boost limit. Please upgrade or wait for the next billing cycle.');
-    }
-
-    // Check Monthly Cap (Vital for Yearly Plans)
-    if (user.monthlyUsedBoosts + potentialBoosts > plan.monthlyBoosts) {
-       throw new Error(`You have reached your monthly limit of ${plan.monthlyBoosts} boosts. Your yearly plan gives you more, but they are released monthly. Please wait for your next month's cycle.`);
+    // For YEARLY plans: Check monthly limit (applies ONLY to subscription boosts)
+    if (user.billingCycle === 'YEARLY') {
+      const monthlyLimit = plan.monthlyBoosts;
+      const monthlyRemaining = monthlyLimit - (user.monthlyUsedBoosts || 0);
+      
+      // Calculate how many subscription boosts we'll need
+      const subscriptionBoostsNeeded = Math.min(potentialBoosts, subscriptionAvailable);
+      
+      // If trying to use more subscription boosts than monthly limit allows
+      if (subscriptionBoostsNeeded > monthlyRemaining) {
+        // Check if top-up boosts can cover the difference
+        const deficit = subscriptionBoostsNeeded - monthlyRemaining;
+        if (deficit > topupAvailable) {
+          throw ApiError.forbidden(
+            `Monthly limit reached. You have ${monthlyRemaining} subscription boosts remaining this month ` +
+            `and ${topupAvailable} top-up boosts. This request needs ${potentialBoosts} boosts total.`
+          );
+        }
+      }
     }
 
     // Check maxBoostsPerRequest (Potential boosts)
@@ -204,19 +221,60 @@ class AIService {
       }
 
 
-      // 7. Deduct boosts and Log
-      user.usedBoosts += boostsUsed;
-      user.monthlyUsedBoosts = (user.monthlyUsedBoosts || 0) + boostsUsed; // Increment monthly counter
+      // 7. Deduct boosts (subscription first, then top-up)
+      let remaining = boostsUsed;
+      
+      // Recalculate available boosts
+      const subAvailable = (user.subscriptionBoosts || 0) - (user.subscriptionBoostsUsed || 0);
+      const topAvailable = (user.topupBoosts || 0) - (user.topupBoostsUsed || 0);
+      
+      // 1. Deduct from subscription boosts first
+      if (subAvailable > 0 && remaining > 0) {
+        const fromSubscription = Math.min(remaining, subAvailable);
+        user.subscriptionBoostsUsed = (user.subscriptionBoostsUsed || 0) + fromSubscription;
+        user.monthlyUsedBoosts = (user.monthlyUsedBoosts || 0) + fromSubscription; // Track for yearly monthly limit
+        remaining -= fromSubscription;
+        
+        Logger.info('Deducted from subscription boosts', {
+          userId,
+          deducted: fromSubscription,
+          subscriptionBoostsUsed: user.subscriptionBoostsUsed,
+          subscriptionBoostsRemaining: (user.subscriptionBoosts || 0) - user.subscriptionBoostsUsed
+        });
+      }
+      
+      // 2. Deduct remaining from top-up boosts
+      if (topAvailable > 0 && remaining > 0) {
+        const fromTopup = Math.min(remaining, topAvailable);
+        user.topupBoostsUsed = (user.topupBoostsUsed || 0) + fromTopup;
+        remaining -= fromTopup;
+        // Note: Top-up boosts do NOT count toward monthlyUsedBoosts
+        
+        Logger.info('Deducted from top-up boosts', {
+          userId,
+          deducted: fromTopup,
+          topupBoostsUsed: user.topupBoostsUsed,
+          topupBoostsRemaining: (user.topupBoosts || 0) - user.topupBoostsUsed
+        });
+      }
+      
       await user.save();
 
       // Invalidate user cache to reflect new boost count immediately
       await cacheService.deletePattern(`user:${userId}:*`);
 
       // Real-time Update via WebSocket (New)
+      const totalUsed = (user.subscriptionBoostsUsed || 0) + (user.topupBoostsUsed || 0);
+      const totalBoosts = (user.subscriptionBoosts || 0) + (user.topupBoosts || 0);
+      
       WebSocketService.sendToUser(userId, 'user:updated', {
         _id: user._id,
-        usedBoosts: user.usedBoosts,
-        totalBoosts: user.totalBoosts,
+        subscriptionBoosts: user.subscriptionBoosts,
+        subscriptionBoostsUsed: user.subscriptionBoostsUsed,
+        topupBoosts: user.topupBoosts,
+        topupBoostsUsed: user.topupBoostsUsed,
+        usedBoosts: totalUsed,
+        totalBoosts: totalBoosts,
         monthlyUsedBoosts: user.monthlyUsedBoosts,
         monthlyLimit: plan.monthlyBoosts,
         aiUsageBlocked: user.aiUsageBlocked
@@ -260,25 +318,28 @@ class AIService {
   }
 
   /**
-   * Get user's existing data for context
+   * Get user's existing data for context (Cached for 10 minutes)
    */
   async getUserContext(userId) {
-    try {
-      const [categories, priorities, statuses] = await Promise.all([
-        Category.find({ user: userId }).select('title').lean(),
-        TaskPriority.find({ user: userId }).select('name').lean(),
-        TaskStatus.find({ user: userId }).select('name').lean(),
-      ]);
+    const cacheKey = `user:${userId}:ai_context`;
+    return await cacheService.remember(cacheKey, 600, async () => {
+      try {
+        const [categories, priorities, statuses] = await Promise.all([
+          Category.find({ user: userId }).select('title').lean(),
+          TaskPriority.find({ user: userId }).select('name').lean(),
+          TaskStatus.find({ user: userId }).select('name').lean(),
+        ]);
 
-      return formatUserContext(categories, priorities, statuses);
-    } catch (error) {
-      Logger.error('Failed to get user context', { error: error.message });
-      return { categories: [], priorities: [], statuses: [] };
-    }
+        return formatUserContext(categories, priorities, statuses);
+      } catch (error) {
+        Logger.error('Failed to get user context', { error: error.message });
+        return { categories: [], priorities: [], statuses: [] };
+      }
+    });
   }
 
   /**
-   * Generate task suggestions
+   * Generate task suggestions (Cached for 1 hour for identical queries)
    */
   async generateTaskSuggestions(data) {
     try {
@@ -288,52 +349,57 @@ class AIService {
       const sanitizedTitle = sanitizeInput(title);
       const sanitizedDescription = sanitizeInput(description);
 
-      // Get user context
-      const userContext = await this.getUserContext(userId);
+      // Cache key based on user and input content
+      const cacheKey = `ai_suggestions:task:${userId}:${Buffer.from(sanitizedTitle + sanitizedDescription).toString('base64').substring(0, 32)}`;
 
-      // Build prompt
-      const prompt = TASK_PROMPTS.SUGGESTIONS({
-        title: sanitizedTitle,
-        description: sanitizedDescription,
-        userCategories: userContext.categories,
-        userPriorities: userContext.priorities,
-        userStatuses: userContext.statuses,
+      return await cacheService.remember(cacheKey, 3600, async () => {
+        // Get user context
+        const userContext = await this.getUserContext(userId);
+
+        // Build prompt
+        const prompt = TASK_PROMPTS.SUGGESTIONS({
+          title: sanitizedTitle,
+          description: sanitizedDescription,
+          userCategories: userContext.categories,
+          userPriorities: userContext.priorities,
+          userStatuses: userContext.statuses,
+        });
+
+        // Call AI
+        const response = await this.run({
+          userId,
+          feature: 'TASK_SUGGESTION',
+          prompt,
+          systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
+        });
+
+        // Parse response (now expecting an array)
+        const suggestionsArray = parseJSONResponse(response);
+
+        // Validate array structure
+        if (!Array.isArray(suggestionsArray) || suggestionsArray.length === 0) {
+          throw new Error('AI did not return a valid suggestions array');
+        }
+
+        // Validate each suggestion
+        const validSuggestions = suggestionsArray.filter(s => validateSuggestions(s, 'task'));
+        
+        if (validSuggestions.length === 0) {
+          throw new Error('No valid suggestions in response');
+        }
+
+        Logger.info('Task suggestions generated', {
+          userId,
+          title: sanitizedTitle,
+          count: validSuggestions.length
+        });
+
+        // Return structured response for frontend
+        return {
+          suggestions: validSuggestions.slice(0, 5), // Ensure max 5
+          count: validSuggestions.length
+        };
       });
-
-      // Call AI
-      const response = await this.run({
-        userId,
-        feature: 'TASK_SUGGESTION',
-        prompt,
-        systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
-      });
-
-      // Parse response (now expecting an array)
-      const suggestionsArray = parseJSONResponse(response);
-
-      // Validate array structure
-      if (!Array.isArray(suggestionsArray) || suggestionsArray.length === 0) {
-        throw new Error('AI did not return a valid suggestions array');
-      }
-
-      // Validate each suggestion
-      const validSuggestions = suggestionsArray.filter(s => validateSuggestions(s, 'task'));
-      
-      if (validSuggestions.length === 0) {
-        throw new Error('No valid suggestions in response');
-      }
-
-      Logger.info('Task suggestions generated', {
-        userId,
-        title: sanitizedTitle,
-        count: validSuggestions.length
-      });
-
-      // Return structured response for frontend
-      return {
-        suggestions: validSuggestions.slice(0, 5), // Ensure max 5
-        count: validSuggestions.length
-      };
     } catch (error) {
       return handleAIError(error, 'generateTaskSuggestions');
     }

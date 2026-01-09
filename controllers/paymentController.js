@@ -271,34 +271,74 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     Logger.info(`[WEBHOOK TRACE] ✅ Payment Saved Successfully.`);
 
     if (!isAlreadyCaptured) {
-      Logger.info(`[WEBHOOK TRACE] triggers User Plan Upgrade...`);
-      const userIdStr = payment.user.toString();
-      Logger.info(`[WEBHOOK TRACE] Passing UserID to Service: '${userIdStr}' (Original Type: ${typeof payment.user})`);
-      
-      await SubscriptionService.upgradeUserPlan(userIdStr, payment.plan, payment.billingCycle);
-      Logger.info(`[WEBHOOK TRACE] ✅ User Plan Upgrade Function Completed.`);
+      // Check if this is a top-up purchase or subscription
+      if (payment.purchaseType === 'topup') {
+        Logger.info(`[WEBHOOK TRACE] Processing TOP-UP purchase...`);
         
-      const user = await User.findById(payment.user);
-      if (user) {
-        Logger.info(`[WEBHOOK TRACE] Generating Invoice for User: ${user._id}`);
-        const invoice = await RazorpayService.createInvoice(user, payment);
-        if (invoice) {
-          payment.razorpayInvoiceId = invoice.id;
-          payment.invoiceUrl = invoice.short_url;
-          await payment.save();
-          Logger.info(`[WEBHOOK TRACE] Invoice Generated & Saved: ${invoice.short_url}`);
+        // Import TopupService dynamically
+        const TopupService = (await import('../services/topupService.js')).default;
+        
+        // Add boosts to user account
+        await TopupService.addBoostsToUser(payment.user.toString(), payment.boostsAdded);
+        Logger.info(`[WEBHOOK TRACE] ✅ Boosts added to user account`, { 
+          userId: payment.user, 
+          boostsAdded: payment.boostsAdded 
+        });
+        
+        const user = await User.findById(payment.user);
+        if (user) {
+          // Generate invoice for top-up
+          Logger.info(`[WEBHOOK TRACE] Generating Invoice for Top-up: ${user._id}`);
+          const invoice = await RazorpayService.createInvoice(user, payment);
+          if (invoice) {
+            payment.razorpayInvoiceId = invoice.id;
+            payment.invoiceUrl = invoice.short_url;
+            await payment.save();
+            Logger.info(`[WEBHOOK TRACE] Invoice Generated & Saved: ${invoice.short_url}`);
+          }
+          
+          // Send top-up confirmation emails
+          try {
+            Logger.info(`[WEBHOOK TRACE] Sending Top-up Confirmation Emails...`);
+            await EmailService.sendTopupPurchaseEmail(user, payment.topupPackage, payment.boostsAdded, payment.amount, payment.invoiceUrl);
+            await EmailService.sendAdminTopupNotification(user, payment.topupPackage, payment.amount);
+            Logger.info(`[WEBHOOK TRACE] Emails Sent Successfully.`);
+          } catch (emailError) {
+            Logger.error('[WEBHOOK TRACE] ❌ Email sending FAILED', { error: emailError.message });
+          }
         }
+        Logger.info('[WEBHOOK TRACE] 🎉 FULL SUCCESS: Top-up processing completed perfectly.', { userId: payment.user, event });
+      } else {
+        // EXISTING SUBSCRIPTION LOGIC (unchanged)
+        Logger.info(`[WEBHOOK TRACE] triggers User Plan Upgrade...`);
+        const userIdStr = payment.user.toString();
+        Logger.info(`[WEBHOOK TRACE] Passing UserID to Service: '${userIdStr}' (Original Type: ${typeof payment.user})`);
+        
+        await SubscriptionService.upgradeUserPlan(userIdStr, payment.plan, payment.billingCycle);
+        Logger.info(`[WEBHOOK TRACE] ✅ User Plan Upgrade Function Completed.`);
+          
+        const user = await User.findById(payment.user);
+        if (user) {
+          Logger.info(`[WEBHOOK TRACE] Generating Invoice for User: ${user._id}`);
+          const invoice = await RazorpayService.createInvoice(user, payment);
+          if (invoice) {
+            payment.razorpayInvoiceId = invoice.id;
+            payment.invoiceUrl = invoice.short_url;
+            await payment.save();
+            Logger.info(`[WEBHOOK TRACE] Invoice Generated & Saved: ${invoice.short_url}`);
+          }
 
-        try {
-          Logger.info(`[WEBHOOK TRACE] Sending Success Emails...`);
-          await EmailService.sendPlanPurchaseEmail(user, payment.plan, payment.billingCycle, payment.amount, payment.invoiceUrl);
-          await EmailService.sendAdminPlanPurchaseNotification(user, payment.plan, payment.billingCycle, payment.amount);
-          Logger.info(`[WEBHOOK TRACE] Emails Sent Successfully.`);
-        } catch (emailError) {
-          Logger.error('[WEBHOOK TRACE] ❌ Email sending FAILED', { error: emailError.message });
+          try {
+            Logger.info(`[WEBHOOK TRACE] Sending Success Emails...`);
+            await EmailService.sendPlanPurchaseEmail(user, payment.plan, payment.billingCycle, payment.amount, payment.invoiceUrl);
+            await EmailService.sendAdminPlanPurchaseNotification(user, payment.plan, payment.billingCycle, payment.amount);
+            Logger.info(`[WEBHOOK TRACE] Emails Sent Successfully.`);
+          } catch (emailError) {
+            Logger.error('[WEBHOOK TRACE] ❌ Email sending FAILED', { error: emailError.message });
+          }
         }
+        Logger.info('[WEBHOOK TRACE] 🎉 FULL SUCCESS: Webhook processing completed perfectly.', { userId: payment.user, event });
       }
-      Logger.info('[WEBHOOK TRACE] 🎉 FULL SUCCESS: Webhook processing completed perfectly.', { userId: payment.user, event });
     } else {
       Logger.info('[WEBHOOK TRACE] ⚠️ Skipping plan upgrade and notifications as they were already processed for this payment.', { subscriptionId, event });
     }
@@ -433,10 +473,10 @@ export const getPaymentHistory = expressAsyncHandler(async (req, res) => {
   // 1. Fetch User details for current plan status
   const user = await User.findById(userId).select('plan billingCycle subscriptionStatus currentPeriodEnd totalBoosts usedBoosts');
   
-  // 2. Fetch Payment history
+  // 2. Fetch Payment history (both subscriptions and top-ups)
   const payments = await Payment.find({ user: userId })
     .sort({ createdAt: -1 })
-    .select('plan billingCycle amount currency status createdAt invoiceUrl razorpayPaymentId');
+    .select('purchaseType plan billingCycle topupPackage boostsAdded amount currency status createdAt invoiceUrl razorpayPaymentId');
 
   res.json({
     success: true,

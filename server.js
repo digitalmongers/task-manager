@@ -39,6 +39,7 @@ import securityRoutes from "./routes/securityRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import systemRoutes from "./routes/systemRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import topupRoutes from "./routes/topupRoutes.js";
 import { testConnection as testOpenAI } from './config/openai.js';
 import './config/webPush.js'; // Initialize web-push with VAPID
 
@@ -157,6 +158,7 @@ app.use("/api/security", securityRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/system", systemRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/topups", topupRoutes);
 
 // 404 handler (must be after all routes)
 app.use(notFound);

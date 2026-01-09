@@ -4161,6 +4161,118 @@ async sendSubscriptionExpiryReminder(user, daysRemaining) {
   });
 }
 
+/**
+ * Send Top-up Purchase Confirmation Email
+ */
+async sendTopupPurchaseEmail(user, topupPackage, boostsAdded, amount, invoiceUrl) {
+  const { TOPUP_PACKAGES } = await import('../config/aiConfig.js');
+  const packageInfo = TOPUP_PACKAGES[topupPackage];
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Boost Top-up Successful - Tasskr</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+          .header { background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; padding: 25px 20px; text-align: center; }
+          .content { padding: 40px 30px; }
+          .success-box { background: #D1FAE5; border: 2px solid #10B981; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+          .success-box h2 { color: #065F46; margin: 0 0 10px 0; }
+          .boost-count { font-size: 48px; font-weight: bold; color: #10B981; margin: 10px 0; }
+          .info-box { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .button-container { text-align: center; margin: 30px 0; }
+          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
+          .footer { text-align: center; padding: 20px 30px; background: #f8f9fa; color: #6c757d; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Boost Top-up Successful!</h1>
+          </div>
+          <div class="content">
+            <p>Hello ${user.firstName},</p>
+            <p>Your boost top-up purchase has been processed successfully!</p>
+            
+            <div class="success-box">
+              <h2>🚀 ${packageInfo.name}</h2>
+              <div class="boost-count">+${boostsAdded}</div>
+              <p style="margin: 0; color: #065F46; font-weight: 600;">AI Boosts Added</p>
+            </div>
+
+            <div class="info-box">
+              <p><strong>Package:</strong> ${packageInfo.name}</p>
+              <p><strong>Boosts Added:</strong> ${boostsAdded}</p>
+              <p><strong>Amount Paid:</strong> $${amount} USD</p>
+              <p><strong>Current Plan:</strong> ${user.plan}</p>
+            </div>
+
+            <p>Your boosts have been added to your account and are ready to use immediately. Your plan features remain unchanged.</p>
+            
+            ${invoiceUrl ? `
+            <div class="button-container">
+              <a href="${invoiceUrl}" class="button">Download Invoice</a>
+            </div>
+            ` : ''}
+
+            <p>Best regards,<br><strong>The Tasskr Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return await this.sendEmail({
+    to: user.email,
+    subject: `🚀 ${boostsAdded} AI Boosts Added to Your Account!`,
+    html,
+    text: `Boost Top-up Successful!\n\nHello ${user.firstName},\n\nYour ${packageInfo.name} purchase is complete!\n\nBoosts Added: ${boostsAdded}\nAmount: $${amount} USD\n\nYour boosts are ready to use.\n\nBest regards,\nThe Tasskr Team`,
+  });
+}
+
+/**
+ * Send Admin Notification for Top-up Purchase
+ */
+async sendAdminTopupNotification(user, topupPackage, amount) {
+  const { TOPUP_PACKAGES } = await import('../config/aiConfig.js');
+  const packageInfo = TOPUP_PACKAGES[topupPackage];
+  
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SENDGRID_FROM_EMAIL;
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <title>New Boost Top-up Purchase</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2>🚀 New Boost Top-up Purchase</h2>
+        <p><strong>User:</strong> ${user.firstName} ${user.lastName} (${user.email})</p>
+        <p><strong>Package:</strong> ${packageInfo.name}</p>
+        <p><strong>Boosts:</strong> ${packageInfo.boosts}</p>
+        <p><strong>Amount:</strong> $${amount} USD</p>
+        <p><strong>Current Plan:</strong> ${user.plan}</p>
+        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+      </body>
+    </html>
+  `;
+
+  return await this.sendEmail({
+    to: adminEmail,
+    subject: `New Top-up: $${amount} - ${user.email}`,
+    html,
+    text: `New Boost Top-up\n\nUser: ${user.firstName} ${user.lastName} (${user.email})\nPackage: ${packageInfo.name}\nBoosts: ${packageInfo.boosts}\nAmount: $${amount} USD\nPlan: ${user.plan}\nTime: ${new Date().toLocaleString()}`,
+  });
+}
+
 }
 
 export default new EmailService();

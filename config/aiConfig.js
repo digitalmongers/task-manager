@@ -56,3 +56,37 @@ export const RAZORPAY_PLANS = {
     YEARLY: 'plan_S0aB2BETGdvfgQ'
   }
 };
+
+// Top-up packages for purchasing additional boosts
+// These are one-time purchases that add boosts to user's current plan
+export const TOPUP_PACKAGES = {
+  SMALL: {
+    boosts: 200,
+    price: 5,
+    currency: 'USD',
+    name: 'Small Boost Pack',
+    description: '200 AI Boosts'
+  },
+  MEDIUM: {
+    boosts: 500,
+    price: 10,
+    currency: 'USD',
+    name: 'Medium Boost Pack',
+    description: '500 AI Boosts'
+  },
+  LARGE: {
+    boosts: 1500,
+    price: 25,
+    currency: 'USD',
+    name: 'Large Boost Pack',
+    description: '1500 AI Boosts'
+  },
+  XLARGE: {
+    boosts: 3500,
+    price: 49,
+    currency: 'USD',
+    name: 'XLarge Boost Pack',
+    description: '3500 AI Boosts'
+  }
+};
+

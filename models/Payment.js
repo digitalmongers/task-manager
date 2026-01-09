@@ -7,15 +7,36 @@ const paymentSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    purchaseType: {
+      type: String,
+      enum: ['subscription', 'topup'],
+      required: true,
+      default: 'subscription',
+    },
     plan: {
       type: String,
       enum: ["STARTER", "PRO", "TEAM"],
-      required: true,
+      required: function() {
+        return this.purchaseType === 'subscription';
+      },
     },
     billingCycle: {
       type: String,
       enum: ["MONTHLY", "YEARLY"],
-      required: true,
+      required: function() {
+        return this.purchaseType === 'subscription';
+      },
+    },
+    topupPackage: {
+      type: String,
+      enum: ["SMALL", "MEDIUM", "LARGE", "XLARGE"],
+      required: function() {
+        return this.purchaseType === 'topup';
+      },
+    },
+    boostsAdded: {
+      type: Number,
+      default: 0,
     },
     amount: {
       type: Number,
