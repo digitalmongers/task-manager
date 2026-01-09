@@ -104,8 +104,20 @@ class SubscriptionService {
       user.subscriptionStatus = 'inactive';
       user.plan = 'FREE';
       user.totalBoosts = PLAN_LIMITS.FREE.monthlyBoosts;
-      user.usedBoosts = 0; // Reset for free plan
-      user.aiUsageBlocked = false;
+      
+      // FREE plan specific logic: 
+      // 1. Do NOT reset usedBoosts to 0. They get 100 boosts ONCE per account.
+      // 2. Block AI usage if account is older than 30 days.
+      const now = new Date();
+      const createdAt = user.createdAt || now;
+      const daysSinceCreation = (now - createdAt) / (1000 * 60 * 60 * 24);
+      
+      if (daysSinceCreation > 30 || user.usedBoosts >= user.totalBoosts) {
+        user.aiUsageBlocked = true;
+      } else {
+        user.aiUsageBlocked = false;
+      }
+
       await user.save();
       
       Logger.info('Subscription Expired and Downgraded to FREE', { userId, oldPlan });
