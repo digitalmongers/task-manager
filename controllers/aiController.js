@@ -512,6 +512,26 @@ class AIController {
       plan: newPlan
     });
   }
+
+  /**
+   * Get 3 CEO-level alternative strategies
+   * POST /api/ai/planner/alternative
+   */
+  async getAlternativeStrategies(req, res) {
+    if (!AIService.isEnabled()) {
+      throw ApiError.serviceUnavailable('AI service is not configured');
+    }
+
+    const strategies = await AIService.generateAlternativeStrategies(req.user._id);
+
+    if (strategies && strategies.error) {
+      throw ApiError.badRequest(strategies.error);
+    }
+
+    return ApiResponse.success(res, 200, 'Alternative strategies generated successfully', {
+      strategies
+    });
+  }
 }
 
 export default new AIController();

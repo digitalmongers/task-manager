@@ -773,48 +773,105 @@ class AIService {
   /**
    * Generate an autonomous strategic plan based on existing tasks
    */
+  /**
+   * Internal helper to get context for all planning features
+   */
+  async getPlannerContext(userId) {
+    // 1. Fetch Context: Vital Tasks (All pending)
+    const vitalTasks = await VitalTask.find({
+      user: userId,
+      isCompleted: false,
+      isDeleted: false
+    })
+    .select('title description dueDate priority status steps')
+    .lean();
+
+    // 2. Fetch Context: High Priority Normal Tasks
+    const normalTasks = await Task.find({
+      user: userId,
+      isCompleted: false,
+      isDeleted: false,
+      $or: [
+        { priority: { $exists: true, $ne: null } },
+        { dueDate: { $exists: true, $ne: null } }
+      ]
+    })
+    .populate('priority', 'name')
+    .select('title description dueDate priority status')
+    .limit(10)
+    .lean();
+
+    // Filter to only high/urgent normal tasks if priority is populated
+    let finalTasksToPlan = normalTasks.filter(t => 
+      !t.priority || ['high', 'urgent', 'High', 'Urgent'].includes(t.priority.name)
+    );
+
+    // FALLBACK: If no high priority tasks found, but we have normal tasks, use them!
+    if (finalTasksToPlan.length === 0 && normalTasks.length > 0) {
+       finalTasksToPlan = normalTasks;
+    }
+
+    // 3. Fetch Background Context for Workload Analysis
+    const [totalPending, dueToday, overdue] = await Promise.all([
+      Task.countDocuments({ user: userId, isCompleted: false, isDeleted: false }),
+      Task.countDocuments({ 
+        user: userId, 
+        isCompleted: false, 
+        isDeleted: false,
+        dueDate: { 
+          $gte: new Date().setHours(0, 0, 0, 0), 
+          $lte: new Date().setHours(23, 59, 59, 999) 
+        }
+      }),
+      Task.countDocuments({ 
+        user: userId, 
+        isCompleted: false, 
+        isDeleted: false,
+        dueDate: { $lt: new Date().setHours(0, 0, 0, 0) }
+      })
+    ]);
+
+    // 4. Fetch Recently Completed Tasks (Last 7 days) for Context Learning
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentCompletions = await Task.find({
+      user: userId,
+      isCompleted: true,
+      isDeleted: false,
+      completedAt: { $gte: sevenDaysAgo }
+    })
+    .select('title completedAt priority category status')
+    .sort('-completedAt')
+    .limit(15)
+    .lean();
+
+    return {
+      vitalTasks,
+      finalTasksToPlan,
+      stats: { totalPending, dueToday, overdue },
+      recentCompletions
+    };
+  }
+
+  /**
+   * Generate an autonomous strategic plan based on existing tasks
+   */
   async generateStrategicPlan(userId) {
     try {
-      // 1. Fetch Context: Vital Tasks (All pending)
-      const vitalTasks = await VitalTask.find({
-        user: userId,
-        isCompleted: false,
-        isDeleted: false
-      })
-      .select('title description dueDate priority status steps')
-      .lean();
+      const { vitalTasks, finalTasksToPlan, stats, recentCompletions } = await this.getPlannerContext(userId);
 
-      // 2. Fetch Context: High Priority Normal Tasks
-      const normalTasks = await Task.find({
-        user: userId,
-        isCompleted: false,
-        isDeleted: false,
-        $or: [
-          { priority: { $exists: true, $ne: null } },
-          { dueDate: { $exists: true, $ne: null } }
-        ]
-      })
-      .populate('priority', 'name')
-      .select('title description dueDate priority status')
-      .limit(10)
-      .lean();
-
-      // Filter to only high/urgent normal tasks if priority is populated
-      let finalTasksToPlan = normalTasks.filter(t => 
-        !t.priority || ['high', 'urgent', 'High', 'Urgent'].includes(t.priority.name)
-      );
-
-      // FALLBACK: If no high priority tasks found, but we have normal tasks, use them!
-      if (finalTasksToPlan.length === 0 && normalTasks.length > 0) {
-         finalTasksToPlan = normalTasks;
-      }
-
-      if (vitalTasks.length === 0 && finalTasksToPlan.length === 0) {
+      if (stats.totalPending === 0) {
         return { error: 'No active tasks found to generate a plan. Create some tasks first!' };
       }
 
-      // 3. Call AI
-      const prompt = INSIGHTS_PROMPTS.STRATEGIC_PLAN(vitalTasks, finalTasksToPlan);
+      // 4. Call AI
+      const prompt = INSIGHTS_PROMPTS.STRATEGIC_PLAN(
+        vitalTasks, 
+        finalTasksToPlan, 
+        stats,
+        recentCompletions
+      );
       const response = await this.run({
         userId,
         feature: 'AI_PLANNER',
@@ -846,6 +903,41 @@ class AIService {
       return newPlan;
     } catch (error) {
       return handleAIError(error, 'generateStrategicPlan');
+    }
+  }
+  /**
+   * Generate CEO-level alternative approaches (3 distinct strategies)
+   */
+  async generateAlternativeStrategies(userId) {
+    try {
+      const { vitalTasks, finalTasksToPlan, stats } = await this.getPlannerContext(userId);
+
+      if (stats.totalPending === 0) {
+        return { error: 'No active tasks found to analyze alternatives.' };
+      }
+
+      const prompt = INSIGHTS_PROMPTS.ALTERNATIVE_STRATEGY(
+        vitalTasks,
+        finalTasksToPlan,
+        stats
+      );
+
+      const response = await this.run({
+        userId,
+        feature: 'AI_PLANNER',
+        prompt,
+        systemPrompt: SYSTEM_PROMPTS.TASK_ASSISTANT
+      });
+
+      const alternativesData = parseJSONResponse(response);
+      if (!alternativesData || !Array.isArray(alternativesData.strategies)) {
+        throw new Error('AI failed to generate alternative strategies');
+      }
+
+      Logger.info('Alternative strategies generated', { userId });
+      return alternativesData.strategies;
+    } catch (error) {
+      return handleAIError(error, 'generateAlternativeStrategies');
     }
   }
 }
