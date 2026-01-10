@@ -39,6 +39,8 @@ const aiRateLimit = rateLimit({
   skip: (req) => {
     return process.env.NODE_ENV === 'development' && process.env.SKIP_AI_RATE_LIMIT === 'true';
   },
+  // Disable IPv6/TrustProxy validation to prevent server crash on custom keyGenerator
+  validate: false,
 });
 
 export default aiRateLimit;

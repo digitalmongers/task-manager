@@ -10,7 +10,6 @@ const loginActivitySchema = new mongoose.Schema(
     },
     sessionId: {
       type: String,
-      index: true,
       sparse: true, // Only successful logins have sessionId
     },
     authMethod: {
