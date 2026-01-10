@@ -9,8 +9,8 @@ class SubscriptionService {
   /**
    * Upgrade user plan after successful payment
    */
-  async upgradeUserPlan(userId, planKey, billingCycle) {
-    Logger.info('Starting upgradeUserPlan', { userId, planKey, billingCycle });
+  async upgradeUserPlan(userId, planKey, billingCycle, subscriptionId) {
+    Logger.info('Starting upgradeUserPlan', { userId, planKey, billingCycle, subscriptionId });
     try {
       const user = await User.findById(userId);
       if (!user) {
@@ -24,6 +24,7 @@ class SubscriptionService {
       user.plan = planKey;
       user.billingCycle = billingCycle.toUpperCase();
       user.subscriptionStatus = 'active';
+      user.razorpaySubscriptionId = subscriptionId;
       
       // Calculate Expiration Date
       const durationDays = user.billingCycle === 'YEARLY' ? 365 : 30;

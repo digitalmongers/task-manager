@@ -232,7 +232,7 @@ export const syncPaymentStatus = expressAsyncHandler(async (req, res) => {
     payment.status = 'captured';
     await payment.save();
 
-    await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle);
+    await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle, payment.razorpaySubscriptionId);
     
     return res.json({ success: true, status: 'captured', message: 'Recovery successful, plan upgraded' });
   }
@@ -397,7 +397,7 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
         const userIdStr = payment.user.toString();
         Logger.info(`[WEBHOOK TRACE] Passing UserID to Service: '${userIdStr}' (Original Type: ${typeof payment.user})`);
         
-        await SubscriptionService.upgradeUserPlan(userIdStr, payment.plan, payment.billingCycle);
+        await SubscriptionService.upgradeUserPlan(userIdStr, payment.plan, payment.billingCycle, payment.razorpaySubscriptionId);
         Logger.info(`[WEBHOOK TRACE] ✅ User Plan Upgrade Function Completed.`);
           
         const user = await User.findById(payment.user);
