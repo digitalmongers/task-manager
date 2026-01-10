@@ -52,7 +52,7 @@ class AIService {
   /**
    * Centralized method to run AI features with plan-based limits
    */
-  async run({ userId, feature, input, prompt, messages, systemPrompt = SYSTEM_PROMPTS.TASK_ASSISTANT }) {
+  async run({ userId, feature, input, prompt, messages, systemPrompt = SYSTEM_PROMPTS.TASK_ASSISTANT, tools = null, tool_choice = null }) {
     const user = await User.findById(userId);
     if (!user) throw ApiError.notFound('User not found');
 
@@ -189,6 +189,8 @@ class AIService {
         messages: openaiMessages,
         max_tokens: Math.max(plan.maxOutputTokens, config.maxTokens || 0), // Use plan limit or env override, whichever is higher
         temperature: config.temperature || 0.7,
+        ...(tools && { tools }),
+        ...(tool_choice && { tool_choice }),
       });
 
       const choice = response.choices[0];
@@ -290,7 +292,9 @@ class AIService {
         boostsUsed,
       });
 
-      return content;
+      // If tool calls are present, return the whole message object
+      // Otherwise return just the content string for backward compatibility
+      return choice.message.tool_calls ? choice.message : content;
     } catch (error) {
       if (error.message.includes('safety limit')) throw error;
       
