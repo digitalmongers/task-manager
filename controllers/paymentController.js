@@ -370,6 +370,20 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
   // 4. Payment Failed
   else if (event === 'payment.failed') {
     const data = payload.payment.entity;
+    
+    Logger.error('RAZORPAY PAYMENT FAILED DETAILED LOG:', {
+      paymentId: data.id,
+      orderId: data.order_id,
+      error_code: data.error_code,
+      error_description: data.error_description,
+      error_source: data.error_source,
+      error_reason: data.error_reason,
+      error_metadata: data.error_metadata,
+      currency: data.currency,
+      amount: data.amount,
+      method: data.method
+    });
+
     await Payment.findOneAndUpdate(
       { $or: [{ razorpayOrderId: data.order_id }, { razorpayPaymentId: data.id }] },
       { 
@@ -377,11 +391,12 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
         metadata: { 
           reason: data.error_description,
           code: data.error_code,
-          paymentId: data.id
+          paymentId: data.id,
+          full_error: data.error_reason // Store more for debugging
         } 
       }
     );
-    Logger.warn('Payment failed via webhook', { paymentId: data.id });
+    Logger.warn('Payment failed state updated in DB', { paymentId: data.id });
   }
 
   res.status(200).send('OK');
