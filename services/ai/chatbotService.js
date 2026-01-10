@@ -13,6 +13,59 @@ import TaskStatus from '../../models/TaskStatus.js';
 import { parseJSONResponse, handleAIError } from './aiHelpers.js';
 import ChatConversation from '../../models/ChatConversation.js';
 import AIService from './aiService.js';
+import TaskService from '../../services/taskService.js';
+import VitalTaskService from '../../services/vitalTaskService.js';
+
+const CHAT_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'create_task',
+      description: 'Create a new regular task for the user.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'The title of the task (e.g., "Buy milk")' },
+          description: { type: 'string', description: 'Detailed description of the task' },
+          dueDate: { type: 'string', description: 'Due date in ISO format or relative (e.g., "2024-12-31")' },
+          priority: { type: 'string', description: 'Priority ID (find from context if possible)' },
+          category: { type: 'string', description: 'Category ID (find from context if possible)' },
+        },
+        required: ['title'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_vital_task',
+      description: 'Create a new high-importance "Vital Task". Use this for urgent or critical items.',
+      parameters: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', description: 'The title of the vital task' },
+          description: { type: 'string', description: 'Detailed description' },
+          dueDate: { type: 'string', description: 'Due date' },
+        },
+        required: ['title'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_tasks',
+      description: 'Search for existing tasks or vital tasks by keywords in title or description.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'The search query or keywords' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+];
 
 class ChatbotService {
   /**
@@ -77,33 +130,23 @@ class ChatbotService {
    * Build system prompt with user context
    */
   buildSystemPrompt(userContext) {
-    return `You are an intelligent task management assistant. You help users manage their tasks, provide insights, and answer questions.
-
-User's Current Status:
-- Total Tasks: ${userContext.stats.totalTasks}
-- Completed: ${userContext.stats.completedTasks}
-- Overdue: ${userContext.stats.overdueTasks}
-- Due Today: ${userContext.stats.todayTasks}
+    return `You are an AI Task Manager Assistant. You support both English and Hindi.
+User Context:
+- Tasks: ${userContext.stats.totalTasks} (${userContext.stats.completedTasks} done, ${userContext.stats.overdueTasks} overdue)
 - Vital Tasks: ${userContext.stats.vitalTasks}
+- Categories: ${userContext.categories.join(', ')}
+- Priorities: ${userContext.priorities.join(', ')}
 
-Available Categories: ${userContext.categories.join(', ')}
-Available Priorities: ${userContext.priorities.join(', ')}
-Available Statuses: ${userContext.statuses.join(', ')}
+Capabilities:
+1. Create regular tasks or Vital Tasks.
+2. Search for existing tasks to answer questions.
+3. Provide productivity insights.
 
-Recent Tasks:
-${userContext.recentTasks.map((t, i) => 
-  `${i + 1}. ${t.title} - ${t.status} (Priority: ${t.priority})`
-).join('\n')}
-
-Guidelines:
-1. Be helpful, friendly, and concise
-2. Provide actionable advice
-3. Reference user's actual tasks when relevant
-4. Suggest task management best practices
-5. If user asks to create/update tasks, provide structured data
-6. Always be encouraging and positive
-
-Respond naturally and conversationally.`;
+Instructions:
+- If a user asks to create a task (e.g., "Mera ek task bana do..."), use the 'create_task' or 'create_vital_task' tool.
+- If a user asks about their tasks, use 'search_tasks' to find relevant info before answering.
+- Respond in the language used by the user (Hindi/English/Hinglish).
+- Be concise and professional.`;
   }
 
   /**
@@ -152,12 +195,42 @@ Respond naturally and conversationally.`;
         { role: 'user', content: message }
       ];
 
-      // 5. Call AIService.run (Centralized enforcement & boost deduction)
-      const assistantMessage = await AIService.run({
+      // 5. Call AIService.run with tools
+      const aiResponse = await AIService.run({
         userId,
         feature: 'AI_CHATBOT',
-        messages: messages
+        messages: messages,
+        tools: CHAT_TOOLS,
+        tool_choice: 'auto'
       });
+
+      let finalAssistantMessage;
+
+      // 6. Handle Tool Calls
+      if (typeof aiResponse === 'object' && aiResponse.tool_calls) {
+        messages.push(aiResponse); // Add assistant's tool call message
+        
+        for (const toolCall of aiResponse.tool_calls) {
+          const result = await this.executeTool(userId, toolCall);
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: JSON.stringify(result)
+          });
+        }
+
+        // Get final conversational response from AI
+        finalAssistantMessage = await AIService.run({
+          userId,
+          feature: 'AI_CHATBOT',
+          messages: messages
+        });
+      } else {
+        finalAssistantMessage = aiResponse;
+      }
+
+      const assistantMessage = finalAssistantMessage;
 
       // 6. Save to database
       conversation.messages.push({ role: 'user', content: message });
@@ -184,6 +257,54 @@ Respond naturally and conversationally.`;
       };
     } catch (error) {
       return handleAIError(error, 'chat');
+    }
+  }
+
+  /**
+   * Execute a tool call from AI
+   */
+  async executeTool(userId, toolCall) {
+    const { name, arguments: argsString } = toolCall.function;
+    const args = JSON.parse(argsString);
+    
+    Logger.info('Executing AI Chat Tool', { name, userId, args });
+
+    try {
+      switch (name) {
+        case 'create_task':
+          return await TaskService.createTask(userId, args);
+        
+        case 'create_vital_task':
+          return await VitalTaskService.createVitalTask(userId, args);
+        
+        case 'search_tasks':
+          const query = args.query.toLowerCase();
+          const [tasks, vitalTasks] = await Promise.all([
+            Task.find({ 
+              user: userId, 
+              isDeleted: false,
+              $or: [
+                { title: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } }
+              ]
+            }).limit(10).lean(),
+            VitalTask.find({ 
+              user: userId, 
+              isDeleted: false,
+              $or: [
+                { title: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } }
+              ]
+            }).limit(5).lean()
+          ]);
+          return { tasks, vitalTasks, count: tasks.length + vitalTasks.length };
+
+        default:
+          return { error: 'Unknown tool' };
+      }
+    } catch (error) {
+      Logger.error('AI Tool Execution Failed', { name, error: error.message });
+      return { error: error.message };
     }
   }
 
