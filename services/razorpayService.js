@@ -64,6 +64,7 @@ class RazorpayService {
       const options = {
         amount: Math.round(amount * 100), 
         currency: "USD",
+        payment_capture: 1, // Auto-capture payment
         receipt: `rcpt_${userId.toString().slice(-8)}_${Date.now()}`,
         notes: {
           userId: userId.toString(),
@@ -103,6 +104,7 @@ class RazorpayService {
       const options = {
         amount: Math.round(packageInfo.price * 100),
         currency: packageInfo.currency || "USD",
+        payment_capture: 1, // Auto-capture payment
         receipt: `topup_${userId.toString().slice(-8)}_${Date.now()}`,
         notes: {
           userId: userId.toString(),
@@ -174,13 +176,28 @@ class RazorpayService {
   }
 
   /**
-   * Cancel a subscription
+   * Cancel a subscription (Immediate)
    */
   async cancelSubscription(subscriptionId) {
     try {
       return await this.instance.subscriptions.cancel(subscriptionId);
     } catch (error) {
       Logger.error('Failed to cancel Razorpay subscription', { subscriptionId, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Cancel a subscription at the end of the current billing cycle
+   */
+  async cancelSubscriptionAtCycleEnd(subscriptionId) {
+    try {
+      // cancel_at_cycle_end: 1 ensures user keeps access until expiry
+      return await this.instance.subscriptions.cancel(subscriptionId, {
+        cancel_at_cycle_end: 1
+      });
+    } catch (error) {
+      Logger.error('Failed to cancel subscription at cycle end', { subscriptionId, error: error.message });
       throw error;
     }
   }
