@@ -21,7 +21,7 @@ const CHAT_TOOLS = [
     type: 'function',
     function: {
       name: 'create_task',
-      description: 'Create a new regular task for the user.',
+      description: 'Create a new regular task. Note: Always provide title and description in English.',
       parameters: {
         type: 'object',
         properties: {
@@ -39,7 +39,7 @@ const CHAT_TOOLS = [
     type: 'function',
     function: {
       name: 'create_vital_task',
-      description: 'Create a new high-importance "Vital Task". Use this for urgent or critical items.',
+      description: 'Create a new Vital Task. Note: Always provide title and description in English.',
       parameters: {
         type: 'object',
         properties: {
@@ -55,7 +55,7 @@ const CHAT_TOOLS = [
     type: 'function',
     function: {
       name: 'search_tasks',
-      description: 'Search for existing tasks or vital tasks by keywords in title or description.',
+      description: 'Search for existing tasks. You can search using English or Hindi keywords.',
       parameters: {
         type: 'object',
         properties: {
@@ -116,9 +116,9 @@ class ChatbotService {
           dueDate: t.dueDate,
           isCompleted: t.isCompleted,
         })),
-        categories: categories.map(c => c.title),
-        priorities: priorities.map(p => p.name),
-        statuses: statuses.map(s => s.name),
+        categories: categories.map(c => ({ _id: c._id, title: c.title })),
+        priorities: priorities.map(p => ({ _id: p._id, name: p.name })),
+        statuses: statuses.map(s => ({ _id: s._id, name: s.name })),
       };
     } catch (error) {
       Logger.error('Failed to get user context for chatbot', { error: error.message });
@@ -134,8 +134,9 @@ class ChatbotService {
 User Context:
 - Tasks: ${userContext.stats.totalTasks} (${userContext.stats.completedTasks} done, ${userContext.stats.overdueTasks} overdue)
 - Vital Tasks: ${userContext.stats.vitalTasks}
-- Categories: ${userContext.categories.join(', ')}
-- Priorities: ${userContext.priorities.join(', ')}
+- Categories: ${userContext.categories.map(c => `${c.title} (ID: ${c._id})`).join(', ')}
+- Priorities: ${userContext.priorities.map(p => `${p.name} (ID: ${p._id})`).join(', ')}
+- Statuses: ${userContext.statuses.map(s => `${s.name} (ID: ${s._id})`).join(', ')}
 
 Capabilities:
 1. Create regular tasks or Vital Tasks.
@@ -144,8 +145,9 @@ Capabilities:
 
 Instructions:
 - If a user asks to create a task (e.g., "Mera ek task bana do..."), use the 'create_task' or 'create_vital_task' tool.
+- CRITICAL: Always translate 'title' and 'description' into ENGLISH when calling 'create_task' or 'create_vital_task', even if the user spoke in Hindi.
 - If a user asks about their tasks, use 'search_tasks' to find relevant info before answering.
-- Respond in the language used by the user (Hindi/English/Hinglish).
+- Respond to the user in the language they used (Hindi/English/Hinglish), but keep stored tasks in English.
 - Be concise and professional.`;
   }
 
@@ -271,8 +273,19 @@ Instructions:
 
     try {
       switch (name) {
-        case 'create_task':
+        case 'create_task': {
+          // Resolve category/priority names to IDs if necessary
+          const context = await this.getUserContext(userId);
+          if (args.category) {
+            const cat = context.categories.find(c => c.title === args.category || c._id.toString() === args.category);
+            if (cat) args.category = cat._id;
+          }
+          if (args.priority) {
+            const prio = context.priorities.find(p => p.name === args.priority || p._id.toString() === args.priority);
+            if (prio) args.priority = prio._id;
+          }
           return await TaskService.createTask(userId, args);
+        }
         
         case 'create_vital_task':
           return await VitalTaskService.createVitalTask(userId, args);
