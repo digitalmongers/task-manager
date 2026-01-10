@@ -48,7 +48,7 @@ class ChatService {
       const isFlagged = await ProfanityFilter.isFlaggedByAI(content);
       if (isFlagged) {
         // If AI flags it, replace ENTIRE message with asterisks instead of blocking
-        content = '**************************************************';
+        content = '*******************************';
         Logger.info('Harmful content masked by AI Moderation', { userId, taskId });
       } else {
         // Step B: Static Clean (Asterisks) for common slangs (only if not already masked)
