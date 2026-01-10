@@ -1,5 +1,5 @@
 import express from 'express';
-import { createSubscription, checkPaymentStatus, handleWebhook, cancelPayment, syncPaymentStatus, getInvoice, getPaymentHistory } from '../controllers/paymentController.js';
+import { createSubscription, checkPaymentStatus, handleWebhook, cancelCheckout, stopSubscription, syncPaymentStatus, getInvoice, getPaymentHistory } from '../controllers/paymentController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
@@ -20,7 +20,8 @@ router.post('/webhook', handleWebhook);
 // Protected routes
 router.post('/create-subscription', protect, createSubscription);
 router.post('/status', protect, checkPaymentStatus);
-router.post('/cancel', protect, cancelPayment);
+router.post('/checkout/cancel', protect, cancelCheckout);
+router.post('/subscription/stop', protect, stopSubscription);
 router.post('/sync', protect, syncLimiter, syncPaymentStatus);
 router.get('/invoice/:paymentId', protect, getInvoice);
 router.get('/history', protect, getPaymentHistory);

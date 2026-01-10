@@ -58,47 +58,118 @@ export const createSubscription = expressAsyncHandler(async (req, res) => {
  * @access  Private
  */
 /**
- * @desc    Handle Payment Cancellation (User closed checkout or wants to stop sub)
- * @route   POST /api/payments/cancel
+ * @desc    Handle Checkout Cancellation (User closed modal or backed out)
+ * @route   POST /api/payments/checkout/cancel
  * @access  Private
  */
-export const cancelPayment = expressAsyncHandler(async (req, res) => {
-  const { razorpay_subscription_id, reason } = req.body;
+export const cancelCheckout = expressAsyncHandler(async (req, res) => {
+  const { razorpay_order_id, razorpay_subscription_id, reason } = req.body;
   const userId = req.user._id;
 
-  const payment = await Payment.findOne({ razorpaySubscriptionId: razorpay_subscription_id });
-  if (!payment) throw ApiError.notFound('Subscription record not found');
+  // Find by order ID or subscription ID
+  const query = razorpay_subscription_id 
+    ? { razorpaySubscriptionId: razorpay_subscription_id }
+    : { razorpayOrderId: razorpay_order_id };
+
+  const payment = await Payment.findOne(query);
+  if (!payment) throw ApiError.notFound('Payment record not found');
 
   if (payment.user.toString() !== userId.toString()) {
+    Logger.warn('Unauthorized checkout cancel attempt', { 
+      paymentUser: payment.user.toString(), 
+      requestUser: userId.toString() 
+    });
     throw ApiError.forbidden('Unauthorized access');
   }
 
-  // Cancel in Razorpay if it's active
-  try {
-    const sub = await RazorpayService.getSubscription(razorpay_subscription_id);
-    if (sub.status === 'active' || sub.status === 'authenticated' || sub.status === 'created') {
-      await RazorpayService.cancelSubscription(razorpay_subscription_id);
+  // Only cancel if it was NOT already captured
+  if (payment.status === 'captured') {
+    throw ApiError.badRequest('Cannot cancel a completed payment. Please use the "Stop Subscription" feature instead.');
+  }
+
+  // If it's a subscription and it's in created/authenticated state, cancel it in Razorpay
+  if (razorpay_subscription_id) {
+    try {
+      const sub = await RazorpayService.getSubscription(razorpay_subscription_id);
+      if (['created', 'authenticated'].includes(sub.status)) {
+        await RazorpayService.cancelSubscription(razorpay_subscription_id);
+      }
+    } catch (e) {
+      Logger.warn('Razorpay sub abandonment cleanup failed', { subId: razorpay_subscription_id });
     }
-  } catch (e) {
-    Logger.warn('Razorpay sub cancellation failed or already cancelled', { subId: razorpay_subscription_id });
   }
 
   payment.status = 'cancelled';
   payment.metadata = { 
     ...payment.metadata,
-    cancellationReason: reason || 'User cancelled',
+    abandonedReason: reason || 'User closed checkout',
     cancelledAt: new Date()
   };
   await payment.save();
 
-  // Mark subscriptionStatus as cancelled
+  Logger.info('Checkout abandoned and record updated', { userId, paymentId: payment._id });
+
+  res.json({ success: true, message: 'Checkout cancelled successfully' });
+});
+
+/**
+ * @desc    Stop Active Subscription (Churn - No more auto-deduct)
+ * @route   POST /api/payments/subscription/stop
+ * @access  Private
+ */
+export const stopSubscription = expressAsyncHandler(async (req, res) => {
+  const { razorpay_subscription_id, reason } = req.body;
+  const userId = req.user._id;
+
+  if (!razorpay_subscription_id) throw ApiError.badRequest('Subscription ID is required');
+
+  const payment = await Payment.findOne({ razorpaySubscriptionId: razorpay_subscription_id });
+  if (!payment) throw ApiError.notFound('Subscription record not found');
+
+  if (payment.user.toString() !== userId.toString()) {
+    Logger.warn('Unauthorized subscription stop attempt', { 
+      paymentUser: payment.user.toString(), 
+      requestUser: userId.toString() 
+    });
+    throw ApiError.forbidden('Unauthorized access');
+  }
+
+  // Cancel in Razorpay at end of cycle
+  try {
+    const sub = await RazorpayService.getSubscription(razorpay_subscription_id);
+    if (sub.status === 'active') {
+      await RazorpayService.cancelSubscriptionAtCycleEnd(razorpay_subscription_id);
+      Logger.info('Subscription scheduled for cancellation at cycle end', { subId: razorpay_subscription_id });
+    } else {
+        throw ApiError.badRequest(`Subscription is already in ${sub.status} state`);
+    }
+  } catch (e) {
+    Logger.error('Razorpay subscription stop failed', { subId: razorpay_subscription_id, error: e.message });
+    throw ApiError.internal(`Could not stop subscription: ${e.message}`);
+  }
+
+  // Note: We don't downgrade the plan IMMEDIATELY. 
+  // We mark status as cancelled so user sees they won't be billed again.
+  // The cron job or handleExpiry will move them to FREE when currentPeriodEnd hits.
+  payment.status = 'cancelled';
+  payment.metadata = { 
+    ...payment.metadata,
+    stopReason: reason || 'User stopped recurring billing',
+    stoppedAt: new Date()
+  };
+  await payment.save();
+
   const user = await User.findById(userId);
   if (user) {
     user.subscriptionStatus = 'cancelled';
     await user.save();
   }
 
-  res.json({ success: true, message: 'Subscription cancelled successfully' });
+  res.json({ 
+    success: true, 
+    message: 'Recurring billing stopped. You will keep access until your current period ends.',
+    expiryDate: user ? user.currentPeriodEnd : null
+  });
 });
 
 /**
@@ -114,6 +185,10 @@ export const checkPaymentStatus = expressAsyncHandler(async (req, res) => {
   if (!payment) throw ApiError.notFound('Subscription not found');
 
   if (payment.user.toString() !== userId.toString()) {
+    Logger.warn('Unauthorized payment access attempt', { 
+      paymentUser: payment.user.toString(), 
+      requestUser: userId.toString() 
+    });
     throw ApiError.forbidden('Unauthorized access');
   }
 
@@ -137,6 +212,10 @@ export const syncPaymentStatus = expressAsyncHandler(async (req, res) => {
   if (!payment) throw ApiError.notFound('Subscription not found');
 
   if (payment.user.toString() !== userId.toString()) {
+    Logger.warn('Unauthorized payment access attempt', { 
+      paymentUser: payment.user.toString(), 
+      requestUser: userId.toString() 
+    });
     throw ApiError.forbidden('Unauthorized access');
   }
 
