@@ -275,6 +275,9 @@ const userSchema = new mongoose.Schema(
     razorpayCustomerId: {
       type: String,
     },
+    razorpaySubscriptionId: {
+      type: String,
+    },
   },
   {
     timestamps: true,
