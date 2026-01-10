@@ -20,21 +20,32 @@ class RazorpayService {
       const planId = RAZORPAY_PLANS[planKey]?.[billingCycle.toUpperCase()];
       if (!planId) throw ApiError.badRequest('Invalid plan or billing cycle for subscription');
 
-      const subscription = await this.instance.subscriptions.create({
+      const payload = {
         plan_id: planId,
         customer_notify: 1,
         total_count: billingCycle.toUpperCase() === 'YEARLY' ? 10 : 120, // 10 years
         notes: {
           userId: userId.toString(),
           plan: planKey,
-          billingCycle: billingCycle.toUpperCase()
+          billingCycle: billingCycle.toUpperCase(),
+          currency: 'USD' // Logging intent
         }
-      });
+      };
 
-      Logger.info('Razorpay Subscription Created', { subscriptionId: subscription.id, userId });
+      Logger.info('DEBUG: Creating Razorpay Subscription', { payload, userId });
+
+      const subscription = await this.instance.subscriptions.create(payload);
+
+      Logger.info('Razorpay Subscription Created Successfully', { subscriptionId: subscription.id, userId, status: subscription.status });
       return subscription;
     } catch (error) {
-      Logger.error('Razorpay Subscription Creation Failed', { error: error.message, userId });
+      Logger.error('Razorpay Subscription Creation Failed', { 
+        error: error.message, 
+        stack: error.stack,
+        userId,
+        planKey,
+        billingCycle 
+      });
       throw error;
     }
   }
@@ -50,9 +61,8 @@ class RazorpayService {
       const amount = plan.pricing[billingCycle.toLowerCase()];
       if (amount === undefined) throw ApiError.badRequest('Invalid billing cycle');
 
-      // Razorpay expects amount in smallest currency unit (cents for USD)
       const options = {
-        amount: amount * 100, 
+        amount: Math.round(amount * 100), 
         currency: "USD",
         receipt: `rcpt_${userId.toString().slice(-8)}_${Date.now()}`,
         notes: {
@@ -62,11 +72,18 @@ class RazorpayService {
         }
       };
 
+      Logger.info('DEBUG: Creating Razorpay Order (One-time)', { options, userId });
+
       const order = await this.instance.orders.create(options);
-      Logger.info('Razorpay Order Created', { orderId: order.id, userId });
+      Logger.info('Razorpay Order Created Successfully', { orderId: order.id, userId, currency: order.currency });
       return order;
     } catch (error) {
-      Logger.error('Razorpay Order Creation Failed', { error: error.message, userId });
+      Logger.error('Razorpay Order Creation Failed', { 
+        error: error.message, 
+        description: error.description,
+        userId,
+        planKey 
+      });
       throw error;
     }
   }
@@ -83,9 +100,8 @@ class RazorpayService {
         throw ApiError.badRequest('Invalid top-up package selected');
       }
 
-      // Razorpay expects amount in smallest currency unit (cents for USD)
       const options = {
-        amount: packageInfo.price * 100,
+        amount: Math.round(packageInfo.price * 100),
         currency: packageInfo.currency || "USD",
         receipt: `topup_${userId.toString().slice(-8)}_${Date.now()}`,
         notes: {
@@ -96,11 +112,27 @@ class RazorpayService {
         }
       };
 
+      Logger.info('DEBUG: Creating Razorpay Top-up Order', { options, userId });
+
       const order = await this.instance.orders.create(options);
-      Logger.info('Razorpay Top-up Order Created', { orderId: order.id, userId, package: topupPackage });
+      
+      Logger.info('Razorpay Top-up Order Created Successfully', { 
+        orderId: order.id, 
+        userId, 
+        package: topupPackage,
+        currency: order.currency,
+        amount: order.amount
+      });
+      
       return order;
     } catch (error) {
-      Logger.error('Razorpay Top-up Order Creation Failed', { error: error.message, userId, topupPackage });
+      Logger.error('Razorpay Top-up Order Creation Failed', { 
+        error: error.message, 
+        description: error.description,
+        userId, 
+        topupPackage,
+        options: error.options // Some SDKs attach original options on error
+      });
       throw error;
     }
   }
