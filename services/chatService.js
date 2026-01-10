@@ -44,15 +44,16 @@ class ChatService {
 
     // 1.5 Profanity Filtering & AI Moderation (Real-time safety)
     if (content && typeof content === 'string') {
-      // Step A: Deep AI Moderation on RAW content (Blocking)
-      // Check BEFORE we clean/obfuscate with asterisks so AI can see the real words
+      // Step A: Deep AI Moderation on RAW content (Sanitization)
       const isFlagged = await ProfanityFilter.isFlaggedByAI(content);
       if (isFlagged) {
-        throw ApiError.badRequest('Message violates community safety guidelines and has been blocked.');
+        // If AI flags it, replace ENTIRE message with asterisks instead of blocking
+        content = '**************************************************';
+        Logger.info('Harmful content masked by AI Moderation', { userId, taskId });
+      } else {
+        // Step B: Static Clean (Asterisks) for common slangs (only if not already masked)
+        content = ProfanityFilter.clean(content);
       }
-
-      // Step B: Static Clean (Asterisks) for common slangs
-      content = ProfanityFilter.clean(content);
     }
 
     // 2. Robust File Data Parsing & Mapping
