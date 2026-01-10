@@ -15,6 +15,7 @@ import ChatConversation from '../../models/ChatConversation.js';
 import AIService from './aiService.js';
 import TaskService from '../../services/taskService.js';
 import VitalTaskService from '../../services/vitalTaskService.js';
+import TeamOptimizationService from '../../services/teamOptimizationService.js';
 
 const CHAT_TOOLS = [
   {
@@ -65,6 +66,20 @@ const CHAT_TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'suggest_assignee',
+      description: 'Request a recommendation for the best team member to assign a task to based on performance data.',
+      parameters: {
+        type: 'object',
+        properties: {
+          categoryId: { type: 'string', description: 'Category ID of the task (find from context)' },
+          taskTitle: { type: 'string', description: 'The title of the task being considered' },
+        }
+      },
+    },
+  },
 ];
 
 class ChatbotService {
@@ -73,7 +88,7 @@ class ChatbotService {
    */
   async getUserContext(userId) {
     try {
-      const [tasks, vitalTasks, categories, priorities, statuses] = await Promise.all([
+      const [tasks, vitalTasks, categories, priorities, statuses, performance] = await Promise.all([
         Task.find({ user: userId, isDeleted: false })
           .select('title status priority dueDate isCompleted')
           .populate('status', 'name')
@@ -87,6 +102,7 @@ class ChatbotService {
         Category.find({ user: userId }).select('title').lean(),
         TaskPriority.find({ user: userId }).select('name').lean(),
         TaskStatus.find({ user: userId }).select('name').lean(),
+        TeamOptimizationService.getAIPerformanceContext(userId)
       ]);
 
       // Calculate stats
@@ -119,6 +135,7 @@ class ChatbotService {
         categories: categories.map(c => ({ _id: c._id, title: c.title })),
         priorities: priorities.map(p => ({ _id: p._id, name: p.name })),
         statuses: statuses.map(s => ({ _id: s._id, name: s.name })),
+        teammatePerformance: performance,
       };
     } catch (error) {
       Logger.error('Failed to get user context for chatbot', { error: error.message });
@@ -137,6 +154,8 @@ User Context:
 - Categories: ${userContext.categories.map(c => `${c.title} (ID: ${c._id})`).join(', ')}
 - Priorities: ${userContext.priorities.map(p => `${p.name} (ID: ${p._id})`).join(', ')}
 - Statuses: ${userContext.statuses.map(s => `${s.name} (ID: ${s._id})`).join(', ')}
+- Team Member Performance (Avg Completion Time):
+${userContext.teammatePerformance}
 
 Capabilities:
 1. Create regular tasks or Vital Tasks.
@@ -311,6 +330,9 @@ Instructions:
             }).limit(5).lean()
           ]);
           return { tasks, vitalTasks, count: tasks.length + vitalTasks.length };
+
+        case 'suggest_assignee':
+          return await TeamOptimizationService.getTeamPerformanceMetrics(userId, args.categoryId);
 
         default:
           return { error: 'Unknown tool' };

@@ -7,17 +7,17 @@ import openai from '../config/openai.js';
 import Logger from '../config/logger.js';
 
 const BAD_WORDS = [
-  // English (Common)
+  // English 
   'fuck', 'shit', 'asshole', 'bitch', 'bastard', 'nigger', 'cunt', 'dick', 'pussy',
-  // Hindi (Common/Slangs)
-  'gaali', 'harami', 'kamina', 'saala', 'chutiya', 'bhanchod', 'madarchod', 'gand', 'gaand', 'lodu', 'betichod'
-  // Note: This is an illustrative list. In production, consider a much larger curated list or external dataset.
+  // Hindi 
+  'gaali', 'harami', 'kamina', 'saala', 'chutiya', 'bhanchod', 'madarchod', 'gand','teri maa ki chut','tmkc','bkl','bkloda','bhenkelund', 'gaand','kutta', 'lodu', 'betichod'
+  
 ];
 
 class ProfanityFilter {
   constructor() {
     this.words = new Set(BAD_WORDS);
-    // Create a regex for faster matching (case-insensitive)
+    
     this.regex = new RegExp(`\\b(${BAD_WORDS.join('|')})\\b`, 'gi');
   }
 
