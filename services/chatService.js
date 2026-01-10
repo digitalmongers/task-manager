@@ -14,6 +14,7 @@ import Notification from '../models/Notification.js';
 import ChatReadState from '../models/ChatReadState.js';
 import MetricsService from './metricsService.js';
 import WebSocketService from '../config/websocket.js';
+import ProfanityFilter from '../utils/profanityFilter.js';
 
 class ChatService {
   /**
@@ -40,6 +41,18 @@ class ChatService {
     }
 
     let { content, messageType = 'text', fileDetails = null, replyTo = null, mentions = [], clientSideId = null } = messageData;
+
+    // 1.5 Profanity Filtering & AI Moderation (Real-time safety)
+    if (content && typeof content === 'string') {
+      // Step A: Static Clean (Asterisks)
+      content = ProfanityFilter.clean(content);
+
+      // Step B: Deep AI Moderation (Blocking)
+      const isFlagged = await ProfanityFilter.isFlaggedByAI(content);
+      if (isFlagged) {
+        throw ApiError.badRequest('Message violates community safety guidelines and has been blocked.');
+      }
+    }
 
     // 2. Robust File Data Parsing & Mapping
     if (fileDetails) {
