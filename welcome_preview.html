@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Tasskr</title>
+    <style>
+        :root {
+            --primary: #FF6B6B;
+            --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            --background: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        .header {
+            background: var(--primary-gradient);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .logo {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            object-fit: contain;
+            padding: 4px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .welcome-text {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 16px;
+        }
+
+        .main-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-main);
+            margin-bottom: 32px;
+        }
+
+        .features-grid {
+            margin-bottom: 32px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px;
+            background: #F8FAFC;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .feature-icon {
+            width: 32px;
+            height: 32px;
+            background: #FFEBEB;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .feature-item h3 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .feature-item p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .actions {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 16px 40px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.2s;
+            background: var(--primary-gradient);
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+
+        .footer {
+            padding: 32px 40px;
+            background: #F8FAFC;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .email-container {
+                margin: 0;
+                border-radius: 0;
+                border: none;
+            }
+            .content {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <img src="https://via.placeholder.com/56/FF6B6B/FFFFFF?text=T" alt="Tasskr" class="logo">
+            <h1>Successfully Verified</h1>
+        </div>
+
+        <div class="content">
+            <p class="welcome-text">Welcome aboard, Paras!</p>
+            <p class="main-text">
+                Your email has been successfully verified. You're now ready to experience the full power of Tasskr. Here's what you can do next:
+            </p>
+
+            <div class="features-grid">
+                <div class="feature-item">
+                    <div class="feature-icon">✓</div>
+                    <div>
+                        <h3>Manage Tasks Effortlessly</h3>
+                        <p>Organize, prioritize, and track your work with our intuitive task manager.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">✓</div>
+                    <div>
+                        <h3>Seamless Collaboration</h3>
+                        <p>Invite team members, assign tasks, and communicate in real-time.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">✓</div>
+                    <div>
+                        <h3>Insightful Analytics</h3>
+                        <p>Monitor your productivity and team progress with detailed visual reports.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <a href="#" class="btn">Login to Your Account</a>
+            </div>
+
+            <p class="main-text" style="margin-bottom: 0;">
+                Need help getting started? Visit our <a href="#" style="color: var(--primary); text-decoration: none;">Help Center</a> or reply to this email.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Tasskr</strong> — Your Advanced Task Management Partner</p>
+            <p>© 2026 Tasskr Inc. All rights reserved.</p>
+            <p style="margin-top: 8px;">Sent to parasmourya288@gmail.com.</p>
+        </div>
+    </div>
+</body>
+</html>
