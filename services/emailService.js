@@ -585,156 +585,261 @@ class EmailService {
 
     const html = `
       <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Reset Your Password</title>
           <style>
-            body { 
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-              line-height: 1.6; 
-              color: #333;
-              background-color: #f4f4f4;
-              margin: 0;
-              padding: 0;
-            }
-            .container { 
-              max-width: 600px; 
-              margin: 30px auto; 
-              background: white;
-              border-radius: 10px;
-              overflow: hidden;
-              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            }
-            .header { 
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-              color: white; 
-              padding: 25px 20px; 
-              text-align: center; 
-            }
-            .header-branding {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-              margin-bottom: 8px;
-            }
-            .header img {
-              width: 48px;
-              height: 48px;
-              background: rgba(255, 255, 255, 0.2);
-              padding: 8px;
-              border-radius: 12px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              margin: 0;
-              flex-shrink: 0;
-            }
-            .header h1 {
-              margin: 0;
-              font-size: 24px;
-              font-weight: 700;
-              line-height: 1.2;
-            }
-            .content { 
-              padding: 40px 30px;
-            }
-            .button-container {
-              text-align: center;
-              margin: 30px 0;
-            }
-            .button { 
-              display: inline-block; 
-              padding: 15px 40px; 
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-              color: white !important; 
-              text-decoration: none; 
-              border-radius: 5px; 
-              font-weight: 600;
-              font-size: 16px;
-            }
-            .link-box {
-              background: #f8f9fa;
-              padding: 15px;
-              border-radius: 5px;
-              margin: 20px 0;
-              word-break: break-all;
-            }
-            .warning { 
-              background: #fff3cd; 
-              border-left: 4px solid #ffc107; 
-              padding: 15px; 
-              margin: 20px 0;
-              border-radius: 4px;
-            }
-            .footer { 
-              text-align: center; 
-              padding: 20px 30px;
-              background: #f8f9fa;
-              color: #6c757d; 
-              font-size: 13px; 
-            }
-            ul {
-              padding-left: 20px;
-            }
-            ul li {
-              margin: 8px 0;
-              color: #555;
-            }
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 600px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 40px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 56px;
+                  height: 56px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 14px;
+                  margin-bottom: 16px;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 40px;
+              }
+
+              .welcome-text {
+                  font-size: 18px;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 16px;
+              }
+
+              .main-text {
+                  font-size: 16px;
+                  line-height: 1.6;
+                  color: var(--text-main);
+                  margin-bottom: 32px;
+              }
+
+              .actions {
+                  text-align: center;
+                  margin-bottom: 32px;
+              }
+
+              .btn {
+                  display: inline-block;
+                  padding: 16px 40px;
+                  border-radius: 12px;
+                  font-weight: 600;
+                  font-size: 16px;
+                  text-decoration: none;
+                  background: var(--primary-gradient);
+                  color: white !important;
+                  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+              }
+
+              .link-box {
+                  background: #F1F5F9;
+                  padding: 20px;
+                  border-radius: 12px;
+                  margin-bottom: 32px;
+              }
+
+              .link-box p {
+                  margin: 0 0 8px 0;
+                  font-size: 12px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                  color: var(--text-muted);
+              }
+
+              .link-box a {
+                  font-size: 14px;
+                  color: var(--primary);
+                  text-decoration: none;
+                  word-break: break-all;
+              }
+
+              .warning-strip {
+                  background: #FFFBEB;
+                  border-left: 4px solid #F59E0B;
+                  padding: 16px;
+                  border-radius: 8px;
+                  margin-bottom: 32px;
+              }
+
+              .warning-strip p {
+                  margin: 0;
+                  font-size: 14px;
+                  color: #92400E;
+                  line-height: 1.5;
+              }
+
+              .security-tips {
+                  background: #F8FAFC;
+                  padding: 24px;
+                  border-radius: 12px;
+                  border: 1px solid var(--border);
+                  margin-bottom: 32px;
+              }
+
+              .security-tips h3 {
+                  margin: 0 0 16px 0;
+                  font-size: 15px;
+                  font-weight: 700;
+                  color: var(--text-main);
+              }
+
+              .security-tips ul {
+                  margin: 0;
+                  padding: 0;
+                  list-style: none;
+              }
+
+              .security-tips li {
+                  font-size: 14px;
+                  color: var(--text-muted);
+                  margin-bottom: 8px;
+                  padding-left: 20px;
+                  position: relative;
+              }
+
+              .security-tips li::before {
+                  content: "•";
+                  color: var(--primary);
+                  font-weight: bold;
+                  position: absolute;
+                  left: 0;
+              }
+
+              .footer {
+                  padding: 32px 40px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 12px;
+                  color: var(--text-muted);
+                  line-height: 1.5;
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 30px 20px;
+                  }
+              }
           </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="header-branding">
-                <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>🔐 Password Reset Request</h1>
+      </head>
+      <body>
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>Reset Your Password</h1>
               </div>
-            </div>
-            <div class="content">
-              <h2>Hello ${user.firstName},</h2>
-              <p>We received a request to reset your password for your Tasskr account.</p>
-              
-              <div class="button-container">
-                <a href="${resetUrl}" class="button">Reset Password</a>
+
+              <div class="content">
+                  <p class="welcome-text">Hello ${user.firstName},</p>
+                  <p class="main-text">
+                      We received a request to reset the password for your Tasskr account. Click the button below to set a new password.
+                  </p>
+
+                  <div class="actions">
+                      <a href="${resetUrl}" class="btn">Reset Password</a>
+                  </div>
+
+                  <div class="warning-strip">
+                      <p><strong>Important:</strong> This link is valid for <strong>1 hour</strong>. If you didn't request a password reset, you can safely ignore this email — your password will remain unchanged.</p>
+                  </div>
+
+                  <div class="security-tips">
+                      <h3>Security Best Practices</h3>
+                      <ul>
+                          <li>Use a strong, unique password for every account.</li>
+                          <li>Never share your password with anyone.</li>
+                          <li>Enable Two-Factor Authentication (2FA) for extra security.</li>
+                      </ul>
+                  </div>
+
+                  <div class="link-box">
+                      <p>Trouble with the button? Copy this link:</p>
+                      <a href="${resetUrl}">${resetUrl}</a>
+                  </div>
+
+                  <p class="main-text" style="margin-bottom: 0;">
+                      Best regards,<br>
+                      <strong>The Tasskr Team</strong>
+                  </p>
               </div>
-              
-              <div class="link-box">
-                <p><strong>Or copy and paste this link into your browser:</strong></p>
-                <p style="color: #FF6B6B;">${resetUrl}</p>
+
+              <div class="footer">
+                  <p><strong>Tasskr</strong> — Advanced Collaborative Task Management</p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
-              
-              <div class="warning">
-                <strong>⚠️ Important:</strong> This link will expire in 1 hour. If you did not request a password reset, please ignore this email and your password will remain unchanged.
-              </div>
-              
-              <p><strong>For security reasons, we recommend that you:</strong></p>
-              <ul>
-                <li>Use a strong, unique password</li>
-                <li>Never share your password with anyone</li>
-                <li>Enable two-factor authentication if available</li>
-              </ul>
-              
-              <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
-            </div>
-            <div class="footer">
-              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-              <p>This is an automated email. Please do not reply.</p>
-            </div>
           </div>
-        </body>
+      </body>
       </html>
     `;
 
     const text = `
-      Password Reset Request
+      Reset Your Password
       
       Hello ${user.firstName},
       
       We received a request to reset your password. Click the link below:
       ${resetUrl}
       
-      This link will expire in 1 hour.
+      This link is valid for 1 hour.
       
       If you did not request this, please ignore this email.
       
@@ -758,178 +863,274 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
   const loginUrl = `${frontendUrl}/login`;
   const supportUrl = `${frontendUrl}/support`;
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Password Changed Successfully</title>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 600px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 40px 30px; 
-            text-align: center; 
-          }
-          .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .content h2 {
-            color: #333;
-            font-size: 24px;
-            margin-bottom: 20px;
-          }
-          .content p {
-            margin-bottom: 15px;
-            color: #555;
-          }
-          .info-box { 
-            background: #f8f9fa; 
-            padding: 20px; 
-            margin: 20px 0; 
-            border-radius: 5px; 
-            border: 1px solid #dee2e6; 
-          }
-          .info-box p {
-            margin: 8px 0;
-            color: #555;
-          }
-          .warning { 
-            background: #fee2e2; 
-            border-left: 4px solid #ef4444; 
-            padding: 15px; 
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .warning strong {
-            color: #991b1b;
-          }
-          .button-container {
-            text-align: center;
-            margin: 30px 0;
-          }
-          .button { 
-            display: inline-block; 
-            padding: 15px 40px; 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white !important; 
-            text-decoration: none; 
-            border-radius: 5px; 
-            font-weight: 600;
-            font-size: 16px;
-            margin: 5px;
-          }
-          .button-secondary { 
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
-        </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Password Changed</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 600px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 40px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 56px;
+                  height: 56px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 14px;
+                  margin-bottom: 16px;
+                  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 40px;
+              }
+
+              .welcome-text {
+                  font-size: 18px;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 16px;
+              }
+
+              .main-text {
+                  font-size: 16px;
+                  line-height: 1.6;
+                  color: var(--text-main);
+                  margin-bottom: 32px;
+              }
+
+              .info-box {
+                  background: #F8FAFC;
+                  padding: 24px;
+                  border-radius: 12px;
+                  border: 1px solid var(--border);
+                  margin-bottom: 32px;
+              }
+
+              .info-box h3 {
+                  margin: 0 0 16px 0;
+                  font-size: 14px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                  color: var(--text-muted);
+              }
+
+              .info-row {
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 8px;
+                  font-size: 14px;
+              }
+
+              .info-label {
+                  color: var(--text-muted);
+                  font-weight: 500;
+              }
+
+              .info-value {
+                  color: var(--text-main);
+                  font-weight: 600;
+              }
+
+              .actions {
+                  text-align: center;
+                  margin-bottom: 32px;
+                  display: flex;
+                  gap: 16px;
+                  justify-content: center;
+              }
+
+              .btn {
+                  display: inline-block;
+                  padding: 14px 24px;
+                  border-radius: 12px;
+                  font-weight: 600;
+                  font-size: 15px;
+                  text-decoration: none;
+                  flex: 1;
+                  max-width: 200px;
+              }
+
+              .btn-primary {
+                  background: var(--primary-gradient);
+                  color: white !important;
+                  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+              }
+
+              .btn-secondary {
+                  background: white;
+                  color: var(--text-main) !important;
+                  border: 1px solid var(--border);
+              }
+
+              .warning-strip {
+                  background: #FEF2F2;
+                  border-left: 4px solid #EF4444;
+                  padding: 16px;
+                  border-radius: 8px;
+                  margin-bottom: 32px;
+              }
+
+              .warning-strip p {
+                  margin: 0;
+                  font-size: 14px;
+                  color: #991B1B;
+                  line-height: 1.5;
+              }
+
+              .footer {
+                  padding: 32px 40px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 12px;
+                  color: var(--text-muted);
+                  line-height: 1.5;
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 30px 20px;
+                  }
+                  .actions {
+                      flex-direction: column;
+                      align-items: center;
+                  }
+                  .btn {
+                      max-width: 100%;
+                      width: 100%;
+                      margin-bottom: 12px;
+                  }
+              }
+          </style>
       </head>
       <body>
-        <div class="container">
-            <div class="header">
-              <div class="header-branding">
-                <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>✅ Password Changed Successfully</h1>
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>Password Changed</h1>
               </div>
-            </div>
-          <div class="content">
-            <h2>Hello ${user.firstName},</h2>
-            <p>Your password has been changed successfully.</p>
-            
-            <div class="info-box">
-              <p><strong>📅 Change Details:</strong></p>
-              <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-              <p><strong>🌐 IP Address:</strong> ${ip}</p>
-              <p><strong>💻 Device:</strong> ${userAgent}</p>
-            </div>
-            
-            <div class="warning">
-              <strong>⚠️ Important Security Notice:</strong><br>
-              If you did NOT make this change, your account may be compromised. Please contact our support team immediately and we'll help secure your account.
-            </div>
-            
-            <div class="button-container">
-              <a href="${loginUrl}" class="button">Login Now</a>
-              <a href="${supportUrl}" class="button button-secondary">Contact Support</a>
-            </div>
-            
-            <p><strong>Security Tips:</strong></p>
-            <ul>
-              <li>Never share your password with anyone</li>
-              <li>Use a unique password for your Tasskr account</li>
-              <li>Enable two-factor authentication if available</li>
-              <li>Regularly update your password</li>
-            </ul>
-            
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            <p>This is an automated security notification.</p>
-          </div>
-        </div>
-      </body>
-    </html>
-  `;
 
-  const text = `
-    Password Changed Successfully
-    
-    Hello ${user.firstName},
-    
-    Your password has been changed successfully.
-    
-    Change Details:
-    Time: ${new Date().toLocaleString()}
-    IP Address: ${ip}
-    Device: ${userAgent}
-    
-    ⚠️ IMPORTANT: If you did NOT make this change, contact support immediately.
-    
-    Login: ${loginUrl}
-    Support: ${supportUrl}
-    
-    Best regards,
-    The Tasskr Team
-  `;
+              <div class="content">
+                  <p class="welcome-text">Hello ${user.firstName},</p>
+                  <p class="main-text">
+                      This is a confirmation that the password for your Tasskr account has been successfully changed.
+                  </p>
+
+                  <div class="info-box">
+                      <h3>Change Details</h3>
+                      <div class="info-row">
+                          <span class="info-label">Time</span>
+                          <span class="info-value">${new Date().toLocaleString()}</span>
+                      </div>
+                      <div class="info-row">
+                          <span class="info-label">IP Address</span>
+                          <span class="info-value">${ip}</span>
+                      </div>
+                      <div class="info-row">
+                          <span class="info-label">Device</span>
+                          <span class="info-value">${userAgent}</span>
+                      </div>
+                  </div>
+
+                  <div class="warning-strip">
+                      <p><strong>Urgent:</strong> If you did not make this change, your account may be compromised. Please contact our support team immediately to secure your account.</p>
+                  </div>
+
+                  <div class="actions">
+                      <a href="${loginUrl}" class="btn btn-primary">Login to Account</a>
+                      <a href="${supportUrl}" class="btn btn-secondary">Contact Support</a>
+                  </div>
+
+                  <p class="main-text" style="margin-bottom: 0;">
+                      Best regards,<br>
+                      <strong>The Tasskr Team</strong>
+                  </p>
+              </div>
+
+              <div class="footer">
+                  <p><strong>Tasskr</strong> — Your Security is Our Priority</p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+              </div>
+          </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+      Password Changed Successfully
+      
+      Hello ${user.firstName},
+      
+      Your password has been changed successfully.
+      
+      Change Details:
+      Time: ${new Date().toLocaleString()}
+      IP Address: ${ip}
+      Device: ${userAgent}
+      
+      IMPORTANT: If you did NOT make this change, your account may be compromised. Contact support immediately.
+      
+      Login to Account: ${loginUrl}
+      Contact Support: ${supportUrl}
+      
+      Best regards,
+      The Tasskr Team
+    `;
 
   return await this.sendEmail({
     to: user.email,
@@ -1336,264 +1537,272 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
   // Support email address
   const supportEmail = process.env.SUPPORT_EMAIL || 'noreply@digitalmongers.com';
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>New Contact Form Submission</title>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 700px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 30px; 
-            text-align: center; 
-          }
-          .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 26px;
-            font-weight: 600;
-          }
-          .header p {
-            margin: 10px 0 0 0;
-            opacity: 0.95;
-            font-size: 14px;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .info-section {
-            background: #f8f9fa;
-            border-left: 4px solid #FF6B6B;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-          }
-          .info-section h2 {
-            margin: 0 0 15px 0;
-            color: #FF6B6B;
-            font-size: 18px;
-            font-weight: 600;
-          }
-          .info-row {
-            display: flex;
-            margin: 10px 0;
-            padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
-          }
-          .info-row:last-child {
-            border-bottom: none;
-          }
-          .info-label {
-            font-weight: 600;
-            color: #495057;
-            min-width: 120px;
-          }
-          .info-value {
-            color: #212529;
-            word-break: break-word;
-          }
-          .message-box {
-            background: #ffffff;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            padding: 20px;
-            margin: 20px 0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.8;
-          }
-          .message-box h3 {
-            margin: 0 0 15px 0;
-            color: #495057;
-            font-size: 16px;
-            font-weight: 600;
-          }
-          .metadata {
-            background: #e7f3ff;
-            border-left: 4px solid #0d6efd;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-            font-size: 13px;
-          }
-          .metadata p {
-            margin: 5px 0;
-            color: #084298;
-          }
-          .reply-button {
-            display: inline-block;
-            padding: 12px 30px;
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white !important;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 15px;
-            margin: 20px 0;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 12px; 
-            border-top: 1px solid #dee2e6;
-          }
-          .footer p {
-            margin: 5px 0;
-          }
-          .priority-badge {
-            display: inline-block;
-            background: #ffc107;
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 10px;
-          }
-          .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-        </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Contact Submission</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 650px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 30px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 48px;
+                  height: 48px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 12px;
+                  margin-bottom: 12px;
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 20px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 32px;
+              }
+
+              .section-title {
+                  font-size: 14px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                  color: var(--primary);
+                  margin-bottom: 20px;
+                  border-bottom: 1px solid var(--border);
+                  padding-bottom: 8px;
+              }
+
+              .info-grid {
+                  background: #F8FAFC;
+                  border-radius: 12px;
+                  padding: 20px;
+                  margin-bottom: 24px;
+                  border: 1px solid var(--border);
+              }
+
+              .info-row {
+                  display: flex;
+                  margin-bottom: 12px;
+                  font-size: 14px;
+              }
+
+              .info-row:last-child {
+                  margin-bottom: 0;
+              }
+
+              .info-label {
+                  color: var(--text-muted);
+                  min-width: 100px;
+                  font-weight: 500;
+              }
+
+              .info-value {
+                  color: var(--text-main);
+                  font-weight: 600;
+                  word-break: break-all;
+              }
+
+              .message-box {
+                  background: #FFFFFF;
+                  border: 1px solid var(--border);
+                  border-radius: 12px;
+                  padding: 24px;
+                  margin-bottom: 24px;
+                  font-size: 15px;
+                  line-height: 1.7;
+                  color: var(--text-main);
+                  white-space: pre-wrap;
+              }
+
+              .actions {
+                  text-align: center;
+                  margin-bottom: 24px;
+              }
+
+              .btn {
+                  display: inline-block;
+                  padding: 14px 30px;
+                  border-radius: 10px;
+                  font-weight: 600;
+                  font-size: 15px;
+                  text-decoration: none;
+                  background: var(--primary-gradient);
+                  color: white !important;
+                  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+              }
+
+              .metadata-strip {
+                  background: #F1F5F9;
+                  padding: 16px;
+                  border-radius: 8px;
+                  font-size: 12px;
+                  color: var(--text-muted);
+                  margin-bottom: 24px;
+              }
+
+              .warning-strip {
+                  background: #FFFBEB;
+                  border-left: 4px solid #F59E0B;
+                  padding: 16px;
+                  border-radius: 8px;
+                  font-size: 13px;
+                  color: #92400E;
+              }
+
+              .footer {
+                  padding: 24px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 11px;
+                  color: var(--text-muted);
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 24px 16px;
+                  }
+                  .info-row {
+                      flex-direction: column;
+                  }
+                  .info-label {
+                      margin-bottom: 4px;
+                  }
+              }
+          </style>
       </head>
       <body>
-        <div class="container">
-            <div class="header">
-              <div class="header-branding">
-                <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>📩 New Submission</h1>
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>New Support Inquiry</h1>
               </div>
-              <p>Tasskr Contact Form</p>
-            </div>
-          
-          <div class="content">
-            <div class="info-section">
-              <h2>👤 Contact Information</h2>
-              <div class="info-row">
-                <div class="info-label">Name:</div>
-                <div class="info-value"><strong>${name}</strong></div>
+
+              <div class="content">
+                  <div class="section-title">User Information</div>
+                  <div class="info-grid">
+                      <div class="info-row">
+                          <span class="info-label">Name</span>
+                          <span class="info-value">${name}</span>
+                      </div>
+                      <div class="info-row">
+                          <span class="info-label">Email</span>
+                          <span class="info-value">${email}</span>
+                      </div>
+                      <div class="info-row">
+                          <span class="info-label">Subject</span>
+                          <span class="info-value">${subject}</span>
+                      </div>
+                  </div>
+
+                  <div class="section-title">Message Content</div>
+                  <div class="message-box">${message}</div>
+
+                  <div class="actions">
+                      <a href="mailto:${email}?subject=Re: ${encodeURIComponent(subject)}" class="btn">Reply to User</a>
+                  </div>
+
+                  <div class="metadata-strip">
+                      <div><strong>Submitted:</strong> ${new Date(submittedAt).toLocaleString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZoneName: 'short'
+                      })}</div>
+                      <div style="margin-top: 4px;"><strong>IP Address:</strong> ${ipAddress} | <strong>Reference ID:</strong> CONTACT-${Date.now()}</div>
+                  </div>
+
+                  <div class="warning-strip">
+                      <strong>Action Required:</strong> Please respond within 24 hours to maintain our service quality standards.
+                  </div>
               </div>
-              <div class="info-row">
-                <div class="info-label">Email:</div>
-                <div class="info-value">
-                  <a href="mailto:${email}" style="color: #FF6B6B; text-decoration: none;">
-                    ${email}
-                  </a>
-                </div>
+
+              <div class="footer">
+                  <p><strong>Tasskr Support System</strong></p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
-              <div class="info-row">
-                <div class="info-label">Subject:</div>
-                <div class="info-value"><strong>${subject}</strong></div>
-              </div>
-            </div>
-
-            <div class="message-box">
-              <h3>💬 Message Content</h3>
-              ${message}
-            </div>
-
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="mailto:${email}?subject=Re: ${encodeURIComponent(subject)}" class="reply-button">
-                📧 Reply to ${name}
-              </a>
-            </div>
-
-            <div class="metadata">
-              <p><strong>📅 Submitted:</strong> ${new Date(submittedAt).toLocaleString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZoneName: 'short'
-              })}</p>
-              <p><strong>🌐 IP Address:</strong> ${ipAddress}</p>
-              <p><strong>🆔 Reference ID:</strong> CONTACT-${Date.now()}</p>
-            </div>
-
-            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <p style="margin: 0; color: #856404;">
-                <strong>⚠️ Action Required:</strong> Please respond to this inquiry within 24 hours to maintain our service quality standards.
-              </p>
-            </div>
           </div>
-          
-          <div class="footer">
-            <p><strong>Tasskr Support Team</strong></p>
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            <p>This is an automated notification from the contact form system.</p>
-          </div>
-        </div>
       </body>
-    </html>
-  `;
+      </html>
+    `;
 
-  const text = `
-    NEW CONTACT FORM SUBMISSION
-    Tasskr Support 
-    
-    ========================================
-    CONTACT INFORMATION
-    ========================================
-    Name: ${name}
-    Email: ${email}
-    Subject: ${subject}
-    
-    ========================================
-    MESSAGE
-    ========================================
-    ${message}
-    
-    ========================================
-    METADATA
-    ========================================
-    Submitted: ${new Date(submittedAt).toLocaleString()}
-    IP Address: ${ipAddress}
-    Reference ID: CONTACT-${Date.now()}
-    
-    ========================================
-    
-    Reply directly to: ${email}
-    
-    ---
-    Tasskr Support Team
-    © ${new Date().getFullYear()} Tasskr
-  `;
+    const text = `
+      NEW CONTACT FORM SUBMISSION
+      
+      CONTACT INFORMATION
+      ------------------
+      Name: ${name}
+      Email: ${email}
+      Subject: ${subject}
+      
+      MESSAGE
+      -------
+      ${message}
+      
+      METADATA
+      --------
+      Submitted: ${new Date(submittedAt).toLocaleString()}
+      IP Address: ${ipAddress}
+      Reference ID: CONTACT-${Date.now()}
+      
+      Reply directly to: ${email}
+      
+      Best regards,
+      The Tasskr Support Team
+    `;
 
   return await this.sendEmail({
     to: supportEmail,
@@ -1614,186 +1823,260 @@ async sendContactConfirmation(contactData) {
   
   const frontendUrl = process.env.FRONTEND_URL?.split(',')[0].trim() || 'http://localhost:3000';
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>We Received Your Message</title>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 600px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 40px 30px; 
-            text-align: center; 
-          }
-          .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .content h2 {
-            color: #333;
-            font-size: 22px;
-            margin-bottom: 20px;
-          }
-          .content p {
-            margin-bottom: 15px;
-            color: #555;
-            line-height: 1.8;
-          }
-          .info-box {
-            background: #f0fdf4;
-            border-left: 4px solid #FF6B6B;
-            padding: 20px;
-            margin: 25px 0;
-            border-radius: 5px;
-          }
-          .info-box p {
-            margin: 8px 0;
-            color: #FF6B6B;
-          }
-          .timeline {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 5px;
-            margin: 20px 0;
-          }
-          .timeline-item {
-            padding: 10px 0;
-            display: flex;
-            align-items: flex-start;
-          }
-          .timeline-icon {
-            background: #FF6B6B;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 16px;
-            flex-shrink: 0;
-          }
-          .button-container {
-            text-align: center;
-            margin: 30px 0;
-          }
-          .button {
-            display: inline-block;
-            padding: 14px 35px;
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white !important;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 15px;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
-          .footer p {
-            margin: 5px 0;
-          }
-        </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Message Received</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 600px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 40px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 56px;
+                  height: 56px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 14px;
+                  margin-bottom: 16px;
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 40px;
+              }
+
+              .welcome-text {
+                  font-size: 20px;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 16px;
+              }
+
+              .main-text {
+                  font-size: 16px;
+                  line-height: 1.6;
+                  color: var(--text-main);
+                  margin-bottom: 32px;
+              }
+
+              .ticket-card {
+                  background: #F8FAFC;
+                  border-radius: 12px;
+                  padding: 24px;
+                  margin-bottom: 32px;
+                  border: 1px solid var(--border);
+              }
+
+              .ticket-title {
+                  font-size: 12px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                  color: var(--text-muted);
+                  margin-bottom: 12px;
+              }
+
+              .ticket-details {
+                  font-size: 15px;
+                  color: var(--text-main);
+                  line-height: 1.5;
+              }
+
+              .ticket-details strong {
+                  color: var(--primary);
+              }
+
+              .next-steps {
+                  background: #F1F5F9;
+                  padding: 24px;
+                  border-radius: 12px;
+                  margin-bottom: 32px;
+              }
+
+              .next-steps h3 {
+                  margin: 0 0 16px 0;
+                  font-size: 15px;
+                  font-weight: 700;
+                  color: var(--text-main);
+              }
+
+              .step-item {
+                  display: flex;
+                  align-items: flex-start;
+                  margin-bottom: 12px;
+              }
+
+              .step-icon {
+                  color: var(--primary);
+                  font-weight: 800;
+                  margin-right: 12px;
+                  font-size: 16px;
+              }
+
+              .step-text {
+                  font-size: 14px;
+                  color: var(--text-muted);
+                  line-height: 1.5;
+              }
+
+              .tip-box {
+                  background: #E0F2FE;
+                  border-left: 4px solid #0EA5E9;
+                  padding: 16px;
+                  border-radius: 8px;
+                  margin-bottom: 32px;
+                  font-size: 14px;
+                  color: #0369A1;
+              }
+
+              .footer {
+                  padding: 32px 40px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 12px;
+                  color: var(--text-muted);
+                  line-height: 1.5;
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 30px 20px;
+                  }
+              }
+          </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <h1> Message Received!</h1>
-          </div>
-          
-          <div class="content">
-            <h2>Hello ${name},</h2>
-            <p>Thank you for contacting Tasskr Support. We've successfully received your message and our team will review it shortly.</p>
-            
-            <div class="info-box">
-              <p><strong>📋 Your Submission Details:</strong></p>
-              <p><strong>Subject:</strong> ${subject}</p>
-              <p><strong>Submitted:</strong> ${new Date(submittedAt).toLocaleString()}</p>
-              <p><strong>Reference ID:</strong> CONTACT-${Date.now()}</p>
-            </div>
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>We've Received Your Message</h1>
+              </div>
 
-          
-            <div class="button-container">
-              <a href="${frontendUrl}/contact-us" class="button">Submit Another Message</a>
-            </div>
+              <div class="content">
+                  <p class="welcome-text">Hi ${name},</p>
+                  <p class="main-text">
+                      Thank you for reaching out to Tasskr Support. We've successfully received your inquiry and our team is already on it.
+                  </p>
 
-            <div style="background: #e7f3ff; border-left: 4px solid #0d6efd; padding: 15px; margin: 25px 0; border-radius: 4px;">
-              <p style="margin: 0; color: #084298;">
-                <strong>💡 Tip:</strong> You can reply directly to this email if you need to add more information to your request.
-              </p>
-            </div>
+                  <div class="ticket-card">
+                      <div class="ticket-title">Submission Details</div>
+                      <div class="ticket-details">
+                          <div><strong>Subject:</strong> ${subject}</div>
+                          <div style="margin-top: 4px;"><strong>Reference ID:</strong> #CONTACT-${Date.now()}</div>
+                      </div>
+                  </div>
 
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Support Team</strong></p>
+                  <div class="next-steps">
+                      <h3>What Happens Next?</h3>
+                      <div class="step-item">
+                          <span class="step-icon">✓</span>
+                          <span class="step-text">Our support engineers will review your inquiry.</span>
+                      </div>
+                      <div class="step-item">
+                          <span class="step-icon">✓</span>
+                          <span class="step-text">We'll get back to you with a solution or update.</span>
+                      </div>
+                      <div class="step-item">
+                          <span class="step-icon">✓</span>
+                          <span class="step-text">Expected response time: Under 24 hours.</span>
+                      </div>
+                  </div>
+
+                  <div class="tip-box">
+                      <strong>💡 Quick Tip:</strong> You can reply directly to this email if you have any additional information or screenshots to share.
+                  </div>
+
+                  <p class="main-text" style="margin-bottom: 0;">
+                      Best regards,<br>
+                      <strong>The Tasskr Support Team</strong>
+                  </p>
+              </div>
+
+              <div class="footer">
+                  <p><strong>Tasskr</strong> — Your Advanced Task Management Partner</p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+              </div>
           </div>
-          
-          <div class="footer">
-            <p><strong>Tasskr</strong></p>
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            <p>Need immediate help? Visit our <a href="${frontendUrl}/help" style="color: #FF6B6B;">Help Center</a></p>
-          </div>
-        </div>
       </body>
-    </html>
-  `;
+      </html>
+    `;
 
-  const text = `
-    Message Received!
-
-    Hello ${name},
-
-    Thank you for contacting Tasskr Support. We've received your message.
-
-    Your Submission Details:
-    - Subject: ${subject}
-    - Submitted: ${new Date(submittedAt).toLocaleString()}
-    - Reference ID: CONTACT-${Date.now()}
-
-    
-    
-
-    Best regards,
-    The Tasskr Support Team
-
-    ---
-    © ${new Date().getFullYear()} Tasskr
-  `;
+    const text = `
+      Message Received!
+      
+      Hello ${name},
+      
+      Thank you for contacting Tasskr Support. We've successfully received your inquiry and our team is already on it.
+      
+      Submission Details
+      ------------------
+      Subject: ${subject}
+      Reference ID: #CONTACT-${Date.now()}
+      
+      What Happens Next?
+      -----------------
+      1. Our support engineers will review your inquiry.
+      2. We'll get back to you with a solution or update.
+      3. Expected response time: Under 24 hours.
+      
+      Quick Tip: You can reply directly to this email if you have any additional information or screenshots to share.
+      
+      Best regards,
+      The Tasskr Support Team
+    `;
 
   return await this.sendEmail({
     to: email,
@@ -1812,296 +2095,286 @@ async sendSuggestionEmail(suggestionData) {
   // Support email address
   const supportEmail = process.env.SUPPORT_EMAIL || 'noreply@digitalmongers.com';
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>New User Suggestion</title>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 700px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 30px; 
-            text-align: center; 
-          }
-          .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 26px;
-            font-weight: 600;
-          }
-          .header p {
-            margin: 10px 0 0 0;
-            opacity: 0.95;
-            font-size: 14px;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .info-section {
-            background: #fffbeb;
-            border-left: 4px solid #FF6B6B;
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 5px;
-          }
-          .info-section h2 {
-            margin: 0 0 15px 0;
-            color: #FF6B6B;
-            font-size: 18px;
-            font-weight: 600;
-          }
-          .info-row {
-            display: flex;
-            margin: 10px 0;
-            padding: 8px 0;
-            border-bottom: 1px solid #fef3c7;
-          }
-          .info-row:last-child {
-            border-bottom: none;
-          }
-          .info-label {
-            font-weight: 600;
-            color: #FF6B6B;
-            min-width: 120px;
-          }
-          .info-value {
-            color: #78350f;
-            word-break: break-word;
-          }
-          .suggestion-box {
-            background: #ffffff;
-            border: 2px solid #FF6B6B;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-          }
-          .suggestion-box h3 {
-            margin: 0 0 10px 0;
-            color: #FF6B6B;
-            font-size: 20px;
-            font-weight: 600;
-          }
-          .suggestion-title {
-            background: #fef3c7;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: #78350f;
-          }
-          .suggestion-description {
-            background: #fef9f3;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-            color: #78350f;
-            line-height: 1.8;
-          }
-          .suggestion-message {
-            background: #ffffff;
-            border: 1px solid #FF6B6B;
-            border-radius: 5px;
-            padding: 20px;
-            margin: 15px 0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.8;
-            color: #78350f;
-          }
-          .metadata {
-            background: #dbeafe;
-            border-left: 4px solid #3b82f6;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-            font-size: 13px;
-          }
-          .metadata p {
-            margin: 5px 0;
-            color: #1e40af;
-          }
-          .reply-button {
-            display: inline-block;
-            padding: 12px 30px;
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white !important;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 15px;
-            margin: 20px 5px;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-            border-top: 1px solid #dee2e6;
-          }
-          .footer p {
-            margin: 5px 0;
-          }
-          .badge {
-            display: inline-block;
-            background: #FF6B6B;
-            color: #78350f;
-            padding: 5px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 10px;
-          }
-        </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New User Suggestion</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 650px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 30px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 48px;
+                  height: 48px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 12px;
+                  margin-bottom: 12px;
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 20px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 32px;
+              }
+
+              .section-title {
+                  font-size: 14px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                  color: var(--primary);
+                  margin-bottom: 20px;
+                  border-bottom: 1px solid var(--border);
+                  padding-bottom: 8px;
+              }
+
+              .info-grid {
+                  background: #F8FAFC;
+                  border-radius: 12px;
+                  padding: 20px;
+                  margin-bottom: 24px;
+                  border: 1px solid var(--border);
+              }
+
+              .info-row {
+                  display: flex;
+                  margin-bottom: 12px;
+                  font-size: 14px;
+              }
+
+              .info-row:last-child {
+                  margin-bottom: 0;
+              }
+
+              .info-label {
+                  color: var(--text-muted);
+                  min-width: 100px;
+                  font-weight: 500;
+              }
+
+              .info-value {
+                  color: var(--text-main);
+                  font-weight: 600;
+                  word-break: break-all;
+              }
+
+              .suggestion-card {
+                  background: #FFFFFF;
+                  border: 1px solid var(--border);
+                  border-radius: 12px;
+                  padding: 24px;
+                  margin-bottom: 24px;
+              }
+
+              .suggestion-title-box {
+                  font-size: 18px;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 12px;
+                  padding-bottom: 12px;
+                  border-bottom: 1px solid #F1F5F9;
+              }
+
+              .suggestion-desc {
+                  font-size: 15px;
+                  color: var(--text-muted);
+                  margin-bottom: 16px;
+                  line-height: 1.6;
+              }
+
+              .suggestion-message {
+                  background: #F8FAFC;
+                  padding: 16px;
+                  border-radius: 8px;
+                  font-size: 14px;
+                  color: var(--text-main);
+                  white-space: pre-wrap;
+                  border: 1px dashed var(--border);
+              }
+
+              .actions {
+                  text-align: center;
+                  margin-bottom: 24px;
+              }
+
+              .btn {
+                  display: inline-block;
+                  padding: 14px 30px;
+                  border-radius: 10px;
+                  font-weight: 600;
+                  font-size: 15px;
+                  text-decoration: none;
+                  background: var(--primary-gradient);
+                  color: white !important;
+                  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+              }
+
+              .metadata-strip {
+                  background: #F1F5F9;
+                  padding: 16px;
+                  border-radius: 8px;
+                  font-size: 12px;
+                  color: var(--text-muted);
+                  margin-bottom: 24px;
+              }
+
+              .footer {
+                  padding: 24px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 11px;
+                  color: var(--text-muted);
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 24px 16px;
+                  }
+                  .info-row {
+                      flex-direction: column;
+                  }
+                  .info-label {
+                      margin-bottom: 4px;
+                  }
+              }
+          </style>
       </head>
       <body>
-        <div class="container">
-            <div class="header">
-              <div class="header-branding">
-                <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>💡 New User Suggestion</h1>
-              </div>
-              <p>Tasskr - User Feedback System</p>
-            </div>
-          
-          <div class="content">
-            <div class="info-section">
-              <h2>👤 User Information</h2>
-              <div class="info-row">
-                <div class="info-label">Name:</div>
-                <div class="info-value"><strong>${userName}</strong></div>
-              </div>
-              <div class="info-row">
-                <div class="info-label">Email:</div>
-                <div class="info-value">
-                  <a href="mailto:${userEmail}" style="color: #FF6B6B; text-decoration: none;">
-                    ${userEmail}
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            <div class="suggestion-box">
-              <h3>📋 Suggestion Details</h3>
-              
-              <div class="suggestion-title">
-                <strong>Title:</strong> ${title}
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>New Product Suggestion</h1>
               </div>
 
-              <div class="suggestion-description">
-                <strong>Description:</strong><br>
-                ${description}
+              <div class="content">
+                  <div class="section-title">Contributor Information</div>
+                  <div class="info-grid">
+                      <div class="info-row">
+                          <span class="info-label">Name</span>
+                          <span class="info-value">${userName}</span>
+                      </div>
+                      <div class="info-row">
+                          <span class="info-label">Email</span>
+                          <span class="info-value">${userEmail}</span>
+                      </div>
+                  </div>
+
+                  <div class="section-title">Suggestion Details</div>
+                  <div class="suggestion-card">
+                      <div class="suggestion-title-box">${title}</div>
+                      <div class="suggestion-desc">${description}</div>
+                      <div class="suggestion-message">${message}</div>
+                  </div>
+
+                  <div class="actions">
+                      <a href="mailto:${userEmail}?subject=Re: Suggestion - ${encodeURIComponent(title)}" class="btn">Connect with User</a>
+                  </div>
+
+                  <div class="metadata-strip">
+                      <div><strong>Submitted:</strong> ${new Date(submittedAt).toLocaleString('en-US', {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZoneName: 'short'
+                      })}</div>
+                      <div style="margin-top: 4px;"><strong>IP Address:</strong> ${ipAddress || 'N/A'} | <strong>Reference ID:</strong> ${suggestionId}</div>
+                  </div>
+
+                  <div style="background: #EBF7FF; border-left: 4px solid #3B82F6; padding: 16px; border-radius: 8px; font-size: 13px; color: #1E3A8A;">
+                      <strong>Next Step:</strong> Review this feedback with the product team and update the roadmap if applicable.
+                  </div>
               </div>
 
-              <div class="suggestion-message">
-                <strong>💬 Detailed Message:</strong><br><br>
-                ${message}
+              <div class="footer">
+                  <p><strong>Tasskr Product Feedback System</strong></p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
-            </div>
-
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="mailto:${userEmail}?subject=Re: ${encodeURIComponent(title)}" class="reply-button">
-                📧 Reply to User
-              </a>
-            </div>
-
-            <div class="metadata">
-              <p><strong>📅 Submitted:</strong> ${new Date(submittedAt).toLocaleString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZoneName: 'short'
-              })}</p>
-              <p><strong>🌐 IP Address:</strong> ${ipAddress || 'N/A'}</p>
-              <p><strong>🆔 Suggestion ID:</strong> ${suggestionId}</p>
-            </div>
-
-            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; margin: 20px 0; border-radius: 4px;">
-              <p style="margin: 0; color: #166534;">
-                <strong>✅ Action:</strong> Please review this suggestion and consider implementing it in future updates.
-              </p>
-            </div>
           </div>
-          
-          <div class="footer">
-            <p><strong>Tasskr Support Team</strong></p>
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            <p>This is an automated notification from the user suggestion system.</p>
-          </div>
-        </div>
       </body>
-    </html>
-  `;
+      </html>
+    `;
 
-  const text = `
-    NEW USER SUGGESTION
-    Tasskr - User Feedback System
-    
-    ========================================
-    USER INFORMATION
-    ========================================
-    Name: ${userName}
-    Email: ${userEmail}
-    
-    ========================================
-    SUGGESTION DETAILS
-    ========================================
-    
-    TITLE:
-    ${title}
-    
-    DESCRIPTION:
-    ${description}
-    
-    DETAILED MESSAGE:
-    ${message}
-    
-    ========================================
-    METADATA
-    ========================================
-    Submitted: ${new Date(submittedAt).toLocaleString()}
-    IP Address: ${ipAddress || 'N/A'}
-    Suggestion ID: ${suggestionId}
-    
-    ========================================
-    
-    Reply to user: ${userEmail}
-    
-    ---
-    Tasskr Support Team
-    © ${new Date().getFullYear()} Tasskr
-  `;
+    const text = `
+      NEW USER SUGGESTION
+      
+      CONTRIBUTOR INFORMATION
+      -----------------------
+      Name: ${userName}
+      Email: ${userEmail}
+      
+      SUGGESTION DETAILS
+      ------------------
+      Title: ${title}
+      Description: ${description}
+      Detailed Message: ${message}
+      
+      METADATA
+      --------
+      Submitted: ${new Date(submittedAt).toLocaleString()}
+      IP Address: ${ipAddress || 'N/A'}
+      Reference ID: ${suggestionId}
+      
+      Reply to user: ${userEmail}
+      
+      Best regards,
+      The Tasskr Product Team
+    `;
 
   return await this.sendEmail({
     to: supportEmail,
@@ -2120,152 +2393,247 @@ async sendSuggestionConfirmation(suggestionData) {
   
   const frontendUrl = process.env.FRONTEND_URL?.split(',')[0].trim() || 'http://localhost:3000';
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Suggestion Received</title>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 600px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 40px 30px; 
-            text-align: center; 
-          }
-          .header-branding {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 0; /* Adjusted for header-branding */
-          }
-          .header img {
-            width: 50px;
-            height: 50px;
-            margin-bottom: 0; /* Adjusted for header-branding */
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .content h2 {
-            color: #333;
-            font-size: 22px;
-            margin-bottom: 20px;
-          }
-          .content p {
-            margin-bottom: 15px;
-            color: #555;
-            line-height: 1.8;
-          }
-          .info-box {
-            background: #f0fdf4;
-            border-left: 4px solid #FF6B6B;
-            padding: 20px;
-            margin: 25px 0;
-            border-radius: 5px;
-          }
-          .info-box p {
-            margin: 8px 0;
-            color: #FF6B6B;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
-          .footer p {
-            margin: 5px 0;
-          }
-        </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Suggestion Received</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 600px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 40px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 56px;
+                  height: 56px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 14px;
+                  margin-bottom: 16px;
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 40px;
+              }
+
+              .welcome-text {
+                  font-size: 20px;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 16px;
+              }
+
+              .main-text {
+                  font-size: 16px;
+                  line-height: 1.6;
+                  color: var(--text-main);
+                  margin-bottom: 32px;
+              }
+
+              .suggestion-summary {
+                  background: #F8FAFC;
+                  border-radius: 12px;
+                  padding: 24px;
+                  margin-bottom: 32px;
+                  border: 1px solid var(--border);
+              }
+
+              .summary-title {
+                  font-size: 12px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                  color: var(--text-muted);
+                  margin-bottom: 12px;
+              }
+
+              .summary-content {
+                  font-size: 16px;
+                  color: var(--text-main);
+                  font-weight: 600;
+              }
+
+              .status-box {
+                  background: #ECFDF5;
+                  border-left: 4px solid #10B981;
+                  padding: 20px;
+                  border-radius: 8px;
+                  margin-bottom: 32px;
+              }
+
+              .status-box p {
+                  margin: 0;
+                  font-size: 14px;
+                  color: #065F46;
+                  line-height: 1.6;
+              }
+
+              .cta-box {
+                  text-align: center;
+                  padding: 32px;
+                  background: #F1F5F9;
+                  border-radius: 16px;
+                  margin-bottom: 32px;
+              }
+
+              .cta-box h3 {
+                  margin: 0 0 16px 0;
+                  font-size: 18px;
+                  font-weight: 700;
+                  color: var(--text-main);
+              }
+
+              .btn {
+                  display: inline-block;
+                  padding: 14px 28px;
+                  border-radius: 12px;
+                  font-weight: 600;
+                  font-size: 15px;
+                  text-decoration: none;
+                  background: var(--primary-gradient);
+                  color: white !important;
+                  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+              }
+
+              .footer {
+                  padding: 32px 40px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 12px;
+                  color: var(--text-muted);
+                  line-height: 1.5;
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 30px 20px;
+                  }
+              }
+          </style>
       </head>
       <body>
-        <div class="container">
-            <div class="header">
-              <div class="header-branding">
-                <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>💡 Suggestion Received!</h1>
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>Expert Feedback Received</h1>
               </div>
-            </div>
-          
-          <div class="content">
-            <h2>Hello ${userName},</h2>
-            <p>Thank you for taking the time to share your suggestion with us! We truly value your feedback and ideas for improving Tasskr.</p>
-            
-            <div class="info-box">
-              <p><strong>📋 Your Suggestion:</strong></p>
-              <p><strong>Title:</strong> ${title}</p>
-              <p><strong>Submitted:</strong> ${new Date(submittedAt).toLocaleString()}</p>
-            </div>
 
-            <p>Our team will carefully review your suggestion and consider it for future updates. We're committed to making Tasskr better based on user feedback like yours.</p>
+              <div class="content">
+                  <p class="welcome-text">Hi ${userName},</p>
+                  <p class="main-text">
+                      Thank you for contributing to the growth of Tasskr. Your suggestion has been successfully captured and sent to our product engineering team.
+                  </p>
 
-            <div style="background: #e0f2fe; border-left: 4px solid #0284c7; padding: 15px; margin: 25px 0; border-radius: 4px;">
-              <p style="margin: 0; color: #0c4a6e;">
-                <strong>📧 Note:</strong> If we need any clarification or have questions about your suggestion, we'll reach out to you at this email address.
-              </p>
-            </div>
+                  <div class="suggestion-summary">
+                      <div class="summary-title">Your Suggestion Snapshot</div>
+                      <div class="summary-content">"${title}"</div>
+                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                          ${new Date(submittedAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </div>
+                  </div>
 
-            <p style="margin-top: 30px;">Best regards,<br><strong>The Tasskr Team</strong></p>
+                  <div class="status-box">
+                      <p>
+                          <strong>What's Next?</strong> Our team reviews all suggestions during our weekly product refinement sessions. If your idea aligns with our upcoming features, we may reach out for further insights.
+                      </p>
+                  </div>
+
+                  <div class="cta-box">
+                      <h3>Keep the ideas coming!</h3>
+                      <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">
+                          Your feedback is the engine that drives our innovation.
+                      </p>
+                      <a href="${frontendUrl}" class="btn">Explore New Features</a>
+                  </div>
+
+                  <p class="main-text" style="margin-bottom: 0;">
+                      Best regards,<br>
+                      <strong>The Tasskr Product Team</strong>
+                  </p>
+              </div>
+
+              <div class="footer">
+                  <p><strong>Tasskr</strong> — Building the Future of Productivity together.</p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+              </div>
           </div>
-          
-          <div class="footer">
-            <p><strong>Tasskr</strong></p>
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            <p>Continue improving with us! Visit <a href="${frontendUrl}" style="color: #FF6B6B;">Tasskr</a></p>
-          </div>
-        </div>
       </body>
-    </html>
-  `;
+      </html>
+    `;
 
-  const text = `
-    Suggestion Received!
-
-    Hello ${userName},
-
-    Thank you for sharing your suggestion with us!
-
-    Your Suggestion:
-    - Title: ${title}
-    - Submitted: ${new Date(submittedAt).toLocaleString()}
-
-    Our team will review your suggestion and consider it for future updates.
-
-    Best regards,
-    The Tasskr Team
-
-    ---
-    © ${new Date().getFullYear()} Tasskr
-  `;
+    const text = `
+      Expert Feedback Received!
+      
+      Hi ${userName},
+      
+      Thank you for contributing to the growth of Tasskr. Your suggestion has been successfully captured and sent to our product engineering team.
+      
+      Your Suggestion Snapshot
+      ------------------------
+      "${title}"
+      ${new Date(submittedAt).toLocaleDateString()}
+      
+      What's Next?
+      ------------
+      Our team reviews all suggestions during our weekly product refinement sessions. If your idea aligns with our upcoming features, we may reach out for further insights.
+      
+      Keep the ideas coming! Your feedback is the engine that drives our innovation.
+      
+      Best regards,
+      The Tasskr Product Team
+    `;
 
   return await this.sendEmail({
     to: userEmail,
@@ -2292,344 +2660,363 @@ async sendTaskInvitation(invitation, task, inviter) {
     viewer: 'View task details only (read-only access)'
   };
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Task Collaboration Invitation</title>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 650px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 25px 20px; 
-            text-align: center; 
-          }
-          .header-branding {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 8px;
-          }
-          .header img {
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 0;
-            flex-shrink: 0;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            line-height: 1.2;
-          }
-          .header p {
-            margin: 0;
-            opacity: 0.95;
-            font-size: 15px;
-            font-weight: 500;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .inviter-info {
-            display: flex;
-            align-items: center;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-          }
-          .inviter-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            font-weight: 600;
-            margin-right: 15px;
-            flex-shrink: 0;
-            line-height: 1;
-          }
-          .inviter-details h3 {
-            margin: 0 0 5px 0;
-            color: #333;
-            font-size: 18px;
-          }
-          .inviter-details p {
-            margin: 0;
-            color: #6c757d;
-            font-size: 14px;
-          }
-          .task-card {
-            background: #ffffff;
-            border: 2px solid #FF6B6B;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-          }
-          .task-title {
-            font-size: 22px;
-            font-weight: 600;
-            color: #333;
-            margin: 0 0 15px 0;
-          }
-          .task-description {
-            color: #555;
-            line-height: 1.8;
-            margin: 15px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-          }
-          .task-meta {
-            display: flex;
-            gap: 20px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-          }
-          .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #6c757d;
-            font-size: 14px;
-          }
-          .role-badge {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-block;
-            margin: 15px 0;
-          }
-          .role-description {
-            background: #e7f3ff;
-            border-left: 4px solid #0d6efd;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
-          }
-          .role-description p {
-            margin: 0;
-            color: #084298;
-            font-size: 14px;
-          }
-          .message-box {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .message-box p {
-            margin: 5px 0;
-            color: #856404;
-            font-style: italic;
-          }
-          .button-container {
-            text-align: center;
-            margin: 30px 0;
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-          }
-          .button {
-            display: inline-block;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            min-width: 160px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .button-accept {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white !important;
-            border: 2px solid transparent;
-          }
-          .button-decline {
-            background: #ffffff;
-            color: #FF6B6B !important;
-            border: 2px solid #FF6B6B;
-          }
-          .button-decline:hover {
-            background: #fff0eb;
-          }
-          .button:hover {
-            transform: translateY(-2px);
-          }
-          .expires-warning {
-            background: #fee2e2;
-            border-left: 4px solid #ef4444;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .expires-warning p {
-            margin: 0;
-            color: #991b1b;
-            font-size: 14px;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
-        </style>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Collaboration Invite</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 650px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 30px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 48px;
+                  height: 48px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 12px;
+                  margin-bottom: 12px;
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 20px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 32px;
+              }
+
+              .inviter-card {
+                  display: flex;
+                  align-items: center;
+                  background: #F8FAFC;
+                  border-radius: 12px;
+                  padding: 20px;
+                  margin-bottom: 24px;
+                  border: 1px solid var(--border);
+              }
+
+              .inviter-avatar {
+                  width: 48px;
+                  height: 48px;
+                  border-radius: 50%;
+                  background: var(--primary-gradient);
+                  color: white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: 700;
+                  font-size: 18px;
+                  margin-right: 16px;
+              }
+
+              .inviter-details {
+                  flex-grow: 1;
+              }
+
+              .inviter-name {
+                  font-size: 16px;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin: 0;
+              }
+
+              .inviter-label {
+                  font-size: 13px;
+                  color: var(--text-muted);
+                  margin: 2px 0 0 0;
+              }
+
+              .task-card {
+                  background: #FFFFFF;
+                  border: 2px solid var(--primary);
+                  border-radius: 16px;
+                  padding: 24px;
+                  margin-bottom: 24px;
+                  position: relative;
+              }
+
+              .task-tag {
+                  position: absolute;
+                  top: -12px;
+                  right: 24px;
+                  background: var(--primary-gradient);
+                  color: white;
+                  padding: 4px 12px;
+                  border-radius: 20px;
+                  font-size: 11px;
+                  font-weight: 800;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+              }
+
+              .task-title {
+                  font-size: 20px;
+                  font-weight: 800;
+                  color: var(--text-main);
+                  margin-bottom: 12px;
+              }
+
+              .task-desc {
+                  font-size: 14px;
+                  color: var(--text-muted);
+                  margin-bottom: 20px;
+                  line-height: 1.6;
+                  background: #F8FAFC;
+                  padding: 12px;
+                  border-radius: 8px;
+              }
+
+              .meta-grid {
+                  display: flex;
+                  gap: 16px;
+                  flex-wrap: wrap;
+              }
+
+              .meta-item {
+                  display: flex;
+                  align-items: center;
+                  font-size: 13px;
+                  color: var(--text-main);
+                  font-weight: 600;
+              }
+
+              .meta-icon {
+                  margin-right: 6px;
+              }
+
+              .role-section {
+                  background: #F0F9FF;
+                  border-left: 4px solid #0EA5E9;
+                  padding: 16px;
+                  border-radius: 8px;
+                  margin-top: 20px;
+              }
+
+              .role-label {
+                  font-size: 12px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  color: #0369A1;
+                  margin-bottom: 4px;
+              }
+
+              .role-desc {
+                  font-size: 14px;
+                  color: #0369A1;
+                  margin: 0;
+              }
+
+              .personal-message {
+                  background: #FFFBEB;
+                  border-left: 4px solid #F59E0B;
+                  padding: 16px;
+                  border-radius: 8px;
+                  margin-bottom: 24px;
+                  font-style: italic;
+                  font-size: 14px;
+                  color: #92400E;
+              }
+
+              .actions {
+                  text-align: center;
+                  display: flex;
+                  gap: 16px;
+                  justify-content: center;
+                  margin-bottom: 32px;
+              }
+
+              .btn {
+                  display: inline-block;
+                  padding: 14px 28px;
+                  border-radius: 12px;
+                  font-weight: 700;
+                  font-size: 15px;
+                  text-decoration: none;
+                  transition: all 0.2s;
+              }
+
+              .btn-primary {
+                  background: var(--primary-gradient);
+                  color: white !important;
+                  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+              }
+
+              .btn-secondary {
+                  background: white;
+                  color: var(--primary) !important;
+                  border: 2px solid var(--primary);
+              }
+
+              .expiry-box {
+                  background: #F1F5F9;
+                  padding: 12px;
+                  border-radius: 8px;
+                  text-align: center;
+                  font-size: 12px;
+                  color: var(--text-muted);
+              }
+
+              .footer {
+                  padding: 32px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 11px;
+                  color: var(--text-muted);
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 24px 16px;
+                  }
+                  .actions {
+                      flex-direction: column;
+                  }
+                  .btn {
+                      width: 100%;
+                      box-sizing: border-box;
+                  }
+              }
+          </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <div class="header-branding">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>Task Collaboration Invitation</h1>
-            </div>
-            <p>You've been invited to collaborate on a task</p>
-          </div>
-          
-          <div class="content">
-            <div class="inviter-info">
-              <div class="inviter-avatar">
-                ${inviter.firstName.charAt(0)}${inviter.lastName?.charAt(0) || ''}
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>Collaboration Invite</h1>
               </div>
-              <div class="inviter-details">
-                <h3>${inviter.firstName} ${inviter.lastName || ''}</h3>
-                <p>${inviter.email}</p>
-                <p style="color: #FF6B6B; font-weight: 600; margin-top: 5px;">wants to collaborate with you</p>
-              </div>
-            </div>
 
-            <div class="task-card">
-              <div class="task-title">📋 ${task.title}</div>
-              
-              ${task.description ? `
-                <div class="task-description">
-                  ${task.description}
-                </div>
-              ` : ''}
-
-              <div class="task-meta">
-                ${task.dueDate ? `
-                  <div class="meta-item">
-                    <span>📅</span>
-                    <span>Due: ${new Date(task.dueDate).toLocaleDateString()}</span>
+              <div class="content">
+                  <div class="inviter-card">
+                      <div class="inviter-avatar">${inviter.firstName.charAt(0)}${inviter.lastName?.charAt(0) || ''}</div>
+                      <div class="inviter-details">
+                          <p class="inviter-name">${inviter.firstName} ${inviter.lastName || ''}</p>
+                          <p class="inviter-label">Invited you to collaborate</p>
+                      </div>
                   </div>
-                ` : ''}
-                ${task.category ? `
-                  <div class="meta-item">
-                    <span>🏷️</span>
-                    <span>${task.category.title || 'Categorized'}</span>
+
+                  <div class="task-card">
+                      <div class="task-tag">${task.priority?.name || 'Task'}</div>
+                      <div class="task-title">${task.title}</div>
+                      ${task.description ? `
+                      <div class="task-desc">
+                          ${task.description}
+                      </div>
+                      ` : ''}
+                      <div class="meta-grid">
+                          ${task.dueDate ? `
+                          <div class="meta-item"><span class="meta-icon">📅</span> Due ${new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                          ` : ''}
+                          ${task.category ? `
+                          <div class="meta-item"><span class="meta-icon">🏷️</span> ${task.category.title}</div>
+                          ` : ''}
+                          ${task.priority ? `
+                          <div class="meta-item"><span class="meta-icon">⚡</span> ${task.priority.name}</div>
+                          ` : ''}
+                      </div>
+
+                      <div class="role-section">
+                          <div class="role-label">Your Role: ${invitation.role}</div>
+                          <p class="role-desc">${roleDescriptions[invitation.role]}</p>
+                      </div>
                   </div>
-                ` : ''}
-                ${task.priority ? `
-                  <div class="meta-item">
-                    <span>⚡</span>
-                    <span>${task.priority.name || 'Priority Set'}</span>
+
+                  ${invitation.message ? `
+                  <div class="personal-message">
+                      "${invitation.message}"
                   </div>
-                ` : ''}
+                  ` : ''}
+
+                  <div class="actions">
+                      <a href="${acceptUrl}" class="btn btn-primary">Accept Invitation</a>
+                      <a href="${declineUrl}" class="btn btn-secondary">Decline</a>
+                  </div>
+
+                  <div class="expiry-box">
+                      This invitation will expire on <strong>${new Date(invitation.expiresAt).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong>
+                  </div>
               </div>
 
-              <div style="margin-top: 20px;">
-                <div>You're being invited as:</div>
-                <div class="role-badge">${invitation.role}</div>
+              <div class="footer">
+                  <p><strong>Tasskr</strong> — Advanced Collaboration for Modern Teams</p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
-
-              <div class="role-description">
-                <p><strong>📌 Your Permissions:</strong> ${roleDescriptions[invitation.role]}</p>
-              </div>
-            </div>
-
-            ${invitation.message ? `
-              <div class="message-box">
-                <p><strong>💬 Personal message from ${inviter.firstName}:</strong></p>
-                <p>"${invitation.message}"</p>
-              </div>
-            ` : ''}
-
-            <div class="button-container">
-              <a href="${acceptUrl}" class="button button-accept">✓ Accept Invitation</a>
-              <a href="${declineUrl}" class="button button-decline">✗ Decline</a>
-            </div>
-
-            <div class="expires-warning">
-              <p><strong>⏰ Important:</strong> This invitation will expire on ${new Date(invitation.expiresAt).toLocaleDateString()} at ${new Date(invitation.expiresAt).toLocaleTimeString()}</p>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid #e9ecef;">
-              <p style="color: #6c757d; font-size: 14px; margin: 0;">
-                Don't have an account? You'll be able to create one when you accept this invitation.
-              </p>
-            </div>
           </div>
-          
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            <p>This invitation was sent to ${invitation.inviteeEmail}</p>
-          </div>
-        </div>
       </body>
-    </html>
-  `;
+      </html>
+    `;
 
-  const text = `
-    Task Collaboration Invitation
-    
-    ${inviter.firstName} ${inviter.lastName || ''} (${inviter.email}) has invited you to collaborate on a task.
-    
-    Task: ${task.title}
-    ${task.description ? `Description: ${task.description}` : ''}
-    
-    Your Role: ${invitation.role}
-    Permissions: ${roleDescriptions[invitation.role]}
-    
-    ${invitation.message ? `Personal message: "${invitation.message}"` : ''}
-    
-    Accept invitation: ${acceptUrl}
-    Decline invitation: ${declineUrl}
-    
-    This invitation expires on ${new Date(invitation.expiresAt).toLocaleString()}
-    
-    ---
-    Tasskr
-    © ${new Date().getFullYear()}
-  `;
+    const text = `
+      COLLABORATION INVITATION
+      
+      Hi! ${inviter.firstName} ${inviter.lastName || ''} has invited you to collaborate on a task in Tasskr.
+      
+      TASK DETAILS
+      ------------
+      Task: ${task.title}
+      Role: ${invitation.role}
+      Permissions: ${roleDescriptions[invitation.role]}
+      ${task.description ? `Description: ${task.description}` : ''}
+      
+      ${invitation.message ? `MESSAGE FROM ${inviter.firstName.toUpperCase()}:\n"${invitation.message}"\n` : ''}
+      
+      ACCEPT INVITATION: ${acceptUrl}
+      DECLINE: ${declineUrl}
+      
+      This invitation expires on ${new Date(invitation.expiresAt).toLocaleString()}.
+      
+      Best regards,
+      The Tasskr Team
+    `;
 
   return await this.sendEmail({
     to: invitation.inviteeEmail,
@@ -2950,93 +3337,190 @@ async sendInvitationReminder(invitation, task, inviter) {
   
   const daysLeft = Math.ceil((invitation.expiresAt - new Date()) / (1000 * 60 * 60 * 24));
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <title>Invitation Reminder</title>
-            .header { 
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-              color: white; 
-              padding: 25px 20px; 
-              text-align: center; 
-            }
-            .header-branding {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-              margin-bottom: 8px;
-            }
-            .header img {
-              width: 48px;
-              height: 48px;
-              background: rgba(255, 255, 255, 0.2);
-              padding: 8px;
-              border-radius: 12px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              margin: 0;
-              flex-shrink: 0;
-            }
-            .header h1 {
-              margin: 0;
-              font-size: 24px;
-              font-weight: 700;
-              line-height: 1.2;
-            }
-            .content { padding: 40px 30px; }
-            .button { 
-              display: inline-block; 
-              padding: 12px 30px; 
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-              color: white !important; 
-              text-decoration: none; 
-              border-radius: 5px; 
-              font-weight: 600;
-              min-width: 160px;
-              text-align: center;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              border: 2px solid transparent;
-            }
-            .footer { 
-              text-align: center; 
-              padding: 20px 30px;
-              background: #f8f9fa;
-              color: #6c757d; 
-              font-size: 13px; 
-            }
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Invitation Reminder</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 600px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 40px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 56px;
+                  height: 56px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 14px;
+                  margin-bottom: 16px;
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 40px;
+              }
+
+              .reminder-text {
+                  font-size: 16px;
+                  line-height: 1.6;
+                  color: var(--text-main);
+                  margin-bottom: 24px;
+              }
+
+              .task-summary-card {
+                  background: #F8FAFC;
+                  border-radius: 12px;
+                  padding: 20px;
+                  margin-bottom: 24px;
+                  border: 1px solid var(--border);
+              }
+
+              .task-title {
+                  font-size: 18px;
+                  font-weight: 700;
+                  color: var(--text-main);
+                  margin-bottom: 4px;
+              }
+
+              .inviter-info {
+                  font-size: 13px;
+                  color: var(--text-muted);
+              }
+
+              .expiry-warning {
+                  background: #FFF1F2;
+                  border-left: 4px solid #F43F5E;
+                  padding: 16px;
+                  border-radius: 8px;
+                  margin-bottom: 32px;
+              }
+
+              .warning-message {
+                  font-size: 14px;
+                  color: #9F1239;
+                  font-weight: 600;
+                  margin: 0;
+              }
+
+              .actions {
+                  text-align: center;
+              }
+
+              .btn {
+                  display: inline-block;
+                  padding: 14px 40px;
+                  border-radius: 12px;
+                  font-weight: 700;
+                  font-size: 16px;
+                  text-decoration: none;
+                  background: var(--primary-gradient);
+                  color: white !important;
+                  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+              }
+
+              .footer {
+                  padding: 32px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 12px;
+                  color: var(--text-muted);
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 30px 20px;
+                  }
+              }
           </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="header-branding">
-                <img src="${LOGO_URL}" alt="Tasskr">
-                <h1> Invitation Reminder</h1>
-              </div>
-            </div>
-            <div class="content">
-              <h2>Hi there,</h2>
-              <p>This is a friendly reminder that ${inviter.firstName} invited you to collaborate on the task "<strong>${task.title}</strong>".</p>
-              
-              <div style="background: #fee2e2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                <p style="margin: 0; color: #991b1b;">
-                  <strong>⚠️ This invitation expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}!</strong>
-                </p>
+      </head>
+      <body>
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>Invitation Reminder</h1>
               </div>
 
-              <div style="text-align: center; margin: 30px 0;">
-                <a href="${acceptUrl}" class="button">Accept Invitation Now</a>
+              <div class="content">
+                  <p class="reminder-text">
+                      Hi there, this is a friendly reminder that you have a pending invitation to collaborate on a task in Tasskr.
+                  </p>
+
+                  <div class="task-summary-card">
+                      <div class="task-title">${task.title}</div>
+                      <div class="inviter-info">Invited by ${inviter.firstName} ${inviter.lastName || ''}</div>
+                  </div>
+
+                  <div class="expiry-warning">
+                      <p class="warning-message">
+                          ⏰ This invitation expires in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}!
+                      </p>
+                  </div>
+
+                  <div class="actions">
+                      <a href="${acceptUrl}" class="btn">Connect & Collaborate</a>
+                  </div>
               </div>
-            </div>
-            <div class="footer">
-              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            </div>
+
+              <div class="footer">
+                  <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+              </div>
           </div>
-        </body>
+      </body>
       </html>
-  `;
+    `;
 
   return await this.sendEmail({
     to: invitation.inviteeEmail,
@@ -3053,76 +3537,199 @@ async sendInvitationAcceptedNotification(invitation, task, acceptedBy) {
   const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
   const taskUrl = `${frontendUrl}/tasks/${task._id}`;
 
-  const html = `
-    <!DOCTYPE html>
-    <html>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
       <head>
-        <meta charset="utf-8">
-        <title>Invitation Accepted</title>
-            .header { 
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-              color: white; 
-              padding: 25px 20px; 
-              text-align: center; 
-            }
-            .header-branding {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-              margin-bottom: 8px;
-            }
-            .header img {
-              width: 48px;
-              height: 48px;
-              background: rgba(255, 255, 255, 0.2);
-              padding: 8px;
-              border-radius: 12px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              margin: 0;
-              flex-shrink: 0;
-            }
-            .header h1 {
-              margin: 0;
-              font-size: 24px;
-              font-weight: 700;
-              line-height: 1.2;
-            }
-            .content { padding: 40px 30px; }
-            .success { background: #ffebe0; border-left: 4px solid #FF6B6B; padding: 15px; border-radius: 4px; margin: 20px 0; }
-            .footer { 
-              text-align: center; 
-              padding: 20px 30px;
-              background: #f8f9fa;
-              color: #6c757d; 
-              font-size: 13px; 
-            }
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Invitation Accepted</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 600px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 40px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 56px;
+                  height: 56px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 14px;
+                  margin-bottom: 16px;
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 40px;
+              }
+
+              .success-box {
+                  background: #ECFDF5;
+                  border-left: 4px solid #10B981;
+                  padding: 24px;
+                  border-radius: 12px;
+                  margin-bottom: 32px;
+                  text-align: center;
+              }
+
+              .success-avatar {
+                  width: 64px;
+                  height: 64px;
+                  border-radius: 50%;
+                  background: #10B981;
+                  color: white;
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 24px;
+                  font-weight: 700;
+                  margin-bottom: 16px;
+                  border: 4px solid white;
+                  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+              }
+
+              .success-message {
+                  font-size: 16px;
+                  color: #065F46;
+                  font-weight: 600;
+                  line-height: 1.5;
+              }
+
+              .task-info {
+                  background: #F8FAFC;
+                  padding: 20px;
+                  border-radius: 12px;
+                  border: 1px solid var(--border);
+                  margin-bottom: 32px;
+              }
+
+              .task-label {
+                  font-size: 12px;
+                  font-weight: 700;
+                  text-transform: uppercase;
+                  color: var(--text-muted);
+                  margin-bottom: 8px;
+              }
+
+              .task-name {
+                  font-size: 18px;
+                  font-weight: 700;
+                  color: var(--text-main);
+              }
+
+              .actions {
+                  text-align: center;
+              }
+
+              .btn {
+                  display: inline-block;
+                  padding: 14px 40px;
+                  border-radius: 12px;
+                  font-weight: 700;
+                  font-size: 15px;
+                  text-decoration: none;
+                  background: var(--primary-gradient);
+                  color: white !important;
+                  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+              }
+
+              .footer {
+                  padding: 32px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 12px;
+                  color: var(--text-muted);
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 30px 20px;
+                  }
+              }
           </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <div class="header-branding">
-                <img src="${LOGO_URL}" alt="Tasskr">
-                <h1> Invitation Accepted!</h1>
+      </head>
+      <body>
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>Invite Accepted!</h1>
               </div>
-            </div>
-            <div class="content">
-              <div class="success">
-                <p><strong>${acceptedBy.firstName} ${acceptedBy.lastName}</strong> has accepted your invitation to collaborate on "<strong>${task.title}</strong>".</p>
+
+              <div class="content">
+                  <div class="success-box">
+                      <div class="success-avatar">${acceptedBy.firstName.charAt(0)}${acceptedBy.lastName?.charAt(0) || ''}</div>
+                      <div class="success-message">
+                          <strong>${acceptedBy.firstName} ${acceptedBy.lastName || ''}</strong> has accepted your invitation to collaborate.
+                      </div>
+                  </div>
+
+                  <div class="task-info">
+                      <div class="task-label">Collaborating On</div>
+                      <div class="task-name">${task.title}</div>
+                  </div>
+
+                  <div class="actions">
+                      <a href="${taskUrl}" class="btn">View Task Progress</a>
+                  </div>
               </div>
-              <p>They can now access and collaborate on this task based on their assigned role.</p>
-              <p style="text-align: center; margin-top: 30px;">
-                <a href="${taskUrl}" style="color: #FF6B6B; font-weight: 600; text-decoration: none;">View Task →</a>
-              </p>
-            </div>
-            <div class="footer">
-              <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            </div>
+
+              <div class="footer">
+                  <p><strong>Tasskr</strong> — Powering Team Productivity</p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+              </div>
           </div>
-        </body>
+      </body>
       </html>
-  `;
+    `;
 
   return await this.sendEmail({
     to: invitation.inviter.email,
