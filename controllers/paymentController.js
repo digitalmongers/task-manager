@@ -178,16 +178,36 @@ export const stopSubscription = expressAsyncHandler(async (req, res) => {
  * @access  Private
  */
 export const checkPaymentStatus = expressAsyncHandler(async (req, res) => {
-  const { razorpay_subscription_id } = req.body;
+  const { razorpay_subscription_id, razorpay_order_id } = req.body;
   const userId = req.user._id;
 
-  const payment = await Payment.findOne({ razorpaySubscriptionId: razorpay_subscription_id });
-  if (!payment) throw ApiError.notFound('Subscription not found');
+  // Search by subscription ID or order ID (for top-ups)
+  const query = razorpay_subscription_id 
+    ? { razorpaySubscriptionId: razorpay_subscription_id }
+    : { razorpayOrderId: razorpay_order_id };
+
+  if (!razorpay_subscription_id && !razorpay_order_id) {
+    throw ApiError.badRequest('Subscription ID or Order ID is required');
+  }
+
+  const payment = await Payment.findOne(query);
+  
+  if (!payment) {
+    Logger.warn('Payment record not found for status check', { 
+      razorpay_subscription_id, 
+      razorpay_order_id,
+      userId 
+    });
+    throw ApiError.notFound('Payment record not found');
+  }
 
   if (payment.user.toString() !== userId.toString()) {
     Logger.warn('Unauthorized payment access attempt', { 
       paymentUser: payment.user.toString(), 
-      requestUser: userId.toString() 
+      requestUser: userId.toString(),
+      paymentId: payment._id,
+      razorpay_subscription_id,
+      razorpay_order_id
     });
     throw ApiError.forbidden('Unauthorized access');
   }
@@ -196,6 +216,7 @@ export const checkPaymentStatus = expressAsyncHandler(async (req, res) => {
     success: true,
     status: payment.status,
     plan: payment.status === 'captured' ? payment.plan : null,
+    purchaseType: payment.purchaseType
   });
 });
 
@@ -205,14 +226,23 @@ export const checkPaymentStatus = expressAsyncHandler(async (req, res) => {
  * @access  Private
  */
 export const syncPaymentStatus = expressAsyncHandler(async (req, res) => {
-  const { razorpay_subscription_id } = req.body;
+  const { razorpay_subscription_id, razorpay_order_id } = req.body;
   const userId = req.user._id;
 
-  const payment = await Payment.findOne({ razorpaySubscriptionId: razorpay_subscription_id });
-  if (!payment) throw ApiError.notFound('Subscription not found');
+  // Search by subscription ID or order ID (for top-ups)
+  const query = razorpay_subscription_id 
+    ? { razorpaySubscriptionId: razorpay_subscription_id }
+    : { razorpayOrderId: razorpay_order_id };
+
+  if (!razorpay_subscription_id && !razorpay_order_id) {
+    throw ApiError.badRequest('Subscription ID or Order ID is required');
+  }
+
+  const payment = await Payment.findOne(query);
+  if (!payment) throw ApiError.notFound('Payment record not found');
 
   if (payment.user.toString() !== userId.toString()) {
-    Logger.warn('Unauthorized payment access attempt', { 
+    Logger.warn('Unauthorized payment sync attempt', { 
       paymentUser: payment.user.toString(), 
       requestUser: userId.toString() 
     });
@@ -224,20 +254,33 @@ export const syncPaymentStatus = expressAsyncHandler(async (req, res) => {
   }
 
   // REACH OUT TO RAZORPAY
-  const sub = await RazorpayService.getSubscription(razorpay_subscription_id);
+  if (razorpay_subscription_id) {
+    const sub = await RazorpayService.getSubscription(razorpay_subscription_id);
 
-  if (sub.status === 'active') {
-    Logger.info('Subscription recovery successful via manual sync', { subId: razorpay_subscription_id });
-    
-    payment.status = 'captured';
-    await payment.save();
+    if (sub.status === 'active' || sub.status === 'completed') {
+      Logger.info('Subscription recovery successful via manual sync', { subId: razorpay_subscription_id });
+      
+      payment.status = 'captured';
+      await payment.save();
 
-    await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle, payment.razorpaySubscriptionId);
-    
-    return res.json({ success: true, status: 'captured', message: 'Recovery successful, plan upgraded' });
+      await SubscriptionService.upgradeUserPlan(payment.user, payment.plan, payment.billingCycle, payment.razorpaySubscriptionId);
+      
+      return res.json({ success: true, status: 'captured', message: 'Recovery successful, plan upgraded' });
+    }
+    return res.json({ success: true, status: payment.status, message: `Current Status: ${sub.status}` });
+  } else if (razorpay_order_id) {
+    // For top-ups
+    const order = await RazorpayService.getOrder(razorpay_order_id);
+    if (order.status === 'paid') {
+      // If paid but not captured in our DB, we might need to trigger the top-up logic
+      // However, webhook usually handles this. Manual sync for top-up is a fallback.
+      // We'll just report the status for now as full top-up sync needs more service logic
+      return res.json({ success: true, status: 'paid', message: 'Order is paid' });
+    }
+    return res.json({ success: true, status: payment.status, message: `Current Status: ${order.status}` });
   }
 
-  res.json({ success: true, status: payment.status, message: `Current Status: ${sub.status}` });
+  res.json({ success: true, status: payment.status });
 });
 
 /**

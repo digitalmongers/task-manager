@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Email Preview</title>
+    <style>
+        :root {
+            --primary: #FF6B6B;
+            --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+            --secondary: #2D3436;
+            --background: #F8FAFC;
+            --card-bg: #FFFFFF;
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        .header {
+            background: var(--primary-gradient);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .logo {
+            width: 56px;
+            height: 56px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            object-fit: contain;
+            padding: 4px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .user-block {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 20px;
+            background: #F1F5F9;
+            border-radius: 12px;
+            margin-bottom: 32px;
+        }
+
+        .avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--primary-gradient);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .user-info h3 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--text-main);
+        }
+
+        .user-info p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .invite-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-main);
+            margin-bottom: 24px;
+        }
+
+        .role-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            background: #FFFFFF;
+        }
+
+        .role-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .role-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+
+        .role-badge {
+            background: #FFEBEB;
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .role-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin: 8px 0 0;
+        }
+
+        .actions {
+            text-align: center;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .btn {
+            display: block;
+            padding: 14px 24px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white !important;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-main) !important;
+            border: 1px solid var(--border);
+        }
+
+        .footer {
+            padding: 32px 40px;
+            background: #F8FAFC;
+            text-align: center;
+            border-top: 1px solid var(--border);
+        }
+
+        .footer p {
+            margin: 0;
+            font-size: 12px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .email-container {
+                margin: 0;
+                border-radius: 0;
+                border: none;
+            }
+            .content {
+                padding: 30px 20px;
+            }
+            .header {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <img src="https://via.placeholder.com/56/FF6B6B/FFFFFF?text=T" alt="Tasskr" class="logo">
+            <h1>Team Invitation</h1>
+        </div>
+
+        <div class="content">
+            <div class="user-block">
+                <div class="avatar">PM</div>
+                <div class="user-info">
+                    <h3>Paras Mourya</h3>
+                    <p>parasmourya288@gmail.com</p>
+                </div>
+            </div>
+
+            <p class="invite-text">
+                Hello! You've been invited to join <strong>Paras's Team</strong> on Tasskr. Collaborate with your team members in a shared workspace.
+            </p>
+
+            <div class="role-card">
+                <div class="role-header">
+                    <span class="role-label">Assigned Role</span>
+                    <span class="role-badge">EDITOR</span>
+                </div>
+                <p class="role-desc">
+                    Full team control - manage all tasks and members. You can create, edit and delete tasks.
+                </p>
+            </div>
+
+            <div class="actions">
+                <a href="#" class="btn btn-primary">Accept & Join Team</a>
+                <a href="#" class="btn btn-secondary">Decline Invitation</a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><strong>Tasskr</strong> — Advanced Collaborative Task Management</p>
+            <p>© 2026 Tasskr Inc. All rights reserved.</p>
+            <p style="margin-top: 8px;">If you weren't expecting this invitation, you can safely ignore this email.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -2524,350 +2524,280 @@ async sendTeamMemberInvitation(teamMember, owner) {
 
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Team Invitation</title>
         <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 650px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 25px 20px; 
-            text-align: center; 
-          }
-          .header-branding {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 8px;
-          }
-          .header img {
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 0;
-            flex-shrink: 0;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            line-height: 1.2;
-          }
-          .header p {
-            margin: 0;
-            opacity: 0.95;
-            font-size: 15px;
-            font-weight: 500;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .inviter-info {
-            display: flex;
-            align-items: center;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-          }
-          .inviter-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            font-weight: 600;
-            margin-right: 15px;
-            flex-shrink: 0;
-            line-height: 1;
-          }
-          .inviter-details h3 {
-            margin: 0 0 5px 0;
-            color: #333;
-            font-size: 18px;
-          }
-          .inviter-details p {
-            margin: 0;
-            color: #6c757d;
-            font-size: 14px;
-          }
-          .team-card {
-            background: #ffffff;
-            border: 2px solid #FF6B6B;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-          }
-          .team-info {
-            margin: 20px 0;
-          }
-          .info-row {
-            display: flex;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-          }
-          .info-row:last-child {
-            border-bottom: none;
-          }
-          .info-label {
-            font-weight: 600;
-            color: #495057;
-            min-width: 120px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-          .info-value {
-            color: #212529;
-          }
-          .role-badge {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-block;
-            margin: 15px 0;
-          }
-          .role-description {
-            background: #e7f3ff;
-            border-left: 4px solid #0d6efd;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
-          }
-          .role-description p {
-            margin: 0;
-            color: #084298;
-            font-size: 14px;
-          }
-          .message-box {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .message-box p {
-            margin: 5px 0;
-            color: #856404;
-            font-style: italic;
-          }
-          .benefits-box {
-            background: #d1fae5;
-            border-left: 4px solid #10b981;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .benefits-box h4 {
-            margin: 0 0 10px 0;
-            color: #065f46;
-            font-size: 16px;
-          }
-          .benefits-box ul {
-            margin: 10px 0;
-            padding-left: 20px;
-            color: #065f46;
-          }
-          .benefits-box li {
-            margin: 5px 0;
-          }
-          .button-container {
-            text-align: center;
-            margin: 30px 0;
-            display: flex;
-            gap: 40px;
-            justify-content: center;
-            flex-wrap: wrap;
-          }
-          .button {
-            display: inline-block;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            min-width: 160px;
-            text-align: center;
-            box-shadow: 0 2px 2px rgba(0,0,0,0.1);
-          }
-          .button-accept {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white !important;
-            border: 2px solid transparent;
-          }
-          .button-decline {
-            background: #ffffff;
-            color: #FF6B6B !important;
-            border: 2px solid #FF6B6B;
-          }
-          .button-decline:hover {
-            background: #fff0eb;
-          }
-          .button:hover {
-            transform: translateY(-2px);
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
-          .footer p {
-            margin: 5px 0;
-          }
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --secondary: #2D3436;
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
+            }
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: #F8FAFC;
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            .email-container {
+                max-width: 600px;
+                margin: 0 auto;
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+                margin-top: 40px;
+                margin-bottom: 40px;
+            }
+
+            .header {
+                background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                object-fit: contain;
+                padding: 4px;
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
+            }
+
+            .content {
+                padding: 40px;
+            }
+
+            .user-block {
+                display: flex;
+                align-items: center;
+                padding: 20px;
+                background: #F1F5F9;
+                border-radius: 12px;
+                margin-bottom: 32px;
+            }
+
+            .avatar {
+                width: 52px;
+                height: 52px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                color: white;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                font-weight: 600;
+                flex-shrink: 0;
+                margin-right: 16px;
+            }
+
+            .user-info h3 {
+                margin: 0;
+                font-size: 16px;
+                color: #1E293B;
+            }
+
+            .user-info p {
+                margin: 4px 0 0;
+                font-size: 13px;
+                color: #64748B;
+            }
+
+            .invite-text {
+                font-size: 16px;
+                line-height: 1.6;
+                color: #1E293B;
+                margin-bottom: 24px;
+            }
+
+            .role-card {
+                border: 1px solid #E2E8F0;
+                border-radius: 12px;
+                padding: 24px;
+                margin-bottom: 32px;
+                background: #FFFFFF;
+            }
+
+            .role-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 12px;
+            }
+
+            .role-label {
+                font-size: 12px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #64748B;
+            }
+
+            .role-badge {
+                background: #FFEBEB;
+                color: #FF6B6B;
+                padding: 4px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+
+            .role-desc {
+                font-size: 14px;
+                color: #64748B;
+                margin: 8px 0 0;
+            }
+
+            .actions {
+                text-align: center;
+                display: block;
+            }
+
+            .btn {
+                display: block;
+                padding: 14px 24px;
+                border-radius: 10px;
+                font-weight: 600;
+                font-size: 16px;
+                text-decoration: none;
+                transition: all 0.2s;
+                margin-bottom: 12px;
+                text-align: center;
+            }
+
+            .btn-primary {
+                background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+            }
+
+            .btn-secondary {
+                background: white;
+                color: #1E293B !important;
+                border: 1px solid #E2E8F0;
+            }
+
+            .footer {
+                padding: 32px 40px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid #E2E8F0;
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: #64748B;
+                line-height: 1.5;
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+                .header {
+                    padding: 30px 20px;
+                }
+            }
         </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="header-branding">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>Team Invitation</h1>
-            </div>
-            <p>Join a collaborative workspace</p>
-          </div>
-          
-          <div class="content">
-            <div class="inviter-info">
-              <div class="inviter-avatar">
-                ${owner.firstName.charAt(0)}${owner.lastName?.charAt(0) || ''}
-              </div>
-              <div class="inviter-details">
-                <h3>${owner.firstName} ${owner.lastName || ''}</h3>
-                <p>${owner.email}</p>
-                <p style="color: #FF6B6B; font-weight: 600; margin-top: 5px;">invited you to join their team</p>
-              </div>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Team Invitation</h1>
             </div>
 
-            <div class="team-card">
-              <h2 style="margin: 0 0 20px 0; color: #333; font-size: 20px;">Team Invitation Details</h2>
-              
-              <div class="team-info">
-                <div class="info-row">
-                  <div class="info-label">
-                    <span>👤</span>
-                    <span>Team Owner:</span>
-                  </div>
-                  <div class="info-value">${owner.firstName} ${owner.lastName || ''}</div>
+            <div class="content">
+                <div class="user-block">
+                    <div class="avatar">${owner.firstName.charAt(0)}${owner.lastName?.charAt(0) || ''}</div>
+                    <div class="user-info">
+                        <h3>${owner.firstName} ${owner.lastName || ''}</h3>
+                        <p>${owner.email}</p>
+                    </div>
                 </div>
-                <div class="info-row">
-                  <div class="info-label">
-                    <span>📧</span>
-                    <span>Your Email:</span>
-                  </div>
-                  <div class="info-value">${teamMember.memberEmail}</div>
+
+                <p class="invite-text">
+                    Hello! You've been invited to join <strong>${owner.firstName}'s Team</strong> on Tasskr. Collaborate with your team members in a shared workspace.
+                </p>
+
+                <div class="role-card">
+                    <div class="role-header">
+                        <span class="role-label">Assigned Role</span>
+                        <span class="role-badge">${teamMember.role.toUpperCase()}</span>
+                    </div>
+                    <p class="role-desc">
+                        ${roleDescriptions[teamMember.role] || 'Team member with assigned permissions'}
+                    </p>
                 </div>
-                <div class="info-row">
-                  <div class="info-label">
-                    <span>🎭</span>
-                    <span>Your Role:</span>
+
+                ${teamMember.invitationNote ? `
+                  <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin-bottom: 32px; border-radius: 8px;">
+                    <p style="margin: 0; font-size: 14px; color: #856404; font-style: italic;">" ${teamMember.invitationNote} "</p>
                   </div>
-                  <div class="info-value">
-                    <span class="role-badge" style="margin: 0; padding: 4px 12px; font-size: 12px;">${teamMember.role}</span>
-                  </div>
+                ` : ''}
+
+                <div class="actions">
+                    <a href="${acceptUrl}" class="btn btn-primary">Accept & Join Team</a>
+                    <a href="${declineUrl}" class="btn btn-secondary">Decline Invitation</a>
                 </div>
-              </div>
-
-              <div class="role-description">
-                <p><strong>📌 Your Permissions:</strong> ${roleDescriptions[teamMember.role] || 'Team member with assigned permissions'}</p>
-              </div>
             </div>
 
-            ${teamMember.invitationNote ? `
-              <div class="message-box">
-                <p><strong>💬 Personal message from ${owner.firstName}:</strong></p>
-                <p>"${teamMember.invitationNote}"</p>
-              </div>
-            ` : ''}
-
-            <div class="benefits-box">
-              <h4>✨ What you'll get as a team member:</h4>
-              <ul>
-                <li>Collaborate on tasks in real-time</li>
-                <li>Stay updated with team activity</li>
-                <li>Share progress and communicate effectively</li>
-                <li>Access team tasks and resources</li>
-              </ul>
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Advanced Collaborative Task Management</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+                <p style="margin-top: 8px;">Sent to ${teamMember.memberEmail}. If you weren't expecting this invitation, you can safely ignore this email.</p>
             </div>
-
-            <div class="button-container">
-              <a href="${acceptUrl}" class="button button-accept">✓ Accept & Join Team</a>
-              <a href="${declineUrl}" class="button button-decline">✗ Decline</a>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid #e9ecef;">
-              <p style="color: #6c757d; font-size: 14px; margin: 0;">
-                Don't have an account? Sign up first, then accept this invitation.
-              </p>
-            </div>
-          </div>
-          
-          <div class="footer">
-            <p><strong>Tasskr</strong></p>
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            <p>This invitation was sent to ${teamMember.memberEmail}</p>
-          </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
   const text = `
-    Team Invitation
+    Team Invitation from Tasskr
     
-    ${owner.firstName} ${owner.lastName || ''} (${owner.email}) has invited you to join their team on Tasskr.
+    Hello! ${owner.firstName} ${owner.lastName || ''} (${owner.email}) has invited you to join their team on Tasskr.
     
-    Your Role: ${teamMember.role}
+    Your Role: ${teamMember.role.toUpperCase()}
     Permissions: ${roleDescriptions[teamMember.role] || 'Team member with assigned permissions'}
     
     ${teamMember.invitationNote ? `Personal message: "${teamMember.invitationNote}"` : ''}
-    
-    What you'll get:
-    - Collaborate on tasks in real-time
-    - Stay updated with team activity
-    - Share progress and communicate effectively
-    - Access team tasks and resources
     
     Accept invitation: ${acceptUrl}
     Decline invitation: ${declineUrl}
     
     ---
-    Tasskr
-    © ${new Date().getFullYear()}
+    Tasskr — Advanced Collaborative Task Management
+    © ${new Date().getFullYear()} Tasskr Inc.
   `;
 
   return await this.sendEmail({
