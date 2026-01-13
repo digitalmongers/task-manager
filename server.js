@@ -41,6 +41,7 @@ import systemRoutes from "./routes/systemRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import topupRoutes from "./routes/topupRoutes.js";
 import newsletterRoutes from "./routes/newsletterRoutes.js";
+import seoRoutes from "./routes/seoRoutes.js";
 import { testConnection as testOpenAI } from './config/openai.js';
 import './config/webPush.js'; // Initialize web-push with VAPID
 
@@ -136,6 +137,9 @@ app.get("/", (req, res) => {
     version: "1.0.0",
   });
 });
+
+// Root-level SEO files (Enterprise setup)
+app.use("/", seoRoutes);
 
 // Application routes
 app.use('/api/v1/upload', uploadRoutes);

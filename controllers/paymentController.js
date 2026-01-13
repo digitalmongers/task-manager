@@ -8,6 +8,7 @@ import User from '../models/User.js';
 import { PLAN_LIMITS } from '../config/aiConfig.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
+import AnalyticsService from '../services/analyticsService.js';
 
 /**
  * @desc    Create Razorpay Subscription
@@ -433,6 +434,12 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
             Logger.error('[WEBHOOK TRACE] ❌ Email sending FAILED', { error: emailError.message });
           }
         }
+
+        // Track Top-up Purchase (GA4)
+        AnalyticsService.trackPurchase(payment.user, { id: payment.topupPackage, name: `Topup: ${payment.topupPackage}` }, payment.amount).catch(err => {
+          Logger.error("Failed to track top-up purchase event", { error: err.message });
+        });
+
         Logger.info('[WEBHOOK TRACE] 🎉 FULL SUCCESS: Top-up processing completed perfectly.', { userId: payment.user, event });
       } else {
         // EXISTING SUBSCRIPTION LOGIC (unchanged)
@@ -463,6 +470,12 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
             Logger.error('[WEBHOOK TRACE] ❌ Email sending FAILED', { error: emailError.message });
           }
         }
+
+        // Track Subscription Purchase (GA4)
+        AnalyticsService.trackPurchase(payment.user, { id: payment.plan, name: `${payment.plan} Plan` }, payment.amount).catch(err => {
+          Logger.error("Failed to track subscription purchase event", { error: err.message });
+        });
+
         Logger.info('[WEBHOOK TRACE] 🎉 FULL SUCCESS: Webhook processing completed perfectly.', { userId: payment.user, event });
       }
     } else {

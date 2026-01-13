@@ -3743,85 +3743,174 @@ async sendInvitationAcceptedNotification(invitation, task, acceptedBy) {
  * Send notification when collaborator is removed
  */
 async sendCollaboratorRemovedNotification(task, removedUser, removedBy) {
-  const html = `
-    <!DOCTYPE html>
-    <html>
-        <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 600px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 25px 20px; 
-            text-align: center; 
-          }
-          .header-branding {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 8px;
-          }
-          .header img {
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 0;
-            flex-shrink: 0;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            line-height: 1.2;
-          }
-          .content { padding: 40px 30px; }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
-        </style>
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Collaborator Removed</title>
+          <style>
+              :root {
+                  --primary: #FF6B6B;
+                  --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                  --background: #F8FAFC;
+                  --card-bg: #FFFFFF;
+                  --text-main: #1E293B;
+                  --text-muted: #64748B;
+                  --border: #E2E8F0;
+              }
+
+              body {
+                  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  background-color: var(--background);
+                  margin: 0;
+                  padding: 0;
+                  -webkit-font-smoothing: antialiased;
+              }
+
+              .email-container {
+                  max-width: 600px;
+                  margin: 20px auto;
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border);
+                  border-radius: 16px;
+                  overflow: hidden;
+                  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+              }
+
+              .header {
+                  background: var(--primary-gradient);
+                  padding: 40px 20px;
+                  text-align: center;
+                  color: white;
+              }
+
+              .logo {
+                  width: 56px;
+                  height: 56px;
+                  background: rgba(255, 255, 255, 0.2);
+                  backdrop-filter: blur(10px);
+                  border-radius: 14px;
+                  margin-bottom: 16px;
+                  object-fit: contain;
+                  padding: 4px;
+              }
+
+              .header h1 {
+                  margin: 0;
+                  font-size: 24px;
+                  font-weight: 800;
+                  letter-spacing: -0.025em;
+              }
+
+              .content {
+                  padding: 40px;
+              }
+
+              .info-card {
+                  background: #F8FAFC;
+                  border-radius: 12px;
+                  padding: 24px;
+                  margin-bottom: 24px;
+                  border: 1px solid var(--border);
+                  text-align: center;
+              }
+
+              .info-icon {
+                  font-size: 32px;
+                  margin-bottom: 16px;
+                  display: block;
+              }
+
+              .info-text {
+                  font-size: 16px;
+                  line-height: 1.6;
+                  color: var(--text-main);
+                  margin: 0;
+              }
+              
+              .task-name {
+                  font-weight: 700;
+                  color: #1E293B;
+                  display: block;
+                  margin-top: 8px;
+                  font-size: 18px;
+              }
+
+              .details-box {
+                  background: #FFF1F2;
+                  border-left: 4px solid #F43F5E;
+                  padding: 16px;
+                  border-radius: 8px;
+                  margin-top: 24px;
+              }
+
+              .details-text {
+                  font-size: 14px;
+                  color: #9F1239;
+                  margin: 0;
+                  line-height: 1.5;
+              }
+
+              .footer {
+                  padding: 32px;
+                  background: #F8FAFC;
+                  text-align: center;
+                  border-top: 1px solid var(--border);
+              }
+
+              .footer p {
+                  margin: 0;
+                  font-size: 12px;
+                  color: var(--text-muted);
+              }
+
+              @media (max-width: 480px) {
+                  .email-container {
+                      margin: 0;
+                      border-radius: 0;
+                      border: none;
+                  }
+                  .content {
+                      padding: 30px 20px;
+                  }
+              }
+          </style>
       </head>
       <body>
-        <div class="container">
-          <div class="header">
-            <div class="header-branding">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>📌 Task Access Removed</h1>
-            </div>
+          <div class="email-container">
+              <div class="header">
+                  <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                  <h1>Access Update</h1>
+              </div>
+
+              <div class="content">
+                  <div class="info-card">
+                      <span class="info-icon">📋</span>
+                      <p class="info-text">
+                          This is to inform you that your access to the following task has been revoked:
+                      </p>
+                      <span class="task-name">${task.title}</span>
+                  </div>
+
+                  <div class="details-box">
+                      <p class="details-text">
+                          <strong>Action:</strong> Removed from collaborators<br>
+                          <strong>By:</strong> ${removedBy.firstName} ${removedBy.lastName}<br>
+                          <span style="display:block; margin-top: 8px; font-size: 13px; opacity: 0.8;">You no longer have access to view or edit this task.</span>
+                      </p>
+                  </div>
+              </div>
+
+              <div class="footer">
+                  <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                  <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+              </div>
           </div>
-          <div class="content">
-            <p>Hi ${removedUser.firstName},</p>
-            <p>You have been removed from the task "<strong>${task.title}</strong>" by ${removedBy.firstName} ${removedBy.lastName}.</p>
-            <p>You no longer have access to this task.</p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-          </div>
-        </div>
       </body>
-    </html>
-  `;
+      </html>
+    `;
 
   return await this.sendEmail({
     to: removedUser.email,
@@ -3840,71 +3929,239 @@ async sendTaskSharedNotification(task, teamMember, owner) {
 
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Task Shared With You</title>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Task Shared Notification</title>
         <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; padding: 40px; }
-            .header { 
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-              color: white; 
-              padding: 25px 20px; 
-              text-align: center; 
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
             }
-            .header-branding {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-              margin-bottom: 8px;
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: var(--background);
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
             }
-            .header img {
-              width: 48px;
-              height: 48px;
-              background: rgba(255, 255, 255, 0.2);
-              padding: 8px;
-              border-radius: 12px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              margin: 0;
-              flex-shrink: 0;
+
+            .email-container {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             }
+
+            .header {
+                background: var(--primary-gradient);
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                padding: 4px;
+            }
+
             .header h1 {
-              margin: 0;
-              font-size: 24px;
-              font-weight: 700;
-              line-height: 1.2;
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
             }
-            .task-card { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FF6B6B; }
-            .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
+
+            .content {
+                padding: 40px;
+            }
+
+            .intro-text {
+                font-size: 16px;
+                line-height: 1.6;
+                color: var(--text-main);
+                margin-bottom: 24px;
+            }
+
+            .owner-badge {
+                display: inline-flex;
+                align-items: center;
+                background: #FFF1F2;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-weight: 600;
+                font-size: 13px;
+                color: #E11D48;
+                margin-bottom: 24px;
+            }
+
+            .task-card {
+                background: #FFFFFF;
+                border: 2px solid var(--primary);
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 32px;
+                position: relative;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            }
+
+            .task-tag {
+                position: absolute;
+                top: -12px;
+                right: 24px;
+                background: var(--primary-gradient);
+                color: white;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .task-title {
+                font-size: 20px;
+                font-weight: 800;
+                color: var(--text-main);
+                margin-bottom: 12px;
+            }
+
+            .task-desc {
+                font-size: 14px;
+                color: var(--text-muted);
+                margin-bottom: 20px;
+                line-height: 1.6;
+                background: #F8FAFC;
+                padding: 12px;
+                border-radius: 8px;
+            }
+
+            .meta-grid {
+                display: flex;
+                gap: 16px;
+                flex-wrap: wrap;
+                border-top: 1px solid var(--border);
+                padding-top: 16px;
+                margin-top: 16px;
+            }
+
+            .meta-item {
+                display: flex;
+                align-items: center;
+                font-size: 13px;
+                color: var(--text-main);
+                font-weight: 600;
+            }
+
+            .meta-icon {
+                margin-right: 6px;
+            }
+
+            .actions {
+                text-align: center;
+            }
+
+            .btn {
+                display: inline-block;
+                padding: 14px 40px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 15px;
+                text-decoration: none;
+                background: var(--primary-gradient);
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+                transition: transform 0.2s;
+            }
+            
+            .btn:hover {
+                transform: translateY(-2px);
+            }
+
+            .footer {
+                padding: 32px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid var(--border);
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="email-container">
             <div class="header">
-              <div class="header-branding">
-                <img src="${LOGO_URL}" alt="Tasskr">
-                <h1>Task Shared With You</h1>
-              </div>
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Task Shared</h1>
             </div>
-          <h2>Hello ${teamMember.firstName},</h2>
-          <p>${owner.firstName} ${owner.lastName} has shared a task with you from their Tasskr.</p>
-          
-          <div class="task-card">
-            <h3>${task.title}</h3>
-            ${task.description ? `<p>${task.description}</p>` : ''}
-            ${task.dueDate ? `<p><strong>Due:</strong> ${new Date(task.dueDate).toLocaleDateString()}</p>` : ''}
-          </div>
-          
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${taskUrl}" class="button">View Task</a>
-          </div>
-          
-          <p>You can now collaborate on this task based on your assigned role.</p>
-          <p>Best regards,<br><strong>Tasskr Team</strong></p>
+
+            <div class="content">
+                <div class="owner-badge">
+                    Shared by ${owner.firstName} ${owner.lastName || ''}
+                </div>
+
+                <p class="intro-text">
+                    Hi ${teamMember.firstName}, a new task has been shared with you for collaboration. You can now access this task and contribute based on your role.
+                </p>
+
+                <div class="task-card">
+                    <div class="task-tag">Task</div>
+                    <div class="task-title">${task.title}</div>
+                    ${task.description ? `
+                    <div class="task-desc">
+                        ${task.description}
+                    </div>
+                    ` : ''}
+                    <div class="meta-grid">
+                        ${task.dueDate ? `
+                        <div class="meta-item"><span class="meta-icon">📅</span> Due ${new Date(task.dueDate).toLocaleDateString()}</div>
+                        ` : ''}
+                        <div class="meta-item"><span class="meta-icon">⚡</span> Priority</div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <a href="${taskUrl}" class="btn">View Task Details</a>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Powering Team Productivity</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+            </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
@@ -3951,332 +4208,329 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
 
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Vital Task Collaboration Invitation</title>
+        <title>Vital Task Invitation</title>
         <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 650px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-            .header { 
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-              color: white; 
-              padding: 25px 20px; 
-              text-align: center; 
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
             }
-            .header-branding {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-              margin-bottom: 8px;
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: var(--background);
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
             }
-            .header img {
-              width: 48px;
-              height: 48px;
-              background: rgba(255, 255, 255, 0.2);
-              padding: 8px;
-              border-radius: 12px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              margin: 0;
-              flex-shrink: 0;
+
+            .email-container {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             }
+
+            .header {
+                background: var(--primary-gradient);
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                padding: 4px;
+            }
+
             .header h1 {
-              margin: 0;
-              font-size: 24px;
-              font-weight: 700;
-              line-height: 1.2;
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
             }
+            
             .header p {
-              margin: 0;
-              opacity: 0.95;
-              font-size: 15px;
-              font-weight: 500;
+                margin: 8px 0 0;
+                font-size: 16px;
+                opacity: 0.9;
             }
-            .content { 
-              padding: 40px 30px;
+
+            .content {
+                padding: 40px;
             }
-            .inviter-info {
-              display: flex;
-              align-items: center;
-              background: #f8f9fa;
-              padding: 20px;
-              border-radius: 8px;
-              margin: 20px 0;
+
+            .user-block {
+                display: flex;
+                align-items: center;
+                margin-bottom: 32px;
+                padding: 16px;
+                background: #FFF1F2;
+                border-radius: 12px;
+                border: 1px solid #FECDD3;
             }
-            .inviter-avatar {
-              width: 60px;
-              height: 60px;
-              border-radius: 50%;
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: white;
-              font-size: 24px;
-              font-weight: 600;
-              margin-right: 15px;
-              flex-shrink: 0;
-              line-height: 1;
+
+            .avatar {
+                width: 48px;
+                height: 48px;
+                background: var(--primary-gradient);
+                color: white;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                font-size: 20px;
+                margin-right: 16px;
+                box-shadow: 0 4px 6px rgba(255, 107, 107, 0.2);
             }
-          .inviter-details h3 {
-            margin: 0 0 5px 0;
-            color: #333;
-            font-size: 18px;
-          }
-          .inviter-details p {
-            margin: 0;
-            color: #6c757d;
-            font-size: 14px;
-          }
-          .task-card {
-            background: #ffffff;
-            border: 2px solid #FF6B6B;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-          }
-          .task-title {
-            font-size: 22px;
-            font-weight: 600;
-            color: #333;
-            margin: 0 0 15px 0;
-          }
-          .vital-badge {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-block;
-            margin-left: 10px;
-          }
-          .task-description {
-            color: #555;
-            line-height: 1.8;
-            margin: 15px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-          }
-          .task-meta {
-            display: flex;
-            gap: 20px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-          }
-          .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #6c757d;
-            font-size: 14px;
-          }
-          .role-badge {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-block;
-            margin: 15px 0;
-          }
-          .role-description {
-            background: #fee2e2;
-            border-left: 4px solid #FF6B6B;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
-          }
-          .role-description p {
-            margin: 0;
-            color: #FF6B6B;
-            font-size: 14px;
-          }
-          .message-box {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .message-box p {
-            margin: 5px 0;
-            color: #856404;
-            font-style: italic;
-          }
-          .button-container {
-            text-align: center;
-            margin: 30px 0;
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            flex-wrap: wrap;
-          }
-          .button {
-            display: inline-block;
-            padding: 12px 30px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            min-width: 160px;
-            text-align: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          }
-          .button-accept {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white !important;
-            border: 2px solid transparent;
-          }
-          .button-decline {
-            background: #ffffff;
-            color: #FF6B6B !important;
-            border: 2px solid #FF6B6B;
-          }
-          .button-decline:hover {
-            background: #fff0eb;
-          }
-          .button:hover {
-            transform: translateY(-2px);
-          }
-          .expires-warning {
-            background: #fee2e2;
-            border-left: 4px solid #ef4444;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-          }
-          .expires-warning p {
-            margin: 0;
-            color: #991b1b;
-            font-size: 14px;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
+
+            .user-info h3 {
+                margin: 0;
+                color: var(--text-main);
+                font-size: 16px;
+                font-weight: 700;
+            }
+
+            .user-info p {
+                margin: 2px 0 0;
+                color: #E11D48;
+                font-size: 13px;
+                font-weight: 500;
+            }
+
+            .invite-text {
+                font-size: 16px;
+                line-height: 1.6;
+                color: var(--text-main);
+                margin-bottom: 32px;
+            }
+
+            .task-card {
+                border: 2px solid #E11D48;
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 32px;
+                position: relative;
+            }
+            
+            .vital-badge {
+                position: absolute;
+                top: -12px;
+                right: 24px;
+                background: #E11D48;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .task-title {
+                font-size: 20px;
+                font-weight: 800;
+                color: var(--text-main);
+                margin-bottom: 8px;
+            }
+
+            .task-desc {
+                font-size: 14px;
+                color: var(--text-muted);
+                line-height: 1.6;
+            }
+
+            .role-section {
+                background: #F8FAFC;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 32px;
+                border: 1px solid var(--border);
+            }
+
+            .role-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+            }
+
+            .role-label {
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: var(--text-muted);
+                font-weight: 700;
+            }
+
+            .role-value {
+                font-weight: 700;
+                color: var(--primary);
+                background: #FFF1F2;
+                padding: 2px 10px;
+                border-radius: 12px;
+                font-size: 12px;
+            }
+            
+            .role-desc {
+                font-size: 14px;
+                color: var(--text-main);
+                margin: 0;
+                line-height: 1.5;
+            }
+
+            .actions {
+                display: flex;
+                gap: 16px;
+                justify-content: center;
+            }
+
+            .btn {
+                padding: 14px 32px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 15px;
+                text-decoration: none;
+                transition: transform 0.2s;
+                text-align: center;
+                flex: 1;
+            }
+            
+            .btn-primary {
+                background: var(--primary-gradient);
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+            }
+            
+            .btn-secondary {
+                background: white;
+                color: var(--text-main) !important;
+                border: 1px solid var(--border);
+            }
+            
+            .btn:hover {
+                transform: translateY(-2px);
+            }
+
+            .expiry {
+                margin-top: 24px;
+                text-align: center;
+                font-size: 13px;
+                color: #EF4444;
+                background: #FEF2F2;
+                padding: 8px;
+                border-radius: 8px;
+            }
+
+            .footer {
+                padding: 32px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid var(--border);
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+                .actions {
+                    flex-direction: column;
+                }
+            }
         </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="header-branding">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1> Vital Task Invitation</h1>
-            </div>
-            <p>You've been invited to collaborate on a vital task</p>
-          </div>
-          
-          <div class="content">
-            <div class="inviter-info">
-              <div class="inviter-avatar">
-                ${inviter.firstName.charAt(0)}${inviter.lastName?.charAt(0) || ''}
-              </div>
-              <div class="inviter-details">
-                <h3>${inviter.firstName} ${inviter.lastName || ''}</h3>
-                <p>${inviter.email}</p>
-                <p style="color: #FF6B6B; font-weight: 600; margin-top: 5px;">wants to collaborate with you</p>
-              </div>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Vital Invitation</h1>
+                <p>High Priority Collaboration Request</p>
             </div>
 
-            <div class="task-card">
-              <div class="task-title">
-                🔴 ${vitalTask.title}
-                <span class="vital-badge">VITAL</span>
-              </div>
-              
-              ${vitalTask.description ? `
-                <div class="task-description">
-                  ${vitalTask.description}
+            <div class="content">
+                <div class="user-block">
+                    <div class="avatar">${inviter.firstName.charAt(0)}${inviter.lastName?.charAt(0) || ''}</div>
+                    <div class="user-info">
+                        <h3>${inviter.firstName} ${inviter.lastName || ''}</h3>
+                        <p>Invited you to collaborate</p>
+                    </div>
                 </div>
-              ` : ''}
 
-              <div class="task-meta">
-                ${vitalTask.dueDate ? `
-                  <div class="meta-item">
-                    <span>📅</span>
-                    <span>Due: ${new Date(vitalTask.dueDate).toLocaleDateString()}</span>
+                <p class="invite-text">
+                    You have been invited to collaborate on a <strong>Vital Task</strong>. These tasks are critical to the project's success and require immediate attention.
+                </p>
+                
+                <div class="task-card">
+                    <div class="vital-badge">VITAL</div>
+                    <div class="task-title">${vitalTask.title}</div>
+                    ${vitalTask.description ? `
+                    <div class="task-desc">
+                        ${vitalTask.description}
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="role-section">
+                    <div class="role-header">
+                        <span class="role-label">Assigned Role</span>
+                        <span class="role-value">${invitation.role.toUpperCase()}</span>
+                    </div>
+                    <p class="role-desc">
+                        ${roleDescriptions[invitation.role]}
+                    </p>
+                </div>
+                
+                ${invitation.message ? `
+                  <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 16px; margin-bottom: 32px; border-radius: 8px;">
+                    <p style="margin: 0; font-size: 14px; color: #856404; font-style: italic;">" ${invitation.message} "</p>
                   </div>
                 ` : ''}
-                ${vitalTask.category ? `
-                  <div class="meta-item">
-                    <span>🏷️</span>
-                    <span>${vitalTask.category.title || 'Categorized'}</span>
-                  </div>
-                ` : ''}
-                ${vitalTask.priority ? `
-                  <div class="meta-item">
-                    <span>⚡</span>
-                    <span>${vitalTask.priority.name || 'Priority Set'}</span>
-                  </div>
-                ` : ''}
-              </div>
 
-              <div style="margin-top: 20px;">
-                <div>You're being invited as:</div>
-                <div class="role-badge">${invitation.role}</div>
-              </div>
-
-              <div class="role-description">
-                <p><strong>📌 Your Permissions:</strong> ${roleDescriptions[invitation.role]}</p>
-              </div>
+                <div class="actions">
+                    <a href="${acceptUrl}" class="btn btn-primary">Accept Invitation</a>
+                    <a href="${declineUrl}" class="btn btn-secondary">Decline</a>
+                </div>
+                
+                <div class="expiry">
+                    ⏰ This invitation expires on ${new Date(invitation.expiresAt).toLocaleDateString()} at ${new Date(invitation.expiresAt).toLocaleTimeString()}
+                </div>
             </div>
 
-            ${invitation.message ? `
-              <div class="message-box">
-                <p><strong>💬 Personal message from ${inviter.firstName}:</strong></p>
-                <p>"${invitation.message}"</p>
-              </div>
-            ` : ''}
-
-            <div class="button-container">
-              <a href="${acceptUrl}" class="button button-accept">✓ Accept Invitation</a>
-              <a href="${declineUrl}" class="button button-decline">✗ Decline</a>
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
-
-            <div class="expires-warning">
-              <p><strong>⏰ Important:</strong> This invitation will expire on ${new Date(invitation.expiresAt).toLocaleDateString()} at ${new Date(invitation.expiresAt).toLocaleTimeString()}</p>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid #e9ecef;">
-              <p style="color: #6c757d; font-size: 14px; margin: 0;">
-                Don't have an account? You'll be able to create one when you accept this invitation.
-              </p>
-            </div>
-          </div>
-          
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-            <p>This invitation was sent to ${invitation.inviteeEmail}</p>
-          </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
@@ -4320,129 +4574,198 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
 
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Vital Task Shared With You</title>
+        <title>Vital Task Shared</title>
         <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 650px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-            .header { 
-              background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-              color: white; 
-              padding: 25px 20px; 
-              text-align: center; 
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
             }
-            .header-branding {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 15px;
-              margin-bottom: 8px;
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: var(--background);
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
             }
-            .header img {
-              width: 48px;
-              height: 48px;
-              background: rgba(255, 255, 255, 0.2);
-              padding: 8px;
-              border-radius: 12px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-              margin: 0;
-              flex-shrink: 0;
+
+            .email-container {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             }
+
+            .header {
+                background: var(--primary-gradient);
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                padding: 4px;
+            }
+
             .header h1 {
-              margin: 0;
-              font-size: 24px;
-              font-weight: 700;
-              line-height: 1.2;
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
             }
-          .content { 
-            padding: 40px 30px;
-          }
-          .task-card {
-            background: #ffffff;
-            border: 2px solid #FF6B6B;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-          }
-          .vital-badge {
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            display: inline-block;
-            margin-left: 10px;
-          }
-          .button {
-            display: inline-block;
-            padding: 15px 40px;
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-            color: white !important;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: 600;
-            font-size: 16px;
-            margin: 20px 0;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
+            
+            .header p {
+                margin: 8px 0 0;
+                font-size: 16px;
+                opacity: 0.9;
+            }
+
+            .content {
+                padding: 40px;
+            }
+
+            .intro-text {
+                font-size: 16px;
+                line-height: 1.6;
+                color: var(--text-main);
+                margin-bottom: 24px;
+            }
+
+            .task-card {
+                border: 2px solid #E11D48;
+                border-radius: 16px;
+                padding: 24px;
+                margin-bottom: 32px;
+                position: relative;
+                background: #FFF1F2;
+            }
+            
+            .vital-badge {
+                position: absolute;
+                top: -12px;
+                right: 24px;
+                background: #E11D48;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 11px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .task-title {
+                font-size: 20px;
+                font-weight: 800;
+                color: #881337;
+                margin-bottom: 8px;
+            }
+
+            .task-desc {
+                font-size: 14px;
+                color: #9F1239;
+                line-height: 1.6;
+            }
+
+            .actions {
+                text-align: center;
+            }
+
+            .btn {
+                display: inline-block;
+                padding: 14px 40px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 15px;
+                text-decoration: none;
+                background: var(--primary-gradient);
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+                transition: transform 0.2s;
+            }
+            
+            .btn:hover {
+                transform: translateY(-2px);
+            }
+
+            .footer {
+                padding: 32px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid var(--border);
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+            }
         </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="header-branding">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1> Vital Task Shared</h1>
-            </div>
-          </div>
-          
-          <div class="content">
-            <p>Hello ${collaborator.firstName},</p>
-            <p>${owner.firstName} ${owner.lastName || ''} has shared a vital task with you.</p>
-
-            <div class="task-card">
-              <h2>
-                ${vitalTask.title}
-                <span class="vital-badge">VITAL</span>
-              </h2>
-              ${vitalTask.description ? `<p>${vitalTask.description}</p>` : ''}
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Vital Task Shared</h1>
+                <p>Critically Important Task</p>
             </div>
 
-            <div style="text-align: center;">
-              <a href="${vitalTaskUrl}" class="button">View Vital Task</a>
+            <div class="content">
+                <p class="intro-text">
+                    Hi ${collaborator.firstName}, <strong>${owner.firstName} ${owner.lastName || ''}</strong> has shared a vital task with you. This task is flagged as critical.
+                </p>
+
+                <div class="task-card">
+                    <div class="vital-badge">VITAL</div>
+                    <div class="task-title">${vitalTask.title}</div>
+                    ${vitalTask.description ? `
+                    <div class="task-desc">
+                        ${vitalTask.description}
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="actions">
+                    <a href="${vitalTaskUrl}" class="btn">View Vital Task</a>
+                </div>
             </div>
-          </div>
-          
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-          </div>
+
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+            </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
@@ -4477,89 +4800,170 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
 async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remover) {
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Removed from Vital Task</title>
         <style>
-          body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            line-height: 1.6; 
-            color: #333;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-          }
-          .container { 
-            max-width: 650px; 
-            margin: 30px auto; 
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          }
-          .header { 
-            background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); 
-            color: white; 
-            padding: 25px 20px; 
-            text-align: center; 
-          }
-          .header-branding {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 8px;
-          }
-          .header img {
-            width: 48px;
-            height: 48px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 8px;
-            border-radius: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin: 0;
-            flex-shrink: 0;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 700;
-            line-height: 1.2;
-          }
-          .content { 
-            padding: 40px 30px;
-          }
-          .footer { 
-            text-align: center; 
-            padding: 20px 30px;
-            background: #f8f9fa;
-            color: #6c757d; 
-            font-size: 13px; 
-          }
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
+            }
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: var(--background);
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            .email-container {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            }
+
+            .header {
+                background: var(--primary-gradient);
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                padding: 4px;
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
+            }
+
+            .content {
+                padding: 40px;
+            }
+
+            .alert-card {
+                background: #FFF1F2;
+                border-radius: 12px;
+                padding: 24px;
+                margin-bottom: 24px;
+                border: 1px solid #FECDD3;
+                text-align: center;
+            }
+
+            .alert-icon {
+                font-size: 32px;
+                margin-bottom: 16px;
+                display: block;
+            }
+
+            .alert-text {
+                font-size: 16px;
+                line-height: 1.6;
+                color: #881337;
+                margin: 0;
+            }
+            
+            .task-name {
+                font-weight: 800;
+                color: #881337;
+                display: block;
+                margin-top: 8px;
+                font-size: 18px;
+                text-transform: uppercase;
+            }
+
+            .details-box {
+                background: #F8FAFC;
+                border-left: 4px solid #E11D48;
+                padding: 16px;
+                border-radius: 8px;
+                margin-top: 24px;
+            }
+
+            .details-text {
+                font-size: 14px;
+                color: var(--text-main);
+                margin: 0;
+                line-height: 1.5;
+            }
+
+            .footer {
+                padding: 32px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid var(--border);
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+            }
         </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="header-branding">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1> Removed from Vital Task</h1>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Vital Access Revoked</h1>
             </div>
-          </div>
-          
-          <div class="content">
-            <p>Hello ${removedUser.firstName},</p>
-            <p>${remover.firstName} ${remover.lastName || ''} has removed you from the vital task: <strong>"${vitalTask.title}"</strong></p>
-            <p>You no longer have access to this vital task.</p>
-          </div>
-          
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-          </div>
+
+            <div class="content">
+                <div class="alert-card">
+                    <span class="alert-icon">🚫</span>
+                    <p class="alert-text">
+                        Your access to the following <strong>Vital Task</strong> has been revoked:
+                    </p>
+                    <span class="task-name">${vitalTask.title}</span>
+                </div>
+
+                <div class="details-box">
+                    <p class="details-text">
+                        <strong>Removed By:</strong> ${remover.firstName} ${remover.lastName || ''}<br>
+                        <span style="display:block; margin-top: 8px; font-size: 13px; color: var(--text-muted);">You can no longer view or edit this critical task. If you believe this is an error, please contact the task owner immediately.</span>
+                    </p>
+                </div>
+            </div>
+
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+            </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
@@ -4591,58 +4995,207 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
 async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Purchase Confirmed - Tasskr</title>
+        <title>Purchase Confirmed</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-          .header { background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white; padding: 25px 20px; text-align: center; }
-          .header-branding { display: flex; align-items: center; justify-content: center; gap: 15px; }
-          .header img { width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 12px; }
-          .content { padding: 40px 30px; }
-          .plan-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
-          .plan-name { font-size: 24px; font-weight: bold; color: #FF6B6B; margin-bottom: 5px; }
-          .plan-price { font-size: 18px; color: #555; }
-          .button-container { text-align: center; margin: 30px 0; }
-          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
-          .footer { text-align: center; padding: 20px 30px; background: #f8f9fa; color: #6c757d; font-size: 13px; }
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
+                --success: #10B981;
+            }
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: var(--background);
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            .email-container {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            }
+
+            .header {
+                background: var(--primary-gradient);
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                padding: 4px;
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
+            }
+
+            .content {
+                padding: 40px;
+            }
+
+            .plan-card {
+                background: #F8FAFC;
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                padding: 24px;
+                text-align: center;
+                margin: 32px 0;
+            }
+
+            .plan-name {
+                color: #FF6B6B;
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                font-weight: 700;
+                margin-bottom: 8px;
+                display: block;
+            }
+
+            .plan-price {
+                font-size: 32px;
+                font-weight: 800;
+                color: var(--text-main);
+                letter-spacing: -0.02em;
+            }
+
+            .plan-cycle {
+                font-size: 14px;
+                color: var(--text-muted);
+                font-weight: 500;
+            }
+
+            .features-list {
+                list-style: none;
+                padding: 0;
+                margin: 24px 0 0;
+                text-align: left;
+                display: inline-block;
+            }
+
+            .features-list li {
+                margin-bottom: 10px;
+                color: var(--text-main);
+                font-size: 14px;
+                display: flex;
+                align-items: center;
+            }
+
+            .features-list li::before {
+                content: "✓";
+                color: var(--success);
+                font-weight: bold;
+                margin-right: 10px;
+            }
+
+            .btn {
+                display: inline-block;
+                padding: 14px 40px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 15px;
+                text-decoration: none;
+                background: var(--primary-gradient);
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+                transition: transform 0.2s;
+            }
+            
+            .btn-outline {
+                background: transparent;
+                border: 1px solid var(--border);
+                color: var(--text-main) !important;
+                box-shadow: none;
+            }
+
+            .footer {
+                padding: 32px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid var(--border);
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+            }
         </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="header-branding">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>Purchase Confirmed!</h1>
-            </div>
-          </div>
-          <div class="content">
-            <p>Hello ${user.firstName},</p>
-            <p>Thank you for upgrading! Your payment was successful, and your <strong>${planKey}</strong> plan is now active.</p>
-            
-            <div class="plan-box">
-              <div class="plan-name">${planKey} Plan</div>
-              <div class="plan-price">$${amount} / ${billingCycle.toLowerCase()}</div>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Purchase Confirmed!</h1>
             </div>
 
-            <p>You now have access to premium features, increased collaborator limits, and monthly AI boosts.</p>
-            
-            ${invoiceUrl ? `
-            <div class="button-container">
-              <a href="${invoiceUrl}" class="button">Download Invoice</a>
-            </div>
-            ` : ''}
+            <div class="content">
+                <p style="text-align: center; margin-bottom: 32px; color: var(--text-main);">
+                    Hi <strong>${user.firstName}</strong>, thank you for upgrading! Your subscription is now active.
+                </p>
 
-            <p>Best regards,<br><strong>The Tasskr Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-          </div>
+                <div class="plan-card">
+                    <span class="plan-name">${planKey} Plan</span>
+                    <div class="plan-price">$${amount}</div>
+                    <span class="plan-cycle">per ${billingCycle.toLowerCase()}</span>
+
+                    <ul class="features-list">
+                        <li>Unlimited Projects</li>
+                        <li>Advanced AI Features</li>
+                        <li>Priority Support</li>
+                    </ul>
+                </div>
+
+                ${invoiceUrl ? `
+                <div style="text-align: center;">
+                    <a href="${invoiceUrl}" class="btn btn-outline">Download Invoice</a>
+                </div>
+                ` : ''}
+            </div>
+
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+            </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
@@ -4675,15 +5228,33 @@ async sendAdminPlanPurchaseNotification(user, planKey, billingCycle, amount) {
   const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM;
   
   const html = `
-    <h2>New Subscription! </h2>
-    <p>A user has just purchased a new plan.</p>
-    <ul>
-      <li><strong>User:</strong> ${user.firstName} ${user.lastName} (${user.email})</li>
-      <li><strong>Plan:</strong> ${planKey}</li>
-      <li><strong>Cycle:</strong> ${billingCycle}</li>
-      <li><strong>Amount:</strong> $${amount}</li>
-      <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
-    </ul>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Subscription Order</title>
+        <style>
+            body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; }
+            .admin-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+            .header { color: #FF6B6B; font-weight: 800; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 16px; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+            .label { color: #64748b; font-weight: 500; }
+            .value { font-weight: 700; color: #1e293b; }
+        </style>
+    </head>
+    <body>
+        <div class="admin-card">
+            <h2 class="header">🚀 New Subscription Order</h2>
+            <div class="row"><span class="label">User:</span> <span class="value">${user.firstName} ${user.lastName}</span></div>
+            <div class="row"><span class="label">Email:</span> <span class="value">${user.email}</span></div>
+            <div class="row"><span class="label">Plan:</span> <span class="value">${planKey}</span></div>
+            <div class="row"><span class="label">Cycle:</span> <span class="value">${billingCycle}</span></div>
+            <div class="row"><span class="label">Amount:</span> <span class="value">$${amount}</span></div>
+            <div class="row"><span class="label">Time:</span> <span class="value">${new Date().toLocaleString()}</span></div>
+        </div>
+    </body>
+    </html>
   `;
 
   return await this.sendEmail({
@@ -4700,55 +5271,175 @@ async sendAdminPlanPurchaseNotification(user, planKey, billingCycle, amount) {
 async sendBoostExhaustionEmail(user) {
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AI Boosts Exhausted - Tasskr</title>
+        <title>Boosts Exhausted</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-          .header { background: linear-gradient(135deg, #6B7280 0%, #374151 100%); color: white; padding: 25px 20px; text-align: center; }
-          .header-branding { display: flex; align-items: center; justify-content: center; gap: 15px; }
-          .header img { width: 48px; height: 48px; background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 12px; }
-          .content { padding: 40px 30px; }
-          .warning-box { background: #FFFBEB; border: 1px solid #FCD34D; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
-          .warning-title { font-size: 20px; font-weight: bold; color: #92400E; margin-bottom: 5px; }
-          .button-container { text-align: center; margin: 30px 0; }
-          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
-          .footer { text-align: center; padding: 20px 30px; background: #f8f9fa; color: #6c757d; font-size: 13px; }
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
+                --warning-bg: #FFFBEB;
+                --warning-border: #FEF3C7;
+                --warning-text: #92400E;
+            }
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: var(--background);
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            .email-container {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            }
+
+            .header {
+                background: #1E293B;
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                padding: 4px;
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
+            }
+
+            .content {
+                padding: 40px;
+            }
+
+            .alert-box {
+                background: var(--warning-bg);
+                border: 1px solid var(--warning-border);
+                border-radius: 12px;
+                padding: 24px;
+                text-align: center;
+                margin-bottom: 32px;
+            }
+
+            .boost-icon {
+                font-size: 40px;
+                margin-bottom: 16px;
+                display: block;
+            }
+
+            .alert-title {
+                color: var(--warning-text);
+                font-weight: 800;
+                font-size: 18px;
+                margin-bottom: 8px;
+                display: block;
+            }
+
+            .alert-desc {
+                color: #B45309;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+
+            .info-text {
+                color: var(--text-main);
+                line-height: 1.6;
+                margin-bottom: 32px;
+                text-align: center;
+            }
+
+            .btn {
+                display: inline-block;
+                padding: 14px 40px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 15px;
+                text-decoration: none;
+                background: var(--primary-gradient);
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+                transition: transform 0.2s;
+            }
+
+            .footer {
+                padding: 32px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid var(--border);
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+            }
         </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <div class="header-branding">
-              <img src="${LOGO_URL}" alt="Tasskr">
-              <h1>Action Required: AI Boosts Exhausted</h1>
-            </div>
-          </div>
-          <div class="content">
-            <p>Hello ${user.firstName},</p>
-            <p>You have used up all your AI boosts for the current period.</p>
-            
-            <div class="warning-box">
-              <div class="warning-title">Boosts Exhausted (0 remaining)</div>
-              <p>Your AI-powered features will be limited until your next billing cycle.</p>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Boosts Exhausted</h1>
             </div>
 
-            <p>To continue using AI features without interruption, you can upgrade to a higher plan or wait for your boosts to reset.</p>
-            
-            <div class="button-container">
-              <a href="${process.env.FRONTEND_URL.split(',')[0].trim()}/pricing" class="button">View Plans & Upgrade</a>
+            <div class="content">
+                <div class="alert-box">
+                    <span class="boost-icon">⚡</span>
+                    <span class="alert-title">0 AI Boosts Remaining</span>
+                    <span class="alert-desc">You've used all your AI boosts for this billing cycle.</span>
+                </div>
+
+                <p class="info-text">
+                    Your AI-powered features will be limited until your next renewal. Upgrade your plan or purchase a top-up to continue working at super speed.
+                </p>
+
+                <div style="text-align: center;">
+                    <a href="${process.env.FRONTEND_URL.split(',')[0].trim()}/pricing" class="btn">Get More Boosts</a>
+                </div>
             </div>
 
-            <p>Best regards,<br><strong>The Tasskr Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-          </div>
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+            </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
@@ -4778,48 +5469,182 @@ async sendBoostExhaustionEmail(user) {
 async sendSubscriptionExpiryReminder(user, daysRemaining) {
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Subscription Expiry - Tasskr</title>
+        <title>Subscription Expiry</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-          .header { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); color: white; padding: 25px 20px; text-align: center; }
-          .content { padding: 40px 30px; }
-          .alert-box { background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
-          .button-container { text-align: center; margin: 30px 0; }
-          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
-          .footer { text-align: center; padding: 20px 30px; background: #f8f9fa; color: #6c757d; font-size: 13px; }
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
+                --urgent-bg: #FEF2F2;
+                --urgent-border: #FEE2E2;
+                --urgent-text: #B91C1C;
+            }
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: var(--background);
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            .email-container {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            }
+
+            .header {
+                background: #F59E0B;
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                padding: 4px;
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
+            }
+
+            .content {
+                padding: 40px;
+            }
+
+            .expiry-card {
+                background: var(--urgent-bg);
+                border: 1px solid var(--urgent-border);
+                border-radius: 12px;
+                padding: 24px;
+                text-align: center;
+                margin-bottom: 32px;
+            }
+
+            .days-remaining {
+                font-size: 36px;
+                font-weight: 800;
+                color: var(--primary);
+                display: block;
+                margin-bottom: 4px;
+            }
+
+            .expiry-label {
+                color: var(--urgent-text);
+                font-weight: 600;
+                font-size: 14px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .expiry-date {
+                margin-top: 12px;
+                font-size: 14px;
+                color: #7F1D1D;
+                background: rgba(255,255,255,0.5);
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 20px;
+            }
+
+            .info-text {
+                color: var(--text-main);
+                line-height: 1.6;
+                margin-bottom: 32px;
+                text-align: center;
+            }
+
+            .btn {
+                display: inline-block;
+                padding: 14px 40px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 15px;
+                text-decoration: none;
+                background: var(--primary-gradient);
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+                transition: transform 0.2s;
+            }
+
+            .footer {
+                padding: 32px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid var(--border);
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+            }
         </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Subscription Expiry Reminder</h1>
-          </div>
-          <div class="content">
-            <p>Hello ${user.firstName},</p>
-            <p>This is a friendly reminder that your <strong>${user.plan}</strong> plan subscription will expire in ${daysRemaining} days.</p>
-            
-            <div class="alert-box">
-              <p>Expiry Date: <strong>${user.currentPeriodEnd.toLocaleDateString()}</strong></p>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Subscription Expiring</h1>
             </div>
 
-            <p>To avoid any disruption to your workflow and keep your premium features active, please ensure your payment details are up to date or renew your subscription.</p>
-            
-            <div class="button-container">
-              <a href="${process.env.FRONTEND_URL.split(',')[0].trim()}/billing" class="button">Renew Subscription</a>
+            <div class="content">
+                <div class="expiry-card">
+                    <span class="days-remaining">${daysRemaining} Days</span>
+                    <span class="expiry-label">Remaining in your subscription</span>
+                    <br>
+                    <div class="expiry-date">Expires: ${user.currentPeriodEnd.toLocaleDateString()}</div>
+                </div>
+
+                <p class="info-text">
+                    Your <strong>${user.plan} Plan</strong> is about to expire. Renew now to keep your premium features active and avoid any disruption to your workflow.
+                </p>
+
+                <div style="text-align: center;">
+                    <a href="${process.env.FRONTEND_URL.split(',')[0].trim()}/billing" class="btn">Renew Subscription</a>
+                </div>
             </div>
 
-            <p>Best regards,<br><strong>The Tasskr Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-          </div>
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+            </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
@@ -4840,62 +5665,196 @@ async sendTopupPurchaseEmail(user, topupPackage, boostsAdded, amount, invoiceUrl
   
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Boost Top-up Successful - Tasskr</title>
+        <title>Top-up Successful</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f4f4f4; margin: 0; padding: 0; }
-          .container { max-width: 600px; margin: 30px auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-          .header { background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: white; padding: 25px 20px; text-align: center; }
-          .content { padding: 40px 30px; }
-          .success-box { background: #D1FAE5; border: 2px solid #10B981; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
-          .success-box h2 { color: #065F46; margin: 0 0 10px 0; }
-          .boost-count { font-size: 48px; font-weight: bold; color: #10B981; margin: 10px 0; }
-          .info-box { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .button-container { text-align: center; margin: 30px 0; }
-          .button { display: inline-block; padding: 15px 40px; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: white !important; text-decoration: none; border-radius: 5px; font-weight: 600; }
-          .footer { text-align: center; padding: 20px 30px; background: #f8f9fa; color: #6c757d; font-size: 13px; }
+            :root {
+                --primary: #FF6B6B;
+                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+                --background: #F8FAFC;
+                --card-bg: #FFFFFF;
+                --text-main: #1E293B;
+                --text-muted: #64748B;
+                --border: #E2E8F0;
+                --success-bg: #F0FDF4;
+                --success-border: #DCFCE7;
+                --success-text: #166534;
+            }
+
+            body {
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: var(--background);
+                margin: 0;
+                padding: 0;
+                -webkit-font-smoothing: antialiased;
+            }
+
+            .email-container {
+                max-width: 600px;
+                margin: 20px auto;
+                background-color: var(--card-bg);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                overflow: hidden;
+                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            }
+
+            .header {
+                background: #10B981;
+                padding: 40px 20px;
+                text-align: center;
+                color: white;
+            }
+
+            .logo {
+                width: 56px;
+                height: 56px;
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                border-radius: 14px;
+                margin-bottom: 16px;
+                object-fit: contain;
+                padding: 4px;
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: -0.025em;
+            }
+
+            .content {
+                padding: 40px;
+            }
+
+            .success-card {
+                background: var(--success-bg);
+                border: 1px solid var(--success-border);
+                border-radius: 16px;
+                padding: 32px;
+                text-align: center;
+                margin-bottom: 32px;
+            }
+
+            .boost-amount {
+                font-size: 48px;
+                font-weight: 800;
+                color: #10B981;
+                display: block;
+                margin-bottom: 4px;
+                line-height: 1;
+            }
+
+            .success-label {
+                color: var(--success-text);
+                font-weight: 700;
+                font-size: 16px;
+            }
+
+            .details-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 32px;
+            }
+            
+            .details-table td {
+                padding: 12px 0;
+                border-bottom: 1px solid var(--border);
+                color: var(--text-main);
+            }
+            
+            .details-table td:last-child {
+                text-align: right;
+                font-weight: 600;
+            }
+
+            .btn {
+                display: inline-block;
+                padding: 14px 40px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 15px;
+                text-decoration: none;
+                background: var(--primary-gradient);
+                color: white !important;
+                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
+                transition: transform 0.2s;
+            }
+
+            .footer {
+                padding: 32px;
+                background: #F8FAFC;
+                text-align: center;
+                border-top: 1px solid var(--border);
+            }
+
+            .footer p {
+                margin: 0;
+                font-size: 12px;
+                color: var(--text-muted);
+            }
+
+            @media (max-width: 480px) {
+                .email-container {
+                    margin: 0;
+                    border-radius: 0;
+                    border: none;
+                }
+                .content {
+                    padding: 30px 20px;
+                }
+            }
         </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>✅ Boost Top-up Successful!</h1>
-          </div>
-          <div class="content">
-            <p>Hello ${user.firstName},</p>
-            <p>Your boost top-up purchase has been processed successfully!</p>
-            
-            <div class="success-box">
-              <h2>🚀 ${packageInfo.name}</h2>
-              <div class="boost-count">+${boostsAdded}</div>
-              <p style="margin: 0; color: #065F46; font-weight: 600;">AI Boosts Added</p>
+    </head>
+    <body>
+        <div class="email-container">
+            <div class="header">
+                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
+                <h1>Top-up Successful!</h1>
             </div>
 
-            <div class="info-box">
-              <p><strong>Package:</strong> ${packageInfo.name}</p>
-              <p><strong>Boosts Added:</strong> ${boostsAdded}</p>
-              <p><strong>Amount Paid:</strong> $${amount} USD</p>
-              <p><strong>Current Plan:</strong> ${user.plan}</p>
+            <div class="content">
+                <div class="success-card">
+                    <span class="boost-amount">+${boostsAdded}</span>
+                    <span class="success-label">AI Boosts Added</span>
+                </div>
+
+                <table class="details-table">
+                    <tr>
+                        <td>Package</td>
+                        <td>${packageInfo.name}</td>
+                    </tr>
+                    <tr>
+                        <td>Amount Paid</td>
+                        <td>$${amount} USD</td>
+                    </tr>
+                    <tr>
+                      <td>Current Plan</td>
+                      <td>${user.plan}</td>
+                    </tr>
+                    <tr>
+                        <td>Date</td>
+                        <td>${new Date().toLocaleDateString()}</td>
+                    </tr>
+                </table>
+
+                ${invoiceUrl ? `
+                <div style="text-align: center;">
+                    <a href="${invoiceUrl}" class="btn">Download Invoice</a>
+                </div>
+                ` : ''}
             </div>
 
-            <p>Your boosts have been added to your account and are ready to use immediately. Your plan features remain unchanged.</p>
-            
-            ${invoiceUrl ? `
-            <div class="button-container">
-              <a href="${invoiceUrl}" class="button">Download Invoice</a>
+            <div class="footer">
+                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
-            ` : ''}
-
-            <p>Best regards,<br><strong>The Tasskr Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} Tasskr. All rights reserved.</p>
-          </div>
         </div>
-      </body>
+    </body>
     </html>
   `;
 
@@ -4918,20 +5877,31 @@ async sendAdminTopupNotification(user, topupPackage, amount) {
   
   const html = `
     <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>New Boost Top-up Purchase</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-        <h2>🚀 New Boost Top-up Purchase</h2>
-        <p><strong>User:</strong> ${user.firstName} ${user.lastName} (${user.email})</p>
-        <p><strong>Package:</strong> ${packageInfo.name}</p>
-        <p><strong>Boosts:</strong> ${packageInfo.boosts}</p>
-        <p><strong>Amount:</strong> $${amount} USD</p>
-        <p><strong>Current Plan:</strong> ${user.plan}</p>
-        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-      </body>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>New Boost Top-up</title>
+        <style>
+            body { font-family: 'Inter', sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; }
+            .admin-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+            .header { color: #10B981; font-weight: 800; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; margin-bottom: 16px; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+            .label { color: #64748b; font-weight: 500; }
+            .value { font-weight: 700; color: #1e293b; }
+        </style>
+    </head>
+    <body>
+        <div class="admin-card">
+            <h2 class="header">⚡ New Boost Top-up Order</h2>
+            <div class="row"><span class="label">User:</span> <span class="value">${user.firstName} ${user.lastName}</span></div>
+            <div class="row"><span class="label">Email:</span> <span class="value">${user.email}</span></div>
+            <div class="row"><span class="label">Package:</span> <span class="value">${packageInfo.name}</span></div>
+            <div class="row"><span class="label">Boosts:</span> <span class="value">${packageInfo.boosts}</span></div>
+            <div class="row"><span class="label">Amount:</span> <span class="value">$${amount} USD</span></div>
+            <div class="row"><span class="label">Plan:</span> <span class="value">${user.plan}</span></div>
+            <div class="row"><span class="label">Time:</span> <span class="value">${new Date().toLocaleString()}</span></div>
+        </div>
+    </body>
     </html>
   `;
 
