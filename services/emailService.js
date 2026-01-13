@@ -291,7 +291,6 @@ class EmailService {
               <div class="footer">
                   <p><strong>Tasskr</strong> — Advanced Collaborative Task Management</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
-                  <p style="margin-top: 8px;">Sent to ${user.email}. If you weren't expecting this email, you can safely ignore it.</p>
               </div>
           </div>
       </body>
@@ -544,7 +543,6 @@ class EmailService {
               <div class="footer">
                   <p><strong>Tasskr</strong> — Your Advanced Task Management Partner</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
-                  <p style="margin-top: 8px;">Sent to ${user.email}. You received this email because you signed up for Tasskr.</p>
               </div>
           </div>
       </body>
@@ -3924,246 +3922,115 @@ async sendCollaboratorRemovedNotification(task, removedUser, removedBy) {
  * Send task shared notification to team member
  */
 async sendTaskSharedNotification(task, teamMember, owner) {
-  const frontendUrl = process.env.REDIRECT_URL.split(',')[0].trim();
+  const frontendUrl = (process.env.REDIRECT_URL || 'https://tasskr.com').split(',')[0].trim();
   const taskUrl = `${frontendUrl}/user`;
+  const LOGO_URL = 'https://tasskr.com/logo512.png';
 
   const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Task Shared Notification</title>
-        <style>
-            :root {
-                --primary: #FF6B6B;
-                --primary-gradient: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
-                --background: #F8FAFC;
-                --card-bg: #FFFFFF;
-                --text-main: #1E293B;
-                --text-muted: #64748B;
-                --border: #E2E8F0;
-            }
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Shared Notification</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; color: #1e293b; -webkit-font-smoothing: antialiased;">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed;">
+        <tr>
+            <td align="center" style="padding: 40px 10px;">
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+                    <!-- Header -->
+                    <tr>
+                        <td align="center" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); padding: 30px 20px;">
+                            <img src="${LOGO_URL}" alt="Tasskr" width="48" height="48" style="display: block; border-radius: 8px; margin-bottom: 12px;" />
+                            <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">Task Shared</h1>
+                        </td>
+                    </tr>
 
-            body {
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background-color: var(--background);
-                margin: 0;
-                padding: 0;
-                -webkit-font-smoothing: antialiased;
-            }
+                    <!-- Body Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                <!-- Shared By Badge -->
+                                <tr>
+                                    <td style="padding-bottom: 24px;">
+                                        <div style="display: inline-block; background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 700; color: #ef4444;">
+                                            Shared by ${owner.firstName} ${owner.lastName || ''}
+                                        </div>
+                                    </td>
+                                </tr>
 
-            .email-container {
-                max-width: 600px;
-                margin: 20px auto;
-                background-color: var(--card-bg);
-                border: 1px solid var(--border);
-                border-radius: 16px;
-                overflow: hidden;
-                box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            }
+                                <!-- Intro Text -->
+                                <tr>
+                                    <td>
+                                        <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #1e293b;">
+                                            Hi ${teamMember.firstName}, a new task has been shared with you for collaboration. You can now access this task and contribute based on your role.
+                                        </p>
+                                        
+                                        <!-- Task Card -->
+                                        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px; border: 2px solid #FF6B6B; border-radius: 16px; overflow: hidden; background-color: #ffffff;">
+                                            <tr>
+                                                <td style="padding: 24px;">
+                                                    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                        <tr>
+                                                            <td style="padding-bottom: 12px;">
+                                                                <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #1e293b;">${task.title}</h2>
+                                                            </td>
+                                                        </tr>
+                                                        ${task.description ? `
+                                                        <tr>
+                                                            <td style="padding: 12px; background-color: #f8fafc; border-radius: 8px; margin-bottom: 16px;">
+                                                                <p style="margin: 0; font-size: 14px; color: #64748b; line-height: 1.6;">${task.description}</p>
+                                                            </td>
+                                                        </tr>
+                                                        ` : ''}
+                                                        <tr>
+                                                            <td style="padding-top: 16px; border-top: 1px solid #e2e8f0; margin-top: 16px;">
+                                                                <table border="0" cellpadding="0" cellspacing="0">
+                                                                    <tr>
+                                                                        ${task.dueDate ? `
+                                                                        <td style="padding-right: 16px;">
+                                                                            <span style="font-size: 13px; font-weight: 600; color: #1e293b;">📅 Due ${new Date(task.dueDate).toLocaleDateString()}</span>
+                                                                        </td>
+                                                                        ` : ''}
+                                                                        <td>
+                                                                            <span style="font-size: 13px; font-weight: 600; color: #1e293b;">⚡ ${task.priority?.name || 'Standard Priority'}</span>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
 
-            .header {
-                background: var(--primary-gradient);
-                padding: 40px 20px;
-                text-align: center;
-                color: white;
-            }
+                                <!-- Actions -->
+                                <tr>
+                                    <td align="center" style="padding-bottom: 10px;">
+                                        <a href="${taskUrl}" style="display: inline-block; background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color: #ffffff; padding: 16px 40px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(255, 107, 107, 0.4);">View Task Details</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
 
-            .logo {
-                width: 56px;
-                height: 56px;
-                background: rgba(255, 255, 255, 0.2);
-                backdrop-filter: blur(10px);
-                border-radius: 14px;
-                margin-bottom: 16px;
-                object-fit: contain;
-                padding: 4px;
-            }
-
-            .header h1 {
-                margin: 0;
-                font-size: 24px;
-                font-weight: 800;
-                letter-spacing: -0.025em;
-            }
-
-            .content {
-                padding: 40px;
-            }
-
-            .intro-text {
-                font-size: 16px;
-                line-height: 1.6;
-                color: var(--text-main);
-                margin-bottom: 24px;
-            }
-
-            .owner-badge {
-                display: inline-flex;
-                align-items: center;
-                background: #FFF1F2;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-weight: 600;
-                font-size: 13px;
-                color: #E11D48;
-                margin-bottom: 24px;
-            }
-
-            .task-card {
-                background: #FFFFFF;
-                border: 2px solid var(--primary);
-                border-radius: 16px;
-                padding: 24px;
-                margin-bottom: 32px;
-                position: relative;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-            }
-
-            .task-tag {
-                position: absolute;
-                top: -12px;
-                right: 24px;
-                background: var(--primary-gradient);
-                color: white;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 11px;
-                font-weight: 800;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-            }
-
-            .task-title {
-                font-size: 20px;
-                font-weight: 800;
-                color: var(--text-main);
-                margin-bottom: 12px;
-            }
-
-            .task-desc {
-                font-size: 14px;
-                color: var(--text-muted);
-                margin-bottom: 20px;
-                line-height: 1.6;
-                background: #F8FAFC;
-                padding: 12px;
-                border-radius: 8px;
-            }
-
-            .meta-grid {
-                display: flex;
-                gap: 16px;
-                flex-wrap: wrap;
-                border-top: 1px solid var(--border);
-                padding-top: 16px;
-                margin-top: 16px;
-            }
-
-            .meta-item {
-                display: flex;
-                align-items: center;
-                font-size: 13px;
-                color: var(--text-main);
-                font-weight: 600;
-            }
-
-            .meta-icon {
-                margin-right: 6px;
-            }
-
-            .actions {
-                text-align: center;
-            }
-
-            .btn {
-                display: inline-block;
-                padding: 14px 40px;
-                border-radius: 12px;
-                font-weight: 700;
-                font-size: 15px;
-                text-decoration: none;
-                background: var(--primary-gradient);
-                color: white !important;
-                box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
-                transition: transform 0.2s;
-            }
-            
-            .btn:hover {
-                transform: translateY(-2px);
-            }
-
-            .footer {
-                padding: 32px;
-                background: #F8FAFC;
-                text-align: center;
-                border-top: 1px solid var(--border);
-            }
-
-            .footer p {
-                margin: 0;
-                font-size: 12px;
-                color: var(--text-muted);
-            }
-
-            @media (max-width: 480px) {
-                .email-container {
-                    margin: 0;
-                    border-radius: 0;
-                    border: none;
-                }
-                .content {
-                    padding: 30px 20px;
-                }
-            }
-        </style>
-    </head>
-    <body>
-        <div class="email-container">
-            <div class="header">
-                <img src="${LOGO_URL}" alt="Tasskr" class="logo">
-                <h1>Task Shared</h1>
-            </div>
-
-            <div class="content">
-                <div class="owner-badge">
-                    Shared by ${owner.firstName} ${owner.lastName || ''}
-                </div>
-
-                <p class="intro-text">
-                    Hi ${teamMember.firstName}, a new task has been shared with you for collaboration. You can now access this task and contribute based on your role.
-                </p>
-
-                <div class="task-card">
-                    <div class="task-tag">Task</div>
-                    <div class="task-title">${task.title}</div>
-                    ${task.description ? `
-                    <div class="task-desc">
-                        ${task.description}
-                    </div>
-                    ` : ''}
-                    <div class="meta-grid">
-                        ${task.dueDate ? `
-                        <div class="meta-item"><span class="meta-icon">📅</span> Due ${new Date(task.dueDate).toLocaleDateString()}</div>
-                        ` : ''}
-                        <div class="meta-item"><span class="meta-icon">⚡</span> Priority</div>
-                    </div>
-                </div>
-
-                <div class="actions">
-                    <a href="${taskUrl}" class="btn">View Task Details</a>
-                </div>
-            </div>
-
-            <div class="footer">
-                <p><strong>Tasskr</strong> — Powering Team Productivity</p>
-                <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
-            </div>
-        </div>
-    </body>
-    </html>
-  `;
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 30px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+                            <p style="margin: 0; font-size: 12px; font-weight: 700; color: #475569;">Tasskr — Advanced Collaborative Productivity</p>
+                            <p style="margin: 8px 0 0; font-size: 11px; color: #94a3b8; line-height: 1.5;">© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+    `;
 
   const text = `
     Task Shared With You
