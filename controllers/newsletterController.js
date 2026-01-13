@@ -1,12 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Joi from 'joi';
 import mailchimpService from '../services/mailchimpService.js';
-import logger from '../config/logger.js'; // Assuming logger exists based on file list
-import AppError from '../utils/appError.js'; // Assuming AppError exists
-
-import asyncHandler from 'express-async-handler';
-import Joi from 'joi';
-import mailchimpService from '../services/mailchimpService.js';
 import NewsletterSubscriber from '../models/NewsletterSubscriber.js';
 import logger from '../config/logger.js';
 import AppError from '../utils/appError.js';
