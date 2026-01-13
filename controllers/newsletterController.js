@@ -47,7 +47,11 @@ export const subscribe = asyncHandler(async (req, res) => {
       message: 'Successfully subscribed to our newsletter!',
     });
   } catch (err) {
-    logger.error(`Newsletter subscription failed for ${email}: ${err.message}`);
+    logger.error(`Newsletter subscription process failed for ${email}`, { 
+      error: err.message,
+      statusCode: err.statusCode || 500
+    });
+
     // If user is already subscribed in Mailchimp, ensure local DB reflects that (self-healing)
     if (err.message === 'User is already subscribed') {
        await NewsletterSubscriber.findOneAndUpdate(
@@ -56,6 +60,8 @@ export const subscribe = asyncHandler(async (req, res) => {
         { upsert: true }
       );
     }
+
+    // Pass the specific error up to the global error handler
     throw err;
   }
 });

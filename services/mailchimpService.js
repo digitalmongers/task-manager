@@ -57,13 +57,27 @@ class MailchimpService {
         status: error.status,
       });
       
-      // Handle known Mailchimp errors nicely if possible, or just rethrow
-      if (error.status === 400 && error.response?.body?.title === 'Member Exists') {
-          // This usually won't happen with setListMember (PUT), but just in case
+      // Handle known Mailchimp errors nicely if possible
+      if (error.status === 400) {
+        const body = error.response?.body;
+        
+        if (body?.title === 'Member Exists') {
           throw new ApiError(400, 'User is already subscribed');
+        }
+        
+        if (body?.title === 'Forgotten Email Not Subscribed') {
+          throw new ApiError(400, 'This email was previously deleted and cannot be re-added via API. Please use our official Mailchimp subscribe form or contact support.');
+        }
+
+        if (body?.title === 'Member In Compliance State') {
+          throw new ApiError(400, 'This email is currently in a compliance state and cannot be subscribed.');
+        }
+
+        // Rethrow other 400 errors with original message if helpful
+        throw new ApiError(400, body?.detail || 'Invalid subscription request');
       }
 
-      throw new ApiError(500, 'Failed to subscribe to newsletter');
+      throw new ApiError(500, 'Failed to subscribe to newsletter. Please try again later.');
     }
   }
 }

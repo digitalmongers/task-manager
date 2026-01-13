@@ -80,6 +80,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use('/public', express.static(path.join(__dirname, 'public')));
+// Serve SEO files (robots.txt, sitemap.xml, llms.txt) at root level
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(passport.initialize());
 

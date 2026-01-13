@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 Allow: /public/
 
-# Disallow sensitive paths
+# Disallow sensitive paths (Security)
 Disallow: /api/
 Disallow: /auth/
 Disallow: /admin/
@@ -21,6 +21,9 @@ Allow: /
 
 # Sitemap location
 Sitemap: https://tasskr.com/sitemap.xml
+
+# AI Discovery Standard (Crucial for llms.txt)
+llms-txt: https://tasskr.com/llms.txt
 
 # Security and Anti-Scraping
 Crawl-delay: 1

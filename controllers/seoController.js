@@ -131,6 +131,7 @@ class SEOController {
    * Help AI models understand the site structure and purpose
    */
   async getLLMsTxt(req, res) {
+    Logger.info('LLMs.txt request received', { ip: req.ip });
     const frontendUrl = process.env.FRONTEND_URL || 'https://tasskr.com';
     
     const content = [
