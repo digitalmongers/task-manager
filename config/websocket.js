@@ -22,9 +22,19 @@ class WebSocketService {
    * Initialize WebSocket server
    */
   initialize(server) {
+    const rawOrigins = process.env.FRONTEND_URL?.split(',') || ['http://localhost:3000', 'http://localhost:5173'];
+    const allowedOrigins = [];
+    rawOrigins.forEach(url => {
+      const trimmed = url.trim();
+      if (trimmed) {
+        allowedOrigins.push(trimmed);
+        allowedOrigins.push(trimmed.replace(/\/$/, ''));
+      }
+    });
+
     this.io = new Server(server, {
       cors: {
-        origin: process.env.FRONTEND_URL?.split(',').map(url => url.trim()) || ['http://localhost:3000'],
+        origin: [...new Set(allowedOrigins)],
         credentials: true,
         methods: ['GET', 'POST'],
       },
@@ -42,7 +52,7 @@ class WebSocketService {
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        socket.userId = decoded.userId;
+        socket.userId = decoded.userId.toString();
         
         // Fetch user details for richer real-time info
         const User = mongoose.model('User');
@@ -51,14 +61,15 @@ class WebSocketService {
         socket.userEmail = user ? user.email : 'Unknown';
         socket.userName = user ? `${user.firstName} ${user.lastName}` : 'Anonymous';
         
-        Logger.info('WebSocket authentication successful', {
+        Logger.info('WebSocket authorized', {
           userId: socket.userId,
           socketId: socket.id,
+          origin: socket.handshake.headers.origin
         });
         
         next();
       } catch (error) {
-        Logger.error('WebSocket authentication failed', {
+        Logger.error('WebSocket auth failed', {
           error: error.message,
           socketId: socket.id,
         });
@@ -101,18 +112,23 @@ class WebSocketService {
           } else if (room) {
             this.io.to(room).emit(event, data);
           }
+          
+          Logger.debug('Cross-server relay processed', { channel, event, userId });
         } catch (e) {
           Logger.error('Relay message processing failed', { error: e.message, channel });
         }
       });
 
-      await this.subClient.subscribe(`relay:${this.serverId}`);
-      await this.subClient.subscribe('relay:global_chat');
-      await this.subClient.subscribe('relay:global_user');
-      
+      // Subscribe to global relay channels
+      await Promise.all([
+        this.subClient.subscribe('relay:global_user'),
+        this.subClient.subscribe('relay:global_chat'),
+        this.subClient.subscribe('relay:global_room')
+      ]);
+
       Logger.info('Redis Relay initialized', { serverId: this.serverId });
     } catch (error) {
-      Logger.error('Failed to initialize Redis Relay', { error: error.message });
+      Logger.error('Redis Relay initialization failed', { error: error.message });
     }
   }
 
@@ -171,7 +187,12 @@ class WebSocketService {
       }
     });
 
-    // Throttled Typing Indicator with Auto-expire (5s)
+    // Presence Heartbeat
+    socket.on('presence:heartbeat', () => {
+      this._updatePresence(userId, 'online');
+    });
+
+    // Handle Throttled Typing Indicator
     socket.on('chat:typing', async (data) => {
       const { taskId } = data;
       if (!taskId) return;
@@ -181,13 +202,10 @@ class WebSocketService {
 
       if (!isLocked) {
         // Broadcast typing and set 2s throttle lock
-        socket.to(`chat:${taskId}`).emit('chat:typing', { userId, taskId });
+        socket.to(`chat:${taskId}`).emit('chat:typing', { userId, taskId, userName: socket.userName });
         await redisClient.set(lockKey, 'true', 'EX', 2);
-
-        // Track metric (typing is also a message-like event for load tracking)
         MetricsService.trackMessage();
 
-        // Schedule auto-stop broadcast if user stops sending signals
         if (socket.typingTimeout) clearTimeout(socket.typingTimeout);
         socket.typingTimeout = setTimeout(() => {
           socket.to(`chat:${taskId}`).emit('chat:stop_typing', { userId, taskId });
@@ -204,46 +222,45 @@ class WebSocketService {
 
     // Handle mark notification as read
     socket.on('notification:read', (notificationId) => {
-      Logger.info('Notification marked as read', {
-        userId,
-        notificationId,
-      });
+      Logger.debug('Notification read event from client', { userId, notificationId });
     });
 
-    // Handle mark all as read
-    socket.on('notifications:read-all', () => {
-      Logger.info('All notifications marked as read', { userId });
+    // Handle Global Status Change
+    socket.on('presence:status', (status) => {
+      if (['online', 'away', 'dnd'].includes(status)) {
+        this._updatePresence(userId, status);
+      }
     });
 
     // Handle Chat Events
     this.handleChatEvents(socket);
-
-    // Handle Presence Heartbeat
-    socket.on('presence:heartbeat', () => {
-      this._updatePresence(userId, 'online');
-    });
   }
 
   /**
-   * Update User Presence in Redis
+   * Update User Presence in Redis (Unified Hash Format)
    */
   async _updatePresence(userId, status) {
     try {
-      const key = `presence:${userId}`;
-      if (status === 'online') {
-        await redisClient.set(key, JSON.stringify({
-          status: 'online',
-          serverId: this.serverId,
-          lastSeen: new Date()
-        }), 'EX', 120); // 2 min expiry
-      } else {
-        await redisClient.set(key, JSON.stringify({
-          status: 'offline',
-          lastSeen: new Date()
-        }), 'EX', 86400 * 7); // Keep for 7 days
-      }
-    } catch (e) {
-      Logger.error('Presence update failed', { userId, error: e.message });
+      const presenceKey = `presence:user:${userId}`;
+      const now = new Date().toISOString();
+
+      // Store in Redis with TTL (Presence expires if no heartbeat)
+      await redisClient.hset(presenceKey, {
+        status,
+        lastSeen: now,
+        serverId: this.serverId,
+        lastHeartbeat: now
+      });
+
+      // TTL slightly longer than heartbeat interval (60s)
+      await redisClient.expire(presenceKey, 60);
+
+      // Broadcast Presence change to active chats
+      this._broadcastPresenceUpdate(userId, status, now);
+      
+      Logger.debug('User presence updated', { userId, status });
+    } catch (error) {
+      Logger.error('Presence update failed', { error: error.message, userId });
     }
   }
 
@@ -268,33 +285,19 @@ class WebSocketService {
 
         socket.join(`chat:${taskId}`);
         Logger.info('User joined chat room', { userId, taskId, isVital });
-        
         socket.emit('chat:joined', { taskId, isVital });
       } catch (error) {
         socket.emit('chat:error', { message: 'Failed to join chat' });
       }
     });
 
-    // Leave a specific task chat room
+    // Leave room
     socket.on('chat:leave', (taskId) => {
       socket.leave(`chat:${taskId}`);
       Logger.info('User left chat room', { userId, taskId });
     });
 
-    // Handle typing indicators
-    socket.on('chat:typing', (taskId) => {
-      socket.to(`chat:${taskId}`).emit('chat:typing', { 
-        userId, 
-        taskId,
-        userName: socket.userName
-      });
-    });
-
-    socket.on('chat:stop_typing', (taskId) => {
-      socket.to(`chat:${taskId}`).emit('chat:stop_typing', { userId, taskId });
-    });
-
-    // Handle message delivery acknowledgment from client
+    // Handle message delivery acknowledgment
     socket.on('chat:delivered', async (data) => {
       try {
         const { messageId, taskId, isVital } = data;
@@ -302,13 +305,6 @@ class WebSocketService {
         await chatService.markAsDelivered(messageId, userId, taskId, isVital);
       } catch (error) {
         Logger.error('Error handling chat:delivered', { error: error.message, userId });
-      }
-    });
-
-    // Explicit manual Presence update
-    socket.on('chat:presence', (status) => {
-      if (['online', 'away', 'dnd'].includes(status)) {
-        this._updatePresence(userId, status);
       }
     });
   }
@@ -327,21 +323,21 @@ class WebSocketService {
 
       if (this.userSockets.get(userId).size === 0) {
         this.userSockets.delete(userId);
+        // Do not mark offline immediately if user has other connections on other servers
+        // isUserOnline check will handle it.
       }
     }
 
     Logger.info('User disconnected from WebSocket', {
       userId,
-      socketId: socket.id,
-      remainingConnections: this.userSockets.get(userId)?.size || 0,
+      socketId: socket.id
     });
 
-    // Track metrics
     MetricsService.decrementSockets();
   }
 
   /**
-   * Send notification to specific user
+   * Send notification to specific user (and relay)
    */
   sendToUser(userId, event, data) {
     if (!this.io) {
@@ -359,11 +355,10 @@ class WebSocketService {
   }
 
   /**
-   * Relay event to user on other servers (Multi-Device Sync)
+   * Relay event to user on other servers
    */
   async _relayToUser(userId, event, data) {
     try {
-      // Broadcast to a global user channel so all instances where the user is connected receive it
       redisClient.publish('relay:global_user', JSON.stringify({
         userId, event, data, serverId: this.serverId
       }));
@@ -376,144 +371,9 @@ class WebSocketService {
    * Send notification to multiple users
    */
   sendToUsers(userIds, event, data) {
-    if (!this.io) {
-      Logger.warn('WebSocket not initialized');
-      return false;
-    }
-
-    userIds.forEach(userId => {
-      this.sendToUser(userId, event, data);
-    });
-
-    return true;
-  }
-
-  /**
-   * Send event to a specific task chat room
-   */
-  sendToChatRoom(taskId, event, data) {
     if (!this.io) return false;
-    this.io.to(`chat:${taskId}`).emit(event, data);
-    
-    // Broadcast to all servers via global relay channel
-    redisClient.publish('relay:global_chat', JSON.stringify({
-      event, data, taskId, serverId: this.serverId
-    }));
-
+    userIds.forEach(userId => this.sendToUser(userId, event, data));
     return true;
-  }
-
-  /**
-   * Atomic Socket Tracking: Add socket ID to Redis Set + Per-socket TTL
-   */
-  async _addSocketToPresence(userId, socketId) {
-    try {
-      const socketSetKey = `presence:sockets:user:${userId}`;
-      const socketTtlKey = `presence:socket:${socketId}`;
-
-      await Promise.all([
-        redisClient.sadd(socketSetKey, socketId),
-        redisClient.set(socketTtlKey, userId, 'EX', 60) // Heartbeat expected every 30s
-      ]);
-      
-      await redisClient.expire(socketSetKey, 86400); // 24h safety expiry
-      await this._updatePresence(userId, 'online');
-    } catch (e) {
-      Logger.error('Add socket to presence failed', { userId, error: e.message });
-    }
-  }
-
-  /**
-   * Atomic Socket Tracking: Remove socket ID from Redis Set
-   */
-  async _removeSocketFromPresence(userId, socketId) {
-    try {
-      const socketSetKey = `presence:sockets:user:${userId}`;
-      const socketTtlKey = `presence:socket:${socketId}`;
-
-      await Promise.all([
-        redisClient.srem(socketSetKey, socketId),
-        redisClient.del(socketTtlKey)
-      ]);
-      
-      const count = await redisClient.scard(socketSetKey);
-      if (count === 0) {
-        await this._updatePresence(userId, 'offline');
-      }
-    } catch (e) {
-      Logger.error('Remove socket from presence failed', { userId, error: e.message });
-    }
-  }
-
-  /**
-   * Update User Presence across multiple server instances via Redis
-   */
-  async _updatePresence(userId, status) {
-    try {
-      const presenceKey = `presence:user:${userId}`;
-      const now = new Date().toISOString();
-
-      // Store in Redis with TTL (Presence expires if no heartbeat)
-      await redisClient.hset(presenceKey, {
-        status,
-        lastSeen: now,
-        serverId: this.serverId,
-        lastHeartbeat: now
-      });
-
-      // TTL slightly longer than heartbeat interval (60s for true "ghost" detection)
-      await redisClient.expire(presenceKey, 60);
-
-      // Broadcast Presence change to active chats
-      this._broadcastPresenceUpdate(userId, status, now);
-      
-      Logger.debug('User presence updated', { userId, status });
-    } catch (error) {
-      Logger.error('Presence update failed', { error: error.message, userId });
-    }
-  }
-
-  /**
-   * Update heartbeat specifically to keep presence alive (Per-socket & Per-user)
-   */
-  async _updateHeartbeat(userId, socketId) {
-    const presenceKey = `presence:user:${userId}`;
-    const socketTtlKey = `presence:socket:${socketId}`;
-    
-    await Promise.all([
-        redisClient.expire(presenceKey, 60),
-        redisClient.set(socketTtlKey, userId, 'EX', 60)
-    ]);
-  }
-
-  /**
-   * Broadcast presence to rooms where user is active
-   */
-  async _broadcastPresenceUpdate(userId, status, lastSeen) {
-    try {
-       const userSockets = this.userSockets.get(userId.toString());
-       if (!userSockets) return;
-
-       const activeRooms = new Set();
-       userSockets.forEach(sid => {
-         const socket = this.io.sockets.sockets.get(sid);
-         if (socket) {
-           socket.rooms.forEach(room => {
-             if (room.startsWith('chat:')) activeRooms.add(room);
-           });
-         }
-       });
-
-       activeRooms.forEach(room => {
-         const taskId = room.split(':')[1];
-         this.io.to(room).emit('chat:presence_update', { userId, status, lastSeen, taskId });
-       });
-
-       // Also global sync for the user
-       this.sendToUser(userId, 'chat:presence_sync', { status, lastSeen });
-    } catch (e) {
-      Logger.error('Broadcast presence update failed', { error: e.message });
-    }
   }
 
   /**
@@ -568,7 +428,112 @@ class WebSocketService {
   }
 
   /**
-   * Check if user is online (Cluster-Safe + Ghost Cleanup Awareness)
+   * Get user's active connections count
+   */
+  getUserConnectionsCount(userId) {
+    return this.userSockets.get(userId.toString())?.size || 0;
+  }
+
+  /**
+   * Send event to a specific task chat room
+   */
+  sendToChatRoom(taskId, event, data) {
+    if (!this.io) return false;
+    this.io.to(`chat:${taskId}`).emit(event, data);
+    
+    redisClient.publish('relay:global_chat', JSON.stringify({
+      event, data, taskId, serverId: this.serverId
+    }));
+
+    return true;
+  }
+
+  /**
+   * Presence Helpers: Add Socket
+   */
+  async _addSocketToPresence(userId, socketId) {
+    try {
+      const socketSetKey = `presence:sockets:user:${userId}`;
+      const socketTtlKey = `presence:socket:${socketId}`;
+
+      await Promise.all([
+        redisClient.sadd(socketSetKey, socketId),
+        redisClient.set(socketTtlKey, userId, 'EX', 60)
+      ]);
+      
+      await redisClient.expire(socketSetKey, 86400); 
+      await this._updatePresence(userId, 'online');
+    } catch (e) {
+      Logger.error('Add socket to presence failed', { userId, error: e.message });
+    }
+  }
+
+  /**
+   * Presence Helpers: Remove Socket
+   */
+  async _removeSocketFromPresence(userId, socketId) {
+    try {
+      const socketSetKey = `presence:sockets:user:${userId}`;
+      const socketTtlKey = `presence:socket:${socketId}`;
+
+      await Promise.all([
+        redisClient.srem(socketSetKey, socketId),
+        redisClient.del(socketTtlKey)
+      ]);
+      
+      const count = await redisClient.scard(socketSetKey);
+      if (count === 0) {
+        await this._updatePresence(userId, 'offline');
+      }
+    } catch (e) {
+      Logger.error('Remove socket from presence failed', { userId, error: e.message });
+    }
+  }
+
+  /**
+   * Heartbeat logic
+   */
+  async _updateHeartbeat(userId, socketId) {
+    const presenceKey = `presence:user:${userId}`;
+    const socketTtlKey = `presence:socket:${socketId}`;
+    
+    await Promise.all([
+        redisClient.expire(presenceKey, 60),
+        redisClient.set(socketTtlKey, userId, 'EX', 60)
+    ]);
+  }
+
+  /**
+   * Broadcast presence to active rooms
+   */
+  async _broadcastPresenceUpdate(userId, status, lastSeen) {
+    try {
+       const userSockets = this.userSockets.get(userId.toString());
+       if (!userSockets) return;
+
+       const activeRooms = new Set();
+       userSockets.forEach(sid => {
+         const socket = this.io.sockets.sockets.get(sid);
+         if (socket) {
+           socket.rooms.forEach(room => {
+             if (room.startsWith('chat:')) activeRooms.add(room);
+           });
+         }
+       });
+
+       activeRooms.forEach(room => {
+         const taskId = room.split(':')[1];
+         this.io.to(room).emit('chat:presence_update', { userId, status, lastSeen, taskId });
+       });
+
+       this.io.to(`user:${userId}`).emit('chat:presence_sync', { status, lastSeen });
+    } catch (e) {
+      Logger.error('Broadcast presence update failed', { error: e.message });
+    }
+  }
+
+  /**
+   * Check if user is online
    */
   async isUserOnline(userId) {
     const presenceKey = `presence:user:${userId}`;
@@ -583,14 +548,12 @@ class WebSocketService {
       return false;
     }
 
-    // Filter sockets that have valid TTL keys (Ghost cleanup check)
     const ttlChecks = await Promise.all(
         socketIds.map(sid => redisClient.exists(`presence:socket:${sid}`))
     );
 
     const activeSocketCount = ttlChecks.filter(exists => exists === 1).length;
     
-    // If we found ghost sockets in the set, cleanup background
     if (activeSocketCount !== socketIds.length) {
         this._cleanupGhostSockets(userId, socketIds, ttlChecks);
     }
@@ -598,57 +561,31 @@ class WebSocketService {
     return activeSocketCount > 0;
   }
 
-  /**
-   * Background cleanup of ghost sockets from the set
-   */
   async _cleanupGhostSockets(userId, socketIds, ttlResults) {
       const socketSetKey = `presence:sockets:user:${userId}`;
       const ghosts = socketIds.filter((_, index) => ttlResults[index] === 0);
       if (ghosts.length > 0) {
           await redisClient.srem(socketSetKey, ...ghosts);
-          Logger.debug('Cleaned up ghost sockets', { userId, count: ghosts.length });
       }
   }
 
   /**
-   * Get user's active connections count
-   */
-  getUserConnectionsCount(userId) {
-    return this.userSockets.get(userId.toString())?.size || 0;
-  }
-
-  /**
-   * Handle auto-joining rooms and syncing missed data on connect
+   * Auto-joining logic
    */
   async _handleAutoReconnectPresence(socket, userId) {
     try {
-      // 1. Fetch all tasks the user is part of
-      const chatService = (await import('../services/chatService.js')).default;
       const standardTasks = await TaskCollaborator.find({ collaborator: userId, status: 'active' }).select('task');
       const vitalTasks = await VitalTaskCollaborator.find({ collaborator: userId, status: 'active' }).select('vitalTask');
       const ownedTasks = await Task.find({ user: userId }).select('_id');
       const ownedVitalTasks = await VitalTask.find({ user: userId }).select('_id');
 
-      const allTaskIds = [
-        ...standardTasks.map(t => t.task),
-        ...ownedTasks.map(t => t._id)
-      ];
-      const allVitalTaskIds = [
-        ...vitalTasks.map(t => t.vitalTask),
-        ...ownedVitalTasks.map(t => t._id)
-      ];
+      const allTaskIds = [...standardTasks.map(t => t.task), ...ownedTasks.map(t => t._id)];
+      const allVitalTaskIds = [...vitalTasks.map(t => t.vitalTask), ...ownedVitalTasks.map(t => t._id)];
 
-      // Auto-join rooms
       allTaskIds.forEach(id => socket.join(`chat:${id}`));
       allVitalTaskIds.forEach(id => socket.join(`chat:${id}`));
 
-      Logger.debug('User auto-joined chat rooms', { userId, roomCount: allTaskIds.length + allVitalTaskIds.length });
-
-      // 2. Performance: Push a sync check if user was recently offline
-      // We'll let the frontend request it via the 'sync' route, 
-      // but we can also broadcast a 'chat:sync_needed' hint here.
       socket.emit('chat:sync_needed', { timestamp: new Date() });
-
     } catch (error) {
        Logger.error('Auto-reconnect presence failed', { error: error.message });
     }

@@ -19,15 +19,29 @@ class NotificationService {
         { path: 'team', select: 'teamName' },
       ]);
 
-      // Check if user has WebSocket notifications enabled
+      // Fetch recipient preferences
       const User = (await import('../models/User.js')).default;
       const recipient = await User.findById(data.recipient).select('websocketNotificationsEnabled');
       
       // Send real-time notification via WebSocket only if enabled
       if (recipient?.websocketNotificationsEnabled) {
-        WebSocketService.sendToUser(data.recipient, 'notification:new', {
+        const unreadCount = await Notification.getUnreadCount(data.recipient);
+        const sent = WebSocketService.sendToUser(data.recipient, 'notification:new', {
           notification: notification.toObject(),
-          unreadCount: await Notification.getUnreadCount(data.recipient),
+          unreadCount,
+        });
+        
+        Logger.info('Real-time notification attempt', {
+          recipient: data.recipient,
+          event: 'notification:new',
+          success: sent,
+          socketCount: WebSocketService.getUserConnectionsCount(data.recipient)
+        });
+      } else {
+        Logger.debug('WebSocket notifications disabled or recipient not found', { 
+          userId: data.recipient, 
+          exists: !!recipient,
+          enabled: recipient?.websocketNotificationsEnabled 
         });
       }
 
