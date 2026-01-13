@@ -1,34 +1,87 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <!-- Home Page -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    
+    <!-- Core Pages -->
     <url>
-        <loc>http://localhost:3000/</loc>
+        <loc>https://tasskr.com/</loc>
         <lastmod>2026-01-13</lastmod>
         <changefreq>daily</changefreq>
         <priority>1.0</priority>
     </url>
-    
-    <!-- Pricing/Plans Page -->
     <url>
-        <loc>http://localhost:3000/pricing</loc>
+        <loc>https://tasskr.com/pricing</loc>
         <lastmod>2026-01-13</lastmod>
-        <changefreq>weekly</changefreq>
+        <changefreq>daily</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/product</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
-
-    <!-- Contact Page -->
     <url>
-        <loc>http://localhost:3000/contact</loc>
+        <loc>https://tasskr.com/blog</loc>
         <lastmod>2026-01-13</lastmod>
-        <changefreq>monthly</changefreq>
-        <priority>0.5</priority>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/faqs</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/contact-us</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/about-us</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.6</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/boost-topup</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.6</priority>
     </url>
 
-    <!-- Features/About -->
+    <!-- Support & Legal -->
     <url>
-        <loc>http://localhost:3000/features</loc>
+        <loc>https://tasskr.com/terms-conditions</loc>
         <lastmod>2026-01-13</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <changefreq>daily</changefreq>
+        <priority>0.4</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/privacy-policy</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.4</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/refund-policy</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.4</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/shipping-policy</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>0.4</priority>
+    </url>
+    <url>
+        <loc>https://tasskr.com/data-deletion</loc>
+        <lastmod>2026-01-13</lastmod>
+        <changefreq>daily</changefreq> 
+        <priority>0.3</priority>
     </url>
 </urlset>

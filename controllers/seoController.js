@@ -69,18 +69,18 @@ class SEOController {
         // Define core public pages from live site audit
         const pages = [
           { url: '/', priority: '1.0', changefreq: 'daily' },
-          { url: '/pricing', priority: '0.9', changefreq: 'weekly' },
-          { url: '/product', priority: '0.8', changefreq: 'weekly' },
-          { url: '/faqs', priority: '0.7', changefreq: 'monthly' },
-          { url: '/blog', priority: '0.7', changefreq: 'weekly' },
-          { url: '/contact-us', priority: '0.7', changefreq: 'monthly' },
-          { url: '/about-us', priority: '0.6', changefreq: 'monthly' },
-          { url: '/boost-topup', priority: '0.6', changefreq: 'monthly' },
-          { url: '/terms-conditions', priority: '0.4', changefreq: 'yearly' },
-          { url: '/privacy-policy', priority: '0.4', changefreq: 'yearly' },
-          { url: '/refund-policy', priority: '0.4', changefreq: 'yearly' },
-          { url: '/shipping-policy', priority: '0.4', changefreq: 'yearly' },
-          { url: '/data-deletion', priority: '0.3', changefreq: 'yearly' },
+          { url: '/pricing', priority: '0.9', changefreq: 'daily' },
+          { url: '/product', priority: '0.8', changefreq: 'daily' },
+          { url: '/faqs', priority: '0.7', changefreq: 'daily' },
+          { url: '/blog', priority: '0.7', changefreq: 'daily' },
+          { url: '/contact-us', priority: '0.7', changefreq: 'daily' },
+          { url: '/about-us', priority: '0.6', changefreq: 'daily' },
+          { url: '/boost-topup', priority: '0.6', changefreq: 'daily' },
+          { url: '/terms-conditions', priority: '0.4', changefreq: 'daily' },
+          { url: '/privacy-policy', priority: '0.4', changefreq: 'daily' },
+          { url: '/refund-policy', priority: '0.4', changefreq: 'daily' },
+          { url: '/shipping-policy', priority: '0.4', changefreq: 'daily' },
+          { url: '/data-deletion', priority: '0.3', changefreq: 'daily' },
         ];
 
         let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
@@ -115,7 +115,7 @@ class SEOController {
    */
   async getSecurityTxt(req, res) {
     const securityTxt = [
-      'Contact: mailto:security@digitalmongers.com',
+      'Contact: mailto:security@tasskr.com',
       'Expires: 2027-01-01T00:00:00.000Z',
       'Acknowledgments: https://tasskr.com/security/hall-of-fame',
       'Preferred-Languages: en, hi',

@@ -2,13 +2,25 @@ User-agent: *
 Allow: /
 Allow: /public/
 
-# Disallow sensitive API endpoints
+# Disallow sensitive paths
 Disallow: /api/
 Disallow: /auth/
-Disallow: /user/
 Disallow: /admin/
 Disallow: /config/
 Disallow: /scripts/
+Disallow: /user/settings
+Disallow: /user/billing
+
+# Specific bot overrides
+User-agent: Googlebot
+Allow: /
+Disallow: /search
+
+User-agent: Bingbot 
+Allow: /
 
 # Sitemap location
-Sitemap: http://localhost:3000/sitemap.xml
+Sitemap: https://tasskr.com/sitemap.xml
+
+# Security and Anti-Scraping
+Crawl-delay: 1
