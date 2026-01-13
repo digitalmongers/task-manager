@@ -7,6 +7,7 @@ import { HTTP_STATUS } from "../config/constants.js";
 import SessionService from "./sessionService.js";
 import SecurityService from "./securityService.js";
 import RequestInfoService from "./requestInfoService.js";
+import AnalyticsService from "./analyticsService.js";
 import { PLAN_LIMITS } from "../config/aiConfig.js";
 
 class AuthService {
@@ -448,6 +449,11 @@ class AuthService {
     // ALWAYS handle pending invitations (both token-based and email-based)
     // This ensures users who accepted invitations before login get linked
     await this.handlePendingInvitation(user, invitationToken);
+
+    // Track login event (GA4)
+    AnalyticsService.trackUserLogin(user).catch(err => {
+      Logger.error("Failed to track login event", { error: err.message });
+    });
 
     // Log successful login
     Logger.logAuth("USER_LOGIN", user._id, {

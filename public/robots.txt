@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Allow: /public/
+
+# Disallow sensitive API endpoints
+Disallow: /api/
+Disallow: /auth/
+Disallow: /user/
+Disallow: /admin/
+Disallow: /config/
+Disallow: /scripts/
+
+# Sitemap location
+Sitemap: http://localhost:3000/sitemap.xml
