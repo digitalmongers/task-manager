@@ -1,0 +1,25 @@
+# Tasskr - Enterprise AI Task Management
+> Tasskr is a high-performance, AI-powered task management platform designed for teams to collaborate efficiently, track progress, and boost productivity with intelligent insights.
+
+## Core Pages
+- [Home](https://tasskr.com/): Access the main dashboard and landing page.
+- [Pricing](https://tasskr.com/pricing): Detailed overview of subscription plans and boost options.
+- [Blog](https://tasskr.com/blog): Latest updates, guides, and enterprise productivity tips.
+- [FAQs](https://tasskr.com/faqs): Common questions about task management and AI features.
+- [Contact](https://tasskr.com/contact-us): Get in touch with our support and sales teams.
+
+## Advanced Features
+- [AI Synergy](https://tasskr.com/product): Learn about our collaborative synergy AI for team optimization.
+- [Boost Top-ups](https://tasskr.com/boost-topup): System for adding additional AI tokens to your account.
+
+## Legal & Compliance
+- [Terms of Service](https://tasskr.com/terms-conditions): Legal terms for using the Tasskr platform.
+- [Privacy Policy](https://tasskr.com/privacy-policy): How we protect and manage your data.
+- [Refund Policy](https://tasskr.com/refund-policy): Information on billing and refund procedures.
+
+## Technical Resources
+- [Sitemap](https://tasskr.com/sitemap.xml): The full XML map of the website for crawlers.
+- [Security](https://tasskr.com/security.txt): Vulnerability disclosure and security contacts.
+
+---
+© 2026 Tasskr Enterprise. All rights reserved.

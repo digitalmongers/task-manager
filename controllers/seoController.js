@@ -70,7 +70,6 @@ class SEOController {
         const pages = [
           { url: '/', priority: '1.0', changefreq: 'daily' },
           { url: '/pricing', priority: '0.9', changefreq: 'daily' },
-          { url: '/product', priority: '0.8', changefreq: 'daily' },
           { url: '/faqs', priority: '0.7', changefreq: 'daily' },
           { url: '/blog', priority: '0.7', changefreq: 'daily' },
           { url: '/contact-us', priority: '0.7', changefreq: 'daily' },
@@ -125,6 +124,45 @@ class SEOController {
 
     res.type('text/plain');
     return res.send(securityTxt);
+  }
+
+  /**
+   * Generates llms.txt (LLM Standard)
+   * Help AI models understand the site structure and purpose
+   */
+  async getLLMsTxt(req, res) {
+    const frontendUrl = process.env.FRONTEND_URL || 'https://tasskr.com';
+    
+    const content = [
+      '# Tasskr - Enterprise AI Task Management',
+      '> Tasskr is a high-performance, AI-powered task management platform designed for teams to collaborate efficiently, track progress, and boost productivity with intelligent insights.',
+      '',
+      '## Core Pages',
+      `- [Home](${frontendUrl}/): Access the main dashboard and landing page.`,
+      `- [Pricing](${frontendUrl}/pricing): Detailed overview of subscription plans and boost options.`,
+      `- [Blog](${frontendUrl}/blog): Latest updates, guides, and enterprise productivity tips.`,
+      `- [FAQs](${frontendUrl}/faqs): Common questions about task management and AI features.`,
+      `- [Contact](${frontendUrl}/contact-us): Get in touch with our support and sales teams.`,
+      '',
+      '## Advanced Features',
+      `- [AI Synergy](${frontendUrl}/product): Learn about our collaborative synergy AI for team optimization.`,
+      `- [Boost Top-ups](${frontendUrl}/boost-topup): System for adding additional AI tokens to your account.`,
+      '',
+      '## Legal & Compliance',
+      `- [Terms of Service](${frontendUrl}/terms-conditions): Legal terms for using the Tasskr platform.`,
+      `- [Privacy Policy](${frontendUrl}/privacy-policy): How we protect and manage your data.`,
+      `- [Refund Policy](${frontendUrl}/refund-policy): Information on billing and refund procedures.`,
+      '',
+      '## Technical Resources',
+      `- [Sitemap](${frontendUrl}/sitemap.xml): The full XML map of the website for crawlers.`,
+      `- [Security](${frontendUrl}/security.txt): Vulnerability disclosure and security contacts.`,
+      '',
+      '---',
+      '© 2026 Tasskr Enterprise. All rights reserved.'
+    ].join('\n');
+
+    res.type('text/plain');
+    return res.send(content);
   }
 }
 

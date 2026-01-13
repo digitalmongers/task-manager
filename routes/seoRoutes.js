@@ -22,4 +22,10 @@ router.get("/sitemap.xml", seoController.getSitemap);
  */
 router.get(["/.well-known/security.txt", "/security.txt"], seoController.getSecurityTxt);
 
+/**
+ * @route GET /llms.txt
+ * @desc Get LLM readable site summary
+ */
+router.get("/llms.txt", seoController.getLLMsTxt);
+
 export default router;
