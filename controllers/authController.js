@@ -5,6 +5,7 @@ import { HTTP_STATUS } from "../config/constants.js";
 import passport from "../config/passport.js";
 import Logger from "../config/logger.js";
 import ExportService from "../services/exportService.js";
+import FacebookCapiService from "../services/facebookCapiService.js";
 
 class AuthController {
 
@@ -29,6 +30,9 @@ class AuthController {
     // Add invitationToken to body if present
     const userData = { ...req.body };
     const result = await AuthService.register(userData);
+
+    // Track StartTrial (Meta CAPI) - Registration starts the FREE plan trial
+    FacebookCapiService.trackStartTrial(result.user, req, { plan: 'FREE', value: 0 }).catch(() => {});
 
     return ApiResponse.created(res, result.message, { user: result.user });
   }
