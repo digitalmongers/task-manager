@@ -15,6 +15,7 @@
   "description": "",
   "dependencies": {
     "@dqbd/tiktoken": "^1.0.22",
+    "@mailchimp/mailchimp_marketing": "^3.0.80",
     "@sendgrid/mail": "^8.1.6",
     "audit-log": "^0.9.1",
     "bcryptjs": "^3.0.3",
