@@ -16,7 +16,7 @@ User-agent: Googlebot
 Allow: /
 Disallow: /search
 
-User-agent: Bingbot
+User-agent: Bingbot 
 Allow: /
 
 # Sitemap location
