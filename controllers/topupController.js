@@ -4,6 +4,7 @@ import Payment from '../models/Payment.js';
 import { TOPUP_PACKAGES } from '../config/aiConfig.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
+import FacebookCapiService from '../services/facebookCapiService.js';
 
 /**
  * @desc    Get available top-up packages
@@ -16,6 +17,14 @@ export const getTopupPackages = expressAsyncHandler(async (req, res) => {
     id: key,
     ...TOPUP_PACKAGES[key]
   }));
+
+  // Track ViewContent (Meta CAPI)
+  FacebookCapiService.trackViewContent(req.user, req, {
+    category: 'Topup',
+    id: 'topup_packages',
+    name: 'Top-up Boost Packages',
+    price: 0 // Price list view
+  }).catch(() => {});
 
   res.json({
     success: true,
@@ -60,6 +69,20 @@ export const createTopupOrder = expressAsyncHandler(async (req, res) => {
     orderId: order.id,
     boosts: packageInfo.boosts
   });
+
+  // Track InitiateCheckout (Meta CAPI)
+  FacebookCapiService.trackInitiateCheckout(req.user, req, {
+    id: topupPackage,
+    price: packageInfo.price,
+    currency: packageInfo.currency || 'USD'
+  }).catch(err => Logger.error('Meta CAPI InitiateCheckout failed (Topup)', { error: err.message }));
+
+  // Track AddPaymentInfo (Meta CAPI)
+  FacebookCapiService.trackAddPaymentInfo(req.user, req, {
+    contentIds: [topupPackage],
+    value: packageInfo.price,
+    currency: packageInfo.currency || 'USD'
+  }).catch(() => {});
 
   res.status(201).json({
     success: true,

@@ -9,6 +9,7 @@ import { PLAN_LIMITS } from '../config/aiConfig.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
 import AnalyticsService from '../services/analyticsService.js';
+import FacebookCapiService from '../services/facebookCapiService.js';
 
 /**
  * @desc    Create Razorpay Subscription
@@ -45,6 +46,20 @@ export const createSubscription = expressAsyncHandler(async (req, res) => {
     razorpaySubscriptionId: subscription.id,
     status: 'created',
   });
+
+  // Track InitiateCheckout (Meta CAPI)
+  FacebookCapiService.trackInitiateCheckout(user, req, {
+    id: planKey,
+    price: PLAN_LIMITS[planKey].pricing[billingCycle.toLowerCase()],
+    currency: 'USD'
+  }).catch(err => Logger.error('Meta CAPI InitiateCheckout failed', { error: err.message }));
+
+  // Track AddPaymentInfo (Meta CAPI)
+  FacebookCapiService.trackAddPaymentInfo(user, req, {
+    contentIds: [planKey],
+    value: PLAN_LIMITS[planKey].pricing[billingCycle.toLowerCase()],
+    currency: 'USD'
+  }).catch(() => {});
 
   res.status(201).json({
     success: true,
@@ -426,13 +441,17 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
           
           // Send top-up confirmation emails
           try {
-            Logger.info(`[WEBHOOK TRACE] Sending Top-up Confirmation Emails...`);
             await EmailService.sendTopupPurchaseEmail(user, payment.topupPackage, payment.boostsAdded, payment.amount, payment.invoiceUrl);
             await EmailService.sendAdminTopupNotification(user, payment.topupPackage, payment.amount);
             Logger.info(`[WEBHOOK TRACE] Emails Sent Successfully.`);
           } catch (emailError) {
             Logger.error('[WEBHOOK TRACE] ❌ Email sending FAILED', { error: emailError.message });
           }
+
+          // Track Purchase (Meta CAPI)
+          FacebookCapiService.trackPurchase(user, req, payment).catch(err => {
+            Logger.error('Meta CAPI Purchase tracking failed', { error: err.message });
+          });
         }
 
         // Track Top-up Purchase (GA4)
@@ -462,13 +481,25 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
           }
 
           try {
-            Logger.info(`[WEBHOOK TRACE] Sending Success Emails...`);
             await EmailService.sendPlanPurchaseEmail(user, payment.plan, payment.billingCycle, payment.amount, payment.invoiceUrl);
             await EmailService.sendAdminPlanPurchaseNotification(user, payment.plan, payment.billingCycle, payment.amount);
             Logger.info(`[WEBHOOK TRACE] Emails Sent Successfully.`);
           } catch (emailError) {
             Logger.error('[WEBHOOK TRACE] ❌ Email sending FAILED', { error: emailError.message });
           }
+
+          // Track Purchase & Subscribe (Meta CAPI)
+          FacebookCapiService.trackPurchase(user, req, payment).catch(err => {
+            Logger.error('Meta CAPI Purchase tracking failed', { error: err.message });
+          });
+          
+          FacebookCapiService.trackSubscribe(user, req, {
+            id: payment.razorpaySubscriptionId,
+            amount: payment.amount,
+            currency: payment.currency
+          }).catch(err => {
+            Logger.error('Meta CAPI Subscribe tracking failed', { error: err.message });
+          });
         }
 
         // Track Subscription Purchase (GA4)

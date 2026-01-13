@@ -2,6 +2,7 @@ import TaskService from '../services/taskService.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import AIService from '../services/ai/aiService.js';
+import FacebookCapiService from '../services/facebookCapiService.js';
 
 class TaskController {
   /**
@@ -51,6 +52,13 @@ class TaskController {
     const filters = req.query;
 
     const result = await TaskService.getAllTasks(userId, filters);
+
+    // Track Search (Meta CAPI) if keyword exists
+    if (filters.keyword) {
+      FacebookCapiService.trackSearch(req.user, req, filters.keyword).catch(err => {
+        // Fail silently as per requirement
+      });
+    }
 
     ApiResponse.success(res, 200, 'Tasks fetched successfully', {
       tasks: result.tasks,
