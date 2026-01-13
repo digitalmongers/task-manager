@@ -3,7 +3,7 @@ import Joi from 'joi';
 import mailchimpService from '../services/mailchimpService.js';
 import NewsletterSubscriber from '../models/NewsletterSubscriber.js';
 import logger from '../config/logger.js';
-import AppError from '../utils/appError.js';
+import ApiError from '../utils/ApiError.js';
 
 /**
  * @desc    Subscribe to newsletter
@@ -21,7 +21,7 @@ export const subscribe = asyncHandler(async (req, res) => {
   const { error, value } = schema.validate(req.body);
 
   if (error) {
-    throw new AppError(error.details[0].message, 400);
+    throw new ApiError(400, error.details[0].message);
   }
 
   const { email } = value;

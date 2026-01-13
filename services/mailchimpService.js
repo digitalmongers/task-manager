@@ -1,7 +1,7 @@
 import mailchimp from '@mailchimp/mailchimp_marketing';
 import crypto from 'crypto';
 import logger from '../config/logger.js';
-import AppError from '../utils/appError.js';
+import ApiError from '../utils/ApiError.js';
 
 class MailchimpService {
   constructor() {
@@ -26,7 +26,7 @@ class MailchimpService {
    */
   async subscribeUser(email) {
     if (!email) {
-      throw new AppError('Email is required', 400);
+      throw new ApiError(400, 'Email is required');
     }
 
     try {
@@ -60,10 +60,10 @@ class MailchimpService {
       // Handle known Mailchimp errors nicely if possible, or just rethrow
       if (error.status === 400 && error.response?.body?.title === 'Member Exists') {
           // This usually won't happen with setListMember (PUT), but just in case
-          throw new AppError('User is already subscribed', 400);
+          throw new ApiError(400, 'User is already subscribed');
       }
 
-      throw new AppError('Failed to subscribe to newsletter', 500);
+      throw new ApiError(500, 'Failed to subscribe to newsletter');
     }
   }
 }
