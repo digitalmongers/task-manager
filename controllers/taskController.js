@@ -63,9 +63,9 @@ class TaskController {
 
     // Localize timestamps for all tasks
     const localizedTasks = result.tasks.map(task => {
-      const taskObj = task.toObject();
+      // task is already a plain object from service
       return {
-        ...taskObj,
+        ...task,
         createdAtLocal: formatToLocal(task.createdAt, req.timezone),
         updatedAtLocal: formatToLocal(task.updatedAt, req.timezone),
         dueDateLocal: task.dueDate ? formatToLocal(task.dueDate, req.timezone) : null,
@@ -90,9 +90,9 @@ class TaskController {
     const result = await TaskService.getTaskById(userId, taskId);
 
     // Localize timestamps
-    const taskObj = result.task.toObject();
+    // task is already a plain object from service
     const localizedTask = {
-      ...taskObj,
+      ...result.task,
       createdAtLocal: formatToLocal(result.task.createdAt, req.timezone),
       updatedAtLocal: formatToLocal(result.task.updatedAt, req.timezone),
       dueDateLocal: result.task.dueDate ? formatToLocal(result.task.dueDate, req.timezone) : null,
