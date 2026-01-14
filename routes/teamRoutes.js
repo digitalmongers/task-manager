@@ -2,11 +2,15 @@ import express from 'express';
 import TeamController from '../controllers/TeamController.js';
 import validate from '../middlewares/validate.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
-import { protect, optionalAuth } from '../middlewares/authMiddleware.js';
-import rateLimit from 'express-rate-limit';
 import Joi from 'joi';
+import rateLimit from 'express-rate-limit';
+import { protect, optionalAuth } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 
 const router = express.Router();
+
+// Apply timezone middleware to all team routes
+router.use(timezoneMiddleware);
 
 // Rate limiters
 const teamLimiter = rateLimit({

@@ -4,6 +4,7 @@ import { suggestionValidation } from '../validators/suggestionValidation.js';
 import validate from '../middlewares/validate.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -22,6 +23,7 @@ const suggestionLimiter = rateLimit({
 
 // All routes require authentication
 router.use(protect);
+router.use(timezoneMiddleware);
 
 // Submit new suggestion
 router.post(

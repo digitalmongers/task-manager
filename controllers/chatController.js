@@ -1,21 +1,34 @@
-import chatService from '../services/chatService.js';
+import ChatService from '../services/chatService.js';
 import TaskMessage from '../models/TaskMessage.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import { decrypt } from '../utils/encryptionUtils.js';
 import { uploadToCloudinary } from './upload.js'; // Reuse upload controller logic if needed, or implement specific one
+import { formatToLocal } from '../utils/dateUtils.js';
 
 export const getHistory = async (req, res) => {
   const { taskId } = req.params;
   const { page, limit, beforeSequence, isVital } = req.query;
 
-  const history = await chatService.getChatHistory(taskId, req.user._id, {
+  const history = await ChatService.getChatHistory(taskId, req.user._id, {
     page: parseInt(page),
     limit: parseInt(limit),
     beforeSequence
   }, isVital === 'true');
 
-  ApiResponse.success(res, 200, 'Chat history fetched successfully', history);
+  // Localize timestamps for messages in history
+  const localizedHistory = history.messages.map(msg => {
+    const msgObj = msg.toObject();
+    return {
+      ...msgObj,
+      createdAtLocal: formatToLocal(msg.createdAt, req.timezone),
+    };
+  });
+
+  ApiResponse.success(res, 200, 'Chat history fetched successfully', {
+    messages: localizedHistory,
+    pagination: history.pagination,
+  });
 };
 
 export const sendMessage = async (req, res) => {
@@ -26,7 +39,7 @@ export const sendMessage = async (req, res) => {
     throw ApiError.badRequest('Message content or file is required');
   }
 
-  const message = await chatService.sendMessage(taskId, req.user._id, {
+  const message = await ChatService.sendMessage(taskId, req.user._id, {
     content,
     messageType,
     fileDetails,
@@ -35,13 +48,20 @@ export const sendMessage = async (req, res) => {
     clientSideId
   }, isVital === true || req.query.isVital === 'true');
 
-  ApiResponse.success(res, 201, 'Message sent successfully', message);
+  // Localize timestamp for the sent message
+  const messageObj = message.toObject();
+  const localizedMessage = {
+    ...messageObj,
+    createdAtLocal: formatToLocal(message.createdAt, req.timezone),
+  };
+
+  ApiResponse.success(res, 201, 'Message sent successfully', localizedMessage);
 };
 
 export const getMembers = async (req, res) => {
   const { taskId } = req.params;
   const { isVital } = req.query;
-  const members = await chatService.getChatMembers(taskId, req.user._id, isVital === 'true');
+  const members = await ChatService.getChatMembers(taskId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, 'Chat members fetched successfully', members);
 };
 
@@ -49,14 +69,14 @@ export const toggleReaction = async (req, res) => {
   const { taskId, messageId } = req.params;
   const { emoji, isVital } = req.body;
 
-  const reactions = await chatService.toggleReaction(taskId, messageId, req.user._id, emoji, isVital === true || req.query.isVital === 'true');
+  const reactions = await ChatService.toggleReaction(taskId, messageId, req.user._id, emoji, isVital === true || req.query.isVital === 'true');
   ApiResponse.success(res, 200, 'Reaction updated successfully', reactions);
 };
 
 export const markAsRead = async (req, res) => {
   const { taskId } = req.params;
   const { isVital } = req.query;
-  await chatService.markAsRead(taskId, req.user._id, isVital === 'true');
+  await ChatService.markAsRead(taskId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, 'Messages marked as read');
 };
 
@@ -66,15 +86,21 @@ export const editMessage = async (req, res) => {
 
   if (!content) throw ApiError.badRequest('New content is required');
 
-  const message = await chatService.editMessage(taskId, messageId, req.user._id, content, isVital === true || req.query.isVital === 'true');
-  ApiResponse.success(res, 200, 'Message edited successfully', message);
+  const message = await ChatService.editMessage(taskId, messageId, req.user._id, content, isVital === true || req.query.isVital === 'true');
+  // Localize timestamp for the edited message
+  const messageObj = message.toObject();
+  const localizedMessage = {
+    ...messageObj,
+    updatedAtLocal: formatToLocal(message.updatedAt, req.timezone),
+  };
+  ApiResponse.success(res, 200, 'Message edited successfully', localizedMessage);
 };
 
 export const deleteMessage = async (req, res) => {
   const { taskId, messageId } = req.params;
   const { isVital } = req.query;
 
-  const result = await chatService.deleteMessage(taskId, messageId, req.user._id, isVital === 'true');
+  const result = await ChatService.deleteMessage(taskId, messageId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, 'Message deleted successfully', result);
 };
 
@@ -82,7 +108,7 @@ export const togglePin = async (req, res) => {
   const { taskId, messageId } = req.params;
   const { isVital } = req.query;
 
-  const result = await chatService.togglePin(taskId, messageId, req.user._id, isVital === 'true');
+  const result = await ChatService.togglePin(taskId, messageId, req.user._id, isVital === 'true');
   ApiResponse.success(res, 200, result.isPinned ? 'Message pinned' : 'Message unpinned', result);
 };
 
@@ -90,8 +116,16 @@ export const getPinned = async (req, res) => {
   const { taskId } = req.params;
   const { isVital } = req.query;
 
-  const pinned = await chatService.getPinnedMessages(taskId, req.user._id, isVital === 'true');
-  ApiResponse.success(res, 200, 'Pinned messages fetched successfully', pinned);
+  const pinned = await ChatService.getPinnedMessages(taskId, req.user._id, isVital === 'true');
+  // Localize timestamps for pinned messages
+  const localizedPinned = pinned.map(msg => {
+    const msgObj = msg.toObject();
+    return {
+      ...msgObj,
+      createdAtLocal: formatToLocal(msg.createdAt, req.timezone),
+    };
+  });
+  ApiResponse.success(res, 200, 'Pinned messages fetched successfully', localizedPinned);
 };
 
 export const search = async (req, res) => {
@@ -122,7 +156,7 @@ export const search = async (req, res) => {
     .sort({ score: { $meta: 'textScore' } }) // Relevance first
     .limit(100);
 
-  // 3. Decrypt results
+  // 3. Decrypt results and localize timestamps
   const decryptedResults = results.map(msg => {
     const plain = msg.toObject();
     if (plain.isEncrypted && plain.content) {
@@ -132,6 +166,7 @@ export const search = async (req, res) => {
         plain.content = '[Encrypted]';
       }
     }
+    plain.createdAtLocal = formatToLocal(plain.createdAt, req.timezone);
     return plain;
   });
 
@@ -146,15 +181,24 @@ export const syncMessages = async (req, res) => {
 
   if (!since) throw ApiError.badRequest('Sync timestamp (since) is required');
 
-  const messages = await chatService.getSyncMessages(
-    req.user._id, 
-    since, 
+  const messages = await ChatService.getSyncMessages(
+    req.user._id,
+    since,
     limit ? parseInt(limit) : 100
   );
 
+  // Localize timestamps for synced messages
+  const localizedMessages = messages.map(msg => {
+    const msgObj = msg.toObject();
+    return {
+      ...msgObj,
+      createdAtLocal: formatToLocal(msg.createdAt, req.timezone),
+    };
+  });
+
   ApiResponse.success(res, 200, 'Sync data fetched successfully', {
-    messages,
-    count: messages.length,
+    messages: localizedMessages,
+    count: localizedMessages.length,
     timestamp: new Date()
   });
 };

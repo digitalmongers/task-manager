@@ -1,7 +1,8 @@
 import express from 'express';
-import { createSubscription, checkPaymentStatus, handleWebhook, cancelCheckout, stopSubscription, syncPaymentStatus, getInvoice, getPaymentHistory } from '../controllers/paymentController.js';
-import { protect } from '../middlewares/authMiddleware.js';
 import rateLimit from 'express-rate-limit';
+import { protect } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
+import { createSubscription, checkPaymentStatus, handleWebhook, cancelCheckout, stopSubscription, syncPaymentStatus, getInvoice, getPaymentHistory } from '../controllers/paymentController.js';
 
 const router = express.Router();
 
@@ -17,13 +18,16 @@ const syncLimiter = rateLimit({
 // Public webhook route (Signature is verified inside controller)
 router.post('/webhook', handleWebhook);
 
-// Protected routes
-router.post('/create-subscription', protect, createSubscription);
-router.post('/status', protect, checkPaymentStatus);
-router.post('/checkout/cancel', protect, cancelCheckout);
-router.post('/subscription/stop', protect, stopSubscription);
-router.post('/sync', protect, syncLimiter, syncPaymentStatus);
-router.get('/invoice/:paymentId', protect, getInvoice);
-router.get('/history', protect, getPaymentHistory);
+// Protected routes (apply middleware globally for these routes)
+router.use(protect);
+router.use(timezoneMiddleware);
+
+router.post('/create-subscription', createSubscription);
+router.post('/status', checkPaymentStatus);
+router.post('/checkout/cancel', cancelCheckout);
+router.post('/subscription/stop', stopSubscription);
+router.post('/sync', syncLimiter, syncPaymentStatus);
+router.get('/invoice/:paymentId', getInvoice);
+router.get('/history', getPaymentHistory);
 
 export default router;

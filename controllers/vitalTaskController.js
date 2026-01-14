@@ -1,5 +1,6 @@
 import VitalTaskService from '../services/vitalTaskService.js';
 import ApiResponse from '../utils/ApiResponse.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 import ApiError from '../utils/ApiError.js';
 import AIService from '../services/ai/aiService.js';
 
@@ -50,10 +51,22 @@ class VitalTaskController {
     const userId = req.user._id;
     const filters = req.query;
 
-    const result = await VitalTaskService.getAllVitalTasks(userId, filters);
+    const result = await VitalTaskService.getAllVitalTasks(userId, req.query);
+
+    // Localize timestamps
+    const localizedTasks = result.vitalTasks.map(task => {
+      const taskObj = task.toObject();
+      return {
+        ...taskObj,
+        createdAtLocal: formatToLocal(task.createdAt, req.timezone),
+        updatedAtLocal: formatToLocal(task.updatedAt, req.timezone),
+        dueDateLocal: task.dueDate ? formatToLocal(task.dueDate, req.timezone) : null,
+        completedAtLocal: task.completedAt ? formatToLocal(task.completedAt, req.timezone) : null,
+      };
+    });
 
     ApiResponse.success(res, 200, 'Vital tasks fetched successfully', {
-      vitalTasks: result.vitalTasks,
+      vitalTasks: localizedTasks,
       pagination: result.pagination,
     });
   }
@@ -66,10 +79,20 @@ class VitalTaskController {
     const userId = req.user._id;
     const taskId = req.params.id;
 
-    const result = await VitalTaskService.getVitalTaskById(userId, taskId);
+    const vitalTask = await VitalTaskService.getVitalTaskById(userId, taskId);
+
+    // Localize timestamps
+    const taskObj = vitalTask.toObject();
+    const localizedTask = {
+      ...taskObj,
+      createdAtLocal: formatToLocal(vitalTask.createdAt, req.timezone),
+      updatedAtLocal: formatToLocal(vitalTask.updatedAt, req.timezone),
+      dueDateLocal: vitalTask.dueDate ? formatToLocal(vitalTask.dueDate, req.timezone) : null,
+      completedAtLocal: vitalTask.completedAt ? formatToLocal(vitalTask.completedAt, req.timezone) : null,
+    };
 
     ApiResponse.success(res, 200, 'Vital task fetched successfully', {
-      vitalTask: result.vitalTask,
+      vitalTask: localizedTask,
     });
   }
 

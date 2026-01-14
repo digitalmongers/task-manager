@@ -8,6 +8,7 @@ import asyncHandler from 'express-async-handler';
 import aiController from '../controllers/aiController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 import aiRateLimit from '../middlewares/aiRateLimit.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 
 const router = express.Router();
 

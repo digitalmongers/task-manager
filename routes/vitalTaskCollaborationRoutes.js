@@ -4,6 +4,7 @@ import { vitalTaskCollaborationValidation } from '../validators/vitalTaskCollabo
 import validate from '../middlewares/validate.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { protect, optionalAuth } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import rateLimit from 'express-rate-limit';
 import Joi from 'joi';
 
@@ -51,11 +52,12 @@ const shareWithTeamValidation = {
 };
 
 // ========== VITAL TASK COLLABORATION ROUTES ==========
+router.use(protect);
+router.use(timezoneMiddleware);
 
 // Invite user to vital task (via email - for non-team members)
 router.post(
   '/vital-tasks/:vitalTaskId/collaborators/invite',
-  protect,
   invitationLimiter,
   validate(vitalTaskCollaborationValidation.inviteToVitalTask),
   asyncHandler(VitalTaskCollaborationController.inviteToVitalTask.bind(VitalTaskCollaborationController))
@@ -64,7 +66,6 @@ router.post(
 // Share vital task with team members (direct sharing)
 router.post(
   '/vital-tasks/:vitalTaskId/share-with-team',
-  protect,
   collaborationLimiter,
   validate(shareWithTeamValidation),
   asyncHandler(VitalTaskCollaborationController.shareWithTeamMembers.bind(VitalTaskCollaborationController))
@@ -73,7 +74,6 @@ router.post(
 // Get available team members for sharing
 router.get(
   '/vital-tasks/:vitalTaskId/available-team-members',
-  protect,
   collaborationLimiter,
   asyncHandler(VitalTaskCollaborationController.getAvailableTeamMembers.bind(VitalTaskCollaborationController))
 );
@@ -81,7 +81,6 @@ router.get(
 // Get vital task collaborators
 router.get(
   '/vital-tasks/:vitalTaskId/collaborators',
-  protect,
   collaborationLimiter,
   validate(vitalTaskCollaborationValidation.getVitalTaskCollaborators),
   asyncHandler(VitalTaskCollaborationController.getVitalTaskCollaborators.bind(VitalTaskCollaborationController))
@@ -90,7 +89,6 @@ router.get(
 // Update collaborator role
 router.patch(
   '/vital-tasks/:vitalTaskId/collaborators/:collaboratorId/role',
-  protect,
   collaborationLimiter,
   validate(vitalTaskCollaborationValidation.updateCollaboratorRole),
   asyncHandler(VitalTaskCollaborationController.updateCollaboratorRole.bind(VitalTaskCollaborationController))
@@ -99,7 +97,6 @@ router.patch(
 // Remove collaborator
 router.delete(
   '/vital-tasks/:vitalTaskId/collaborators/:collaboratorId',
-  protect,
   collaborationLimiter,
   validate(vitalTaskCollaborationValidation.removeCollaborator),
   asyncHandler(VitalTaskCollaborationController.removeCollaborator.bind(VitalTaskCollaborationController))
@@ -108,7 +105,6 @@ router.delete(
 // Transfer ownership
 router.post(
   '/vital-tasks/:vitalTaskId/transfer-ownership',
-  protect,
   collaborationLimiter,
   validate(vitalTaskCollaborationValidation.transferOwnership),
   asyncHandler(VitalTaskCollaborationController.transferOwnership.bind(VitalTaskCollaborationController))
@@ -117,7 +113,6 @@ router.post(
 // Generate share link
 router.post(
   '/vital-tasks/:vitalTaskId/share-link',
-  protect,
   collaborationLimiter,
   validate(vitalTaskCollaborationValidation.generateShareLink),
   asyncHandler(VitalTaskCollaborationController.generateShareLink.bind(VitalTaskCollaborationController))
@@ -126,7 +121,6 @@ router.post(
 // Access vital task via share link (requires login)
 router.get(
   '/vital-tasks/shared/:token',
-  protect,
   collaborationLimiter,
   asyncHandler(VitalTaskCollaborationController.accessViaShareLink.bind(VitalTaskCollaborationController))
 );
@@ -136,7 +130,6 @@ router.get(
 // Get vital task invitations (pending)
 router.get(
   '/vital-tasks/:vitalTaskId/invitations',
-  protect,
   collaborationLimiter,
   validate(vitalTaskCollaborationValidation.getVitalTaskInvitations),
   asyncHandler(VitalTaskCollaborationController.getVitalTaskInvitations.bind(VitalTaskCollaborationController))
@@ -145,7 +138,6 @@ router.get(
 // Cancel invitation
 router.delete(
   '/vital-tasks/:vitalTaskId/invitations/:invitationId',
-  protect,
   collaborationLimiter,
   validate(vitalTaskCollaborationValidation.cancelInvitation),
   asyncHandler(VitalTaskCollaborationController.cancelInvitation.bind(VitalTaskCollaborationController))
@@ -174,7 +166,6 @@ router.post(
 // Get user's shared vital tasks
 router.get(
   '/shared-vital-tasks',
-  protect,
   collaborationLimiter,
   asyncHandler(VitalTaskCollaborationController.getUserSharedVitalTasks.bind(VitalTaskCollaborationController))
 );

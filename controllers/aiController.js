@@ -9,6 +9,7 @@ import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import Logger from '../config/logger.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 
 class AIController {
   /**
@@ -307,11 +308,17 @@ class AIController {
       conversationId
     );
 
+    // Localize timestamps for chatbot history
+    const localizedHistory = history.map(msg => ({
+      ...msg,
+      timestampLocal: formatToLocal(msg.timestamp || msg.createdAt, req.timezone),
+    }));
+
     return ApiResponse.success(
       res,
       HTTP_STATUS.OK,
       'Chat history retrieved',
-      { history }
+      { history: localizedHistory }
     );
   }
 

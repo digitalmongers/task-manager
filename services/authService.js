@@ -9,6 +9,7 @@ import SecurityService from "./securityService.js";
 import RequestInfoService from "./requestInfoService.js";
 import AnalyticsService from "./analyticsService.js";
 import { PLAN_LIMITS } from "../config/aiConfig.js";
+import { detectTimezoneFromIp, formatToLocal } from "../utils/dateUtils.js";
 
 class AuthService {
   /**
@@ -90,6 +91,8 @@ class AuthService {
       password,
       termsAccepted,
       termsAcceptedAt: termsAccepted ? new Date() : null,
+      timezone: detectTimezoneFromIp(userData.ip || '127.0.0.1'),
+      lastKnownIp: userData.ip || '127.0.0.1',
     });
 
     // Generate email verification token
@@ -426,6 +429,13 @@ class AuthService {
       country: requestInfo.country,
       city: requestInfo.city,
     });
+
+    // Update user's last known IP and potentially timezone if not set
+    if (user.timezone === 'UTC' || !user.timezone) {
+        user.timezone = detectTimezoneFromIp(requestInfo.ipAddress);
+    }
+    user.lastKnownIp = requestInfo.ipAddress;
+    await user.save();
 
     const token = this.generateToken(user._id, sessionId, rememberMe);
     const refreshToken = this.generateRefreshToken(user._id, sessionId);
@@ -1570,6 +1580,14 @@ class AuthService {
     const nextReset = new Date(lastReset);
     nextReset.setDate(nextReset.getDate() + 30);
 
+    // Localize dates
+    const timezone = userObj.timezone || 'UTC';
+    userObj.createdAtLocal = userObj.createdAt ? formatToLocal(userObj.createdAt, timezone) : null;
+    userObj.nextResetDateLocal = formatToLocal(nextReset, timezone);
+    if (userObj.lastMonthlyReset) {
+      userObj.lastMonthlyResetLocal = formatToLocal(userObj.lastMonthlyReset, timezone);
+    }
+
     userObj.boosts = {
       total: userObj.totalBoosts, // Virtual: subscription + topup
       remaining: Math.max(0, userObj.totalBoosts - userObj.usedBoosts),
@@ -1587,6 +1605,7 @@ class AuthService {
       monthlyUsed: userObj.monthlyUsedBoosts || 0,
       monthlyRemaining: Math.max(0, plan.monthlyBoosts - (userObj.monthlyUsedBoosts || 0)),
       nextResetDate: nextReset,
+      nextResetDateLocal: userObj.nextResetDateLocal,
       isMonthlyLimitReached: (userObj.monthlyUsedBoosts || 0) >= plan.monthlyBoosts
     };
 

@@ -3,6 +3,7 @@ import Logger from '../config/logger.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { formatToLocal } from '../utils/dateUtils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -860,6 +861,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
   const frontendUrl = process.env.FRONTEND_URL.split(',')[0].trim();
   const loginUrl = `${frontendUrl}/login`;
   const supportUrl = `${frontendUrl}/support`;
+  const localizedTime = formatToLocal(new Date(), user.timezone);
 
     const html = `
       <!DOCTYPE html>
@@ -1073,7 +1075,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
                       <h3>Change Details</h3>
                       <div class="info-row">
                           <span class="info-label">Time</span>
-                          <span class="info-value">${new Date().toLocaleString()}</span>
+                          <span class="info-value">${localizedTime}</span>
                       </div>
                       <div class="info-row">
                           <span class="info-label">IP Address</span>
@@ -1117,7 +1119,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
       Your password has been changed successfully.
       
       Change Details:
-      Time: ${new Date().toLocaleString()}
+      Time: ${localizedTime}
       IP Address: ${ip}
       Device: ${userAgent}
       
@@ -1147,6 +1149,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
     const changePasswordUrl = `${frontendUrl}/settings/security`;
 
     const { deviceType, browser, os, city, country, ipAddress, loginTime } = deviceInfo;
+    const localizedTime = formatToLocal(loginTime || new Date(), user.timezone);
 
     const html = `
       <!DOCTYPE html>
@@ -1283,7 +1286,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
               <p>We detected a login to your Tasskr account from a new device or location.</p>
               
               <div class="info-box">
-                <p><strong>📅 Time:</strong> ${loginTime || new Date().toLocaleString()}</p>
+                <p><strong>📅 Time:</strong> ${localizedTime}</p>
                 <p><strong>💻 Device:</strong> ${deviceType || 'Unknown'}</p>
                 <p><strong>🌐 Browser:</strong> ${browser || 'Unknown'}</p>
                 <p><strong>⚙️ OS:</strong> ${os || 'Unknown'}</p>
@@ -1331,7 +1334,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
       We detected a login to your account from a new device or location.
       
       Login Details:
-      Time: ${loginTime || new Date().toLocaleString()}
+      Time: ${localizedTime}
       Device: ${deviceType || 'Unknown'}
       Browser: ${browser || 'Unknown'}
       OS: ${os || 'Unknown'}
@@ -1363,6 +1366,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
    * Send login alert email (legacy - kept for backward compatibility)
    */
   async sendLoginAlert(user, ip, userAgent) {
+    const localizedTime = formatToLocal(new Date(), user.timezone);
     const html = `
       <!DOCTYPE html>
       <html>
@@ -1453,7 +1457,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
               
               <div class="info-box">
                 <p><strong>📅 Login Details:</strong></p>
-                <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+                <p><strong>Time:</strong> ${localizedTime}</p>
                 <p><strong>🌐 IP Address:</strong> ${ip}</p>
                 <p><strong>💻 Device:</strong> ${userAgent}</p>
               </div>
@@ -1478,7 +1482,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
       
       We detected a new login to your account.
       
-      Time: ${new Date().toLocaleString()}
+      Time: ${localizedTime}
       IP: ${ip}
       Device: ${userAgent}
       
@@ -4860,6 +4864,7 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
  * Send plan purchase confirmation email to user
  */
 async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
+  const localizedDate = formatToLocal(new Date(), user.timezone, 'MMMM D, YYYY');
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -5035,7 +5040,7 @@ async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
 
             <div class="content">
                 <p style="text-align: center; margin-bottom: 32px; color: var(--text-main);">
-                    Hi <strong>${user.firstName}</strong>, thank you for upgrading! Your subscription is now active.
+                    Hi <strong>${user.firstName}</strong>, thank you for upgrading! Your subscription is now active as of ${localizedDate}.
                 </p>
 
                 <div class="plan-card">
@@ -5071,7 +5076,7 @@ async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
     
     Hello ${user.firstName},
     
-    Thank you for upgrading to the ${planKey} plan ($${amount}/${billingCycle.toLowerCase()}).
+    Thank you for upgrading to the ${planKey} plan ($${amount}/${billingCycle.toLowerCase()}) on ${localizedDate}.
     Your plan is now active with all premium features.
     
     ${invoiceUrl ? `You can download your invoice here: ${invoiceUrl}` : ''}
@@ -5093,6 +5098,7 @@ async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
  */
 async sendAdminPlanPurchaseNotification(user, planKey, billingCycle, amount) {
   const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM;
+  const localizedTime = formatToLocal(new Date(), user.timezone);
   
   const html = `
     <!DOCTYPE html>
@@ -5118,7 +5124,7 @@ async sendAdminPlanPurchaseNotification(user, planKey, billingCycle, amount) {
             <div class="row"><span class="label">Plan:</span> <span class="value">${planKey}</span></div>
             <div class="row"><span class="label">Cycle:</span> <span class="value">${billingCycle}</span></div>
             <div class="row"><span class="label">Amount:</span> <span class="value">$${amount}</span></div>
-            <div class="row"><span class="label">Time:</span> <span class="value">${new Date().toLocaleString()}</span></div>
+            <div class="row"><span class="label">User Local Time:</span> <span class="value">${localizedTime}</span></div>
         </div>
     </body>
     </html>
@@ -5334,6 +5340,7 @@ async sendBoostExhaustionEmail(user) {
  * Send Subscription Expiry Reminder
  */
 async sendSubscriptionExpiryReminder(user, daysRemaining) {
+  const localizedExpiry = formatToLocal(user.currentPeriodEnd, user.timezone, 'MMMM D, YYYY');
   const html = `
     <!DOCTYPE html>
     <html lang="en">
@@ -5494,7 +5501,7 @@ async sendSubscriptionExpiryReminder(user, daysRemaining) {
                     <span class="days-remaining">${daysRemaining} Days</span>
                     <span class="expiry-label">Remaining in your subscription</span>
                     <br>
-                    <div class="expiry-date">Expires: ${user.currentPeriodEnd.toLocaleDateString()}</div>
+                    <div class="expiry-date">Expires: ${localizedExpiry}</div>
                 </div>
 
                 <p class="info-text">
@@ -5519,7 +5526,7 @@ async sendSubscriptionExpiryReminder(user, daysRemaining) {
     to: user.email,
     subject: `Your Tasskr ${user.plan} Plan expires in ${daysRemaining} days! ⏳`,
     html,
-    text: `Your ${user.plan} plan expires in ${daysRemaining} days on ${user.currentPeriodEnd.toLocaleDateString()}. Renew now: ${process.env.FRONTEND_URL.split(',')[0].trim()}/billing`,
+    text: `Your ${user.plan} plan expires in ${daysRemaining} days on ${localizedExpiry}. Renew now: ${process.env.FRONTEND_URL.split(',')[0].trim()}/billing`,
   });
 }
 
@@ -5529,6 +5536,7 @@ async sendSubscriptionExpiryReminder(user, daysRemaining) {
 async sendTopupPurchaseEmail(user, topupPackage, boostsAdded, amount, invoiceUrl) {
   const { TOPUP_PACKAGES } = await import('../config/aiConfig.js');
   const packageInfo = TOPUP_PACKAGES[topupPackage];
+  const localizedDate = formatToLocal(new Date(), user.timezone, 'MMMM D, YYYY');
   
   const html = `
     <!DOCTYPE html>
@@ -5705,7 +5713,7 @@ async sendTopupPurchaseEmail(user, topupPackage, boostsAdded, amount, invoiceUrl
                     </tr>
                     <tr>
                         <td>Date</td>
-                        <td>${new Date().toLocaleDateString()}</td>
+                        <td>${localizedDate}</td>
                     </tr>
                 </table>
 
@@ -5741,6 +5749,7 @@ async sendAdminTopupNotification(user, topupPackage, amount) {
   const packageInfo = TOPUP_PACKAGES[topupPackage];
   
   const adminEmail = process.env.ADMIN_EMAIL || process.env.SENDGRID_FROM_EMAIL;
+  const localizedTime = formatToLocal(new Date(), user.timezone);
   
   const html = `
     <!DOCTYPE html>
@@ -5766,7 +5775,7 @@ async sendAdminTopupNotification(user, topupPackage, amount) {
             <div class="row"><span class="label">Boosts:</span> <span class="value">${packageInfo.boosts}</span></div>
             <div class="row"><span class="label">Amount:</span> <span class="value">$${amount} USD</span></div>
             <div class="row"><span class="label">Plan:</span> <span class="value">${user.plan}</span></div>
-            <div class="row"><span class="label">Time:</span> <span class="value">${new Date().toLocaleString()}</span></div>
+            <div class="row"><span class="label">User Local Time:</span> <span class="value">${localizedTime}</span></div>
         </div>
     </body>
     </html>
@@ -5776,7 +5785,7 @@ async sendAdminTopupNotification(user, topupPackage, amount) {
     to: adminEmail,
     subject: `New Top-up: $${amount} - ${user.email}`,
     html,
-    text: `New Boost Top-up\n\nUser: ${user.firstName} ${user.lastName} (${user.email})\nPackage: ${packageInfo.name}\nBoosts: ${packageInfo.boosts}\nAmount: $${amount} USD\nPlan: ${user.plan}\nTime: ${new Date().toLocaleString()}`,
+    text: `New Boost Top-up\n\nUser: ${user.firstName} ${user.lastName} (${user.email})\nPackage: ${packageInfo.name}\nBoosts: ${packageInfo.boosts}\nAmount: $${amount} USD\nPlan: ${user.plan}\nTime: ${localizedTime}`,
   });
 }
 

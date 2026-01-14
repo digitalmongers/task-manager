@@ -9,6 +9,7 @@ import {
   invalidateCache,
   cacheMiddleware,
 } from '../middlewares/cacheMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -40,6 +41,7 @@ const categoryLimiter = rateLimit({
 
 // ========== ALL ROUTES REQUIRE AUTHENTICATION ==========
 router.use(protect);
+router.use(timezoneMiddleware);
 
 // ========== CATEGORY STATISTICS ==========
 router.get(

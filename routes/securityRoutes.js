@@ -1,6 +1,7 @@
 import express from 'express';
 import SecurityController from '../controllers/securityController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import rateLimit from 'express-rate-limit';
 
@@ -20,6 +21,7 @@ const securityLimiter = rateLimit({
 
 // All routes require authentication
 router.use(protect);
+router.use(timezoneMiddleware);
 
 // Get login activity history
 router.get(

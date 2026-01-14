@@ -1,17 +1,22 @@
 import express from 'express';
 import TaskController from '../controllers/taskController.js';
+import rateLimit from 'express-rate-limit';
 import { taskValidation } from '../validators/taskValidation.js';
 import validate from '../middlewares/validate.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import {
+  canAccessTask,
+  canEditTask,
+  canDeleteTask,
+} from '../middlewares/taskPermissionMiddleware.js';
 import upload from '../middlewares/upload.js';
 import {
   cacheByUser,
   invalidateCache,
   cacheMiddleware,
 } from '../middlewares/cacheMiddleware.js';
-import { canAccessTask, canEditTask, canDeleteTask } from '../middlewares/taskPermissionMiddleware.js';
-import rateLimit from 'express-rate-limit';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 
 const router = express.Router();
 
@@ -54,6 +59,7 @@ const imageUploadLimiter = rateLimit({
 
 // ========== ALL ROUTES REQUIRE AUTHENTICATION ==========
 router.use(protect);
+router.use(timezoneMiddleware);
 
 // ========== TASK STATISTICS ==========
 // Get task stats (must come before /:id route)

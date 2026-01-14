@@ -1,6 +1,7 @@
 import express from 'express';
 import TwoFAController from '../controllers/twofaController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import rateLimit from 'express-rate-limit';
 
@@ -22,6 +23,7 @@ const twoFaLimiter = rateLimit({
 router.post(
     '/setup',
     protect,
+    timezoneMiddleware,
     asyncHandler(TwoFAController.setup.bind(TwoFAController))
 );
 
@@ -29,6 +31,7 @@ router.post(
 router.post(
     '/verify',
     protect,
+    timezoneMiddleware,
     twoFaLimiter,
     asyncHandler(TwoFAController.verifyAndEnable.bind(TwoFAController))
 );
@@ -44,6 +47,7 @@ router.post(
 router.post(
     '/disable',
     protect,
+    timezoneMiddleware,
     twoFaLimiter,
     asyncHandler(TwoFAController.disable.bind(TwoFAController))
 );
@@ -52,6 +56,7 @@ router.post(
 router.post(
     '/backup-codes/regenerate',
     protect,
+    timezoneMiddleware,
     asyncHandler(TwoFAController.regenerateBackupCodes.bind(TwoFAController))
 );
 

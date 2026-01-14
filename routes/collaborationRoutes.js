@@ -4,6 +4,7 @@ import { collaborationValidation } from '../validators/collaborationValidation.j
 import validate from '../middlewares/validate.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { protect, optionalAuth } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import rateLimit from 'express-rate-limit';
 import Joi from 'joi';
 
@@ -51,11 +52,12 @@ const shareWithTeamValidation = {
 };
 
 // ========== TASK COLLABORATION ROUTES ==========
+router.use(protect);
+router.use(timezoneMiddleware);
 
 // Invite user to task (via email - for non-team members)
 router.post(
   '/tasks/:taskId/collaborators/invite',
-  protect,
   invitationLimiter,
   validate(collaborationValidation.inviteToTask),
   asyncHandler(CollaborationController.inviteToTask.bind(CollaborationController))
@@ -64,7 +66,6 @@ router.post(
 // Share task with team members (direct sharing)
 router.post(
   '/tasks/:taskId/share-with-team',
-  protect,
   collaborationLimiter,
   validate(shareWithTeamValidation),
   asyncHandler(CollaborationController.shareWithTeamMembers.bind(CollaborationController))
@@ -73,7 +74,6 @@ router.post(
 // Get available team members for sharing
 router.get(
   '/tasks/:taskId/available-team-members',
-  protect,
   collaborationLimiter,
   asyncHandler(CollaborationController.getAvailableTeamMembers.bind(CollaborationController))
 );
@@ -81,7 +81,6 @@ router.get(
 // Get task collaborators
 router.get(
   '/tasks/:taskId/collaborators',
-  protect,
   collaborationLimiter,
   validate(collaborationValidation.getTaskCollaborators),
   asyncHandler(CollaborationController.getTaskCollaborators.bind(CollaborationController))
@@ -90,7 +89,6 @@ router.get(
 // Update collaborator role
 router.patch(
   '/tasks/:taskId/collaborators/:collaboratorId/role',
-  protect,
   collaborationLimiter,
   validate(collaborationValidation.updateCollaboratorRole),
   asyncHandler(CollaborationController.updateCollaboratorRole.bind(CollaborationController))
@@ -99,7 +97,6 @@ router.patch(
 // Remove collaborator
 router.delete(
   '/tasks/:taskId/collaborators/:collaboratorId',
-  protect,
   collaborationLimiter,
   validate(collaborationValidation.removeCollaborator),
   asyncHandler(CollaborationController.removeCollaborator.bind(CollaborationController))
@@ -108,7 +105,6 @@ router.delete(
 // Transfer ownership
 router.post(
   '/tasks/:taskId/transfer-ownership',
-  protect,
   collaborationLimiter,
   validate(collaborationValidation.transferOwnership),
   asyncHandler(CollaborationController.transferOwnership.bind(CollaborationController))
@@ -117,7 +113,6 @@ router.post(
 // Generate share link
 router.post(
   '/tasks/:taskId/share-link',
-  protect,
   collaborationLimiter,
   validate(collaborationValidation.generateShareLink),
   asyncHandler(CollaborationController.generateShareLink.bind(CollaborationController))
@@ -126,7 +121,6 @@ router.post(
 // Access task via share link (requires login)
 router.get(
   '/tasks/shared/:token',
-  protect,
   collaborationLimiter,
   asyncHandler(CollaborationController.accessViaShareLink.bind(CollaborationController))
 );
@@ -136,7 +130,6 @@ router.get(
 // Get task invitations (pending)
 router.get(
   '/tasks/:taskId/invitations',
-  protect,
   collaborationLimiter,
   validate(collaborationValidation.getTaskInvitations),
   asyncHandler(CollaborationController.getTaskInvitations.bind(CollaborationController))
@@ -145,7 +138,6 @@ router.get(
 // Cancel invitation
 router.delete(
   '/tasks/:taskId/invitations/:invitationId',
-  protect,
   collaborationLimiter,
   validate(collaborationValidation.cancelInvitation),
   asyncHandler(CollaborationController.cancelInvitation.bind(CollaborationController))
@@ -174,7 +166,6 @@ router.post(
 // Get user's shared tasks
 router.get(
   '/shared-tasks',
-  protect,
   collaborationLimiter,
   asyncHandler(CollaborationController.getUserSharedTasks.bind(CollaborationController))
 );

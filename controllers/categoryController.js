@@ -1,5 +1,6 @@
 import CategoryService from '../services/categoryService.js';
 import ApiResponse from '../utils/ApiResponse.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 import { HTTP_STATUS } from '../config/constants.js';
 import AIService from '../services/ai/aiService.js';
 import ApiError from '../utils/ApiError.js';
@@ -57,12 +58,22 @@ class CategoryController {
       options
     );
 
+    // Localize timestamps
+    const localizedCategories = result.categories.map(cat => {
+      const c = cat.toObject ? cat.toObject() : cat;
+      return {
+        ...c,
+        createdAtLocal: formatToLocal(cat.createdAt, req.timezone),
+        updatedAtLocal: formatToLocal(cat.updatedAt, req.timezone),
+      };
+    });
+
     return ApiResponse.success(
       res,
       HTTP_STATUS.OK,
       'Categories fetched successfully',
       {
-        categories: result.categories,
+        categories: localizedCategories,
         count: result.count,
       }
     );
@@ -78,12 +89,20 @@ class CategoryController {
       req.params.id
     );
 
+    // Localize timestamps
+    const c = result.category.toObject ? result.category.toObject() : result.category;
+    const localizedCategory = {
+      ...c,
+      createdAtLocal: formatToLocal(result.category.createdAt, req.timezone),
+      updatedAtLocal: formatToLocal(result.category.updatedAt, req.timezone),
+    };
+
     return ApiResponse.success(
       res,
       HTTP_STATUS.OK,
       'Category fetched successfully',
       {
-        category: result.category,
+        category: localizedCategory,
       }
     );
   }

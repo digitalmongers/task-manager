@@ -1,8 +1,9 @@
 import express from 'express';
 import NotificationController from '../controllers/notificationController.js';
-import { protect } from '../middlewares/authMiddleware.js';
-import asyncHandler from '../middlewares/asyncHandler.js';
 import rateLimit from 'express-rate-limit';
+import { protect } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
+import asyncHandler from '../middlewares/asyncHandler.js';
 
 const router = express.Router();
 
@@ -16,8 +17,9 @@ const notificationLimiter = rateLimit({
   },
 });
 
-// All routes require authentication
+// All routes require authentication and timezone awareness
 router.use(protect);
+router.use(timezoneMiddleware);
 
 /**
  * @route   GET /api/notifications

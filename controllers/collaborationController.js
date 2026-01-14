@@ -1,5 +1,6 @@
 import CollaborationService from '../services/collaborationService.js';
 import ApiResponse from '../utils/ApiResponse.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 
 class CollaborationController {
   /**
@@ -116,8 +117,18 @@ class CollaborationController {
 
     const result = await CollaborationService.getTaskInvitations(taskId, userId);
 
+    // Localize timestamps
+    const localizedInvitations = result.invitations.map(inv => {
+      const i = inv.toObject ? inv.toObject() : inv;
+      return {
+        ...i,
+        expiresAtLocal: i.expiresAt ? formatToLocal(i.expiresAt, req.timezone) : null,
+        createdAtLocal: i.createdAt ? formatToLocal(i.createdAt, req.timezone) : null,
+      };
+    });
+
     ApiResponse.success(res, 200, 'Invitations fetched successfully', {
-      invitations: result.invitations,
+      invitations: localizedInvitations,
     });
   }
 
@@ -131,8 +142,18 @@ class CollaborationController {
 
     const result = await CollaborationService.getTaskCollaborators(taskId, userId);
 
+    // Localize timestamps
+    const localizedCollaborators = result.collaborators.map(collab => {
+      const c = collab.toObject ? collab.toObject() : collab;
+      return {
+        ...c,
+        joinedAtLocal: c.joinedAt ? formatToLocal(c.joinedAt, req.timezone) : null,
+        createdAtLocal: c.createdAt ? formatToLocal(c.createdAt, req.timezone) : null,
+      };
+    });
+
     ApiResponse.success(res, 200, 'Collaborators fetched successfully', {
-      collaborators: result.collaborators,
+      collaborators: localizedCollaborators,
       userRole: result.userRole,
       isOwner: result.isOwner,
     });
@@ -205,8 +226,18 @@ class CollaborationController {
 
     const result = await CollaborationService.getUserSharedTasks(userId);
 
+    // Localize timestamps
+    const localizedSharedTasks = result.sharedTasks.map(task => {
+      const t = task.toObject ? task.toObject() : task;
+      return {
+        ...t,
+        sharedAtLocal: t.sharedAt ? formatToLocal(t.sharedAt, req.timezone) : null,
+        createdAtLocal: t.createdAt ? formatToLocal(t.createdAt, req.timezone) : null,
+      };
+    });
+
     ApiResponse.success(res, 200, 'Shared tasks fetched successfully', {
-      sharedTasks: result.sharedTasks,
+      sharedTasks: localizedSharedTasks,
     });
   }
 

@@ -37,6 +37,7 @@ import { countTokens, compressPrompt } from '../../utils/aiTokenUtils.js';
 import ApiError from '../../utils/ApiError.js';
 import cacheService from '../cacheService.js';
 import WebSocketService from '../../config/websocket.js';
+import { formatToLocal, getLocalDayRange } from '../../utils/dateUtils.js';
 class AIService {
   constructor() {
     this.openai = openai;
@@ -97,6 +98,22 @@ class AIService {
     if (!plan.aiFeatures.includes(feature) && !plan.aiFeatures.includes('ALL')) {
       throw ApiError.forbidden(`The ${feature} feature is not available on your current plan. Please upgrade to access this.`);
     }
+
+    // --- NEW: Timezone Awareness ---
+    // Inject user's local time into system prompt
+    const userTimezone = user.timezone || 'UTC';
+    const localTimeStr = formatToLocal(new Date(), userTimezone, { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+    
+    const timeContext = `\n\nUSER_CONTEXT: The user's current local time is ${localTimeStr}. Their timezone is ${userTimezone}. Use this for all date-related calculations and responses.`;
+    const modifiedSystemPrompt = systemPrompt + timeContext;
 
     // 3. Token Safety & Compression (BEFORE AI CALL)
     // Support 'messages' (for chatbot) or 'input'/'prompt'
@@ -184,13 +201,17 @@ class AIService {
         { role: 'user', content: finalPrompt },
       ];
 
+      // Call OpenAI with modified system prompt
       const response = await this.openai.chat.completions.create({
-        model: "gpt-4o-mini", // Forced as per instructions
-        messages: openaiMessages,
-        max_tokens: Math.max(plan.maxOutputTokens, config.maxTokens || 0), // Use plan limit or env override, whichever is higher
-        temperature: config.temperature || 0.7,
-        ...(tools && { tools }),
-        ...(tool_choice && { tool_choice }),
+        model: AI_CONSTANTS.MODEL,
+        messages: [
+          { role: 'system', content: modifiedSystemPrompt },
+          ...(messages || [{ role: 'user', content: finalPrompt }])
+        ],
+        max_tokens: plan.maxOutputTokens,
+        temperature: 0.7,
+        tools: tools,
+        tool_choice: tool_choice
       });
 
       const choice = response.choices[0];
@@ -816,6 +837,10 @@ class AIService {
     }
 
     // 3. Fetch Background Context for Workload Analysis
+    const user = await User.findById(userId).select('timezone');
+    const userTz = user?.timezone || 'UTC';
+    const { start: todayStart, end: todayEnd } = getLocalDayRange(userTz);
+
     const [totalPending, dueToday, overdue] = await Promise.all([
       Task.countDocuments({ user: userId, isCompleted: false, isDeleted: false }),
       Task.countDocuments({ 
@@ -823,15 +848,15 @@ class AIService {
         isCompleted: false, 
         isDeleted: false,
         dueDate: { 
-          $gte: new Date().setHours(0, 0, 0, 0), 
-          $lte: new Date().setHours(23, 59, 59, 999) 
+          $gte: todayStart, 
+          $lte: todayEnd 
         }
       }),
       Task.countDocuments({ 
         user: userId, 
         isCompleted: false, 
         isDeleted: false,
-        dueDate: { $lt: new Date().setHours(0, 0, 0, 0) }
+        dueDate: { $lt: todayStart }
       })
     ]);
 

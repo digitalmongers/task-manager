@@ -1,8 +1,8 @@
 import express from 'express';
-import VitalTaskController from '../controllers/vitalTaskController.js';
 import { protect } from '../middlewares/authMiddleware.js';
-import validate from '../middlewares/validate.js';
+import VitalTaskController from '../controllers/vitalTaskController.js';
 import upload from '../middlewares/upload.js';
+import validate from '../middlewares/validate.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import {
   cacheMiddleware,
@@ -16,6 +16,7 @@ import {
   canEditVitalTask, 
   canDeleteVitalTask 
 } from '../middlewares/vitalTaskPermissionMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
@@ -47,6 +48,7 @@ const vitalTaskSingleCacheKey = (req) => {
 
 // All routes require authentication
 router.use(protect);
+router.use(timezoneMiddleware);
 
 /**
  * @route   GET /api/vital-tasks/stats/me

@@ -1,6 +1,7 @@
 import express from 'express';
 import PushController from '../controllers/pushController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import validate from '../middlewares/validate.js';
 import { pushValidation } from '../validators/pushValidation.js';
@@ -31,6 +32,7 @@ router.get(
 
 // All routes below require authentication
 router.use(protect);
+router.use(timezoneMiddleware);
 
 /**
  * @route   POST /api/push/subscribe

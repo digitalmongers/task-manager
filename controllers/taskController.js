@@ -3,6 +3,7 @@ import ApiResponse from '../utils/ApiResponse.js';
 import ApiError from '../utils/ApiError.js';
 import AIService from '../services/ai/aiService.js';
 import FacebookCapiService from '../services/facebookCapiService.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 
 class TaskController {
   /**
@@ -60,8 +61,20 @@ class TaskController {
       });
     }
 
+    // Localize timestamps for all tasks
+    const localizedTasks = result.tasks.map(task => {
+      const taskObj = task.toObject();
+      return {
+        ...taskObj,
+        createdAtLocal: formatToLocal(task.createdAt, req.timezone),
+        updatedAtLocal: formatToLocal(task.updatedAt, req.timezone),
+        dueDateLocal: task.dueDate ? formatToLocal(task.dueDate, req.timezone) : null,
+        completedAtLocal: task.completedAt ? formatToLocal(task.completedAt, req.timezone) : null,
+      };
+    });
+
     ApiResponse.success(res, 200, 'Tasks fetched successfully', {
-      tasks: result.tasks,
+      tasks: localizedTasks,
       pagination: result.pagination,
     });
   }
@@ -76,8 +89,18 @@ class TaskController {
 
     const result = await TaskService.getTaskById(userId, taskId);
 
+    // Localize timestamps
+    const taskObj = result.task.toObject();
+    const localizedTask = {
+      ...taskObj,
+      createdAtLocal: formatToLocal(result.task.createdAt, req.timezone),
+      updatedAtLocal: formatToLocal(result.task.updatedAt, req.timezone),
+      dueDateLocal: result.task.dueDate ? formatToLocal(result.task.dueDate, req.timezone) : null,
+      completedAtLocal: result.task.completedAt ? formatToLocal(result.task.completedAt, req.timezone) : null,
+    };
+
     ApiResponse.success(res, 200, 'Task fetched successfully', {
-      task: result.task,
+      task: localizedTask,
     });
   }
 

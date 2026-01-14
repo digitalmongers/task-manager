@@ -10,6 +10,7 @@ import {
 } from "../middlewares/cacheMiddleware.js";
 import rateLimit from "express-rate-limit";
 import upload from "../middlewares/upload.js";
+import { timezoneMiddleware } from "../middlewares/timezoneMiddleware.js";
 
 const router = express.Router();
 
@@ -110,6 +111,7 @@ router.post(
 router.get(
   "/me",
   protect,
+  timezoneMiddleware,
   cacheByUser(300), // Cache for 5 minutes
   asyncHandler(AuthController.getCurrentUser.bind(AuthController))
 );
@@ -118,6 +120,7 @@ router.get(
 router.patch(
   "/profile",
   protect,
+  timezoneMiddleware,
   validate(authValidation.updateProfile),
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.updateProfile.bind(AuthController))
@@ -127,6 +130,7 @@ router.patch(
 router.put(
   "/avatar",
   protect,
+  timezoneMiddleware,
   upload.single("avatar"),
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.updateAvatar.bind(AuthController))
@@ -136,6 +140,7 @@ router.put(
 router.delete(
   "/avatar",
   protect,
+  timezoneMiddleware,
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.deleteAvatar.bind(AuthController))
 );
@@ -144,6 +149,7 @@ router.delete(
 router.get(
   "/export-data",
   protect,
+  timezoneMiddleware,
   // Rate limit specifically for heavy export operations (e.g., 5 per hour)
   rateLimit({
     windowMs: 60 * 60 * 1000,
@@ -157,6 +163,7 @@ router.get(
 router.post(
   "/change-password",
   protect,
+  timezoneMiddleware,
   validate(authValidation.changePassword),
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.changePassword.bind(AuthController))
@@ -166,6 +173,7 @@ router.post(
 router.delete(
   "/account",
   protect,
+  timezoneMiddleware,
   validate(authValidation.deleteAccount),
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.deleteAccount.bind(AuthController))
@@ -175,6 +183,7 @@ router.delete(
 router.post(
   "/logout",
   protect,
+  timezoneMiddleware,
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.logout.bind(AuthController))
 );
@@ -183,6 +192,7 @@ router.post(
 router.patch(
   "/onboarding-complete",
   protect,
+  timezoneMiddleware,
   invalidateCache((req) => `user:${req.user._id}:*`),
   asyncHandler(AuthController.completeOnboarding.bind(AuthController))
 );

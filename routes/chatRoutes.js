@@ -1,15 +1,17 @@
 import express from 'express';
 import * as chatController from '../controllers/chatController.js';
-import { protect } from '../middlewares/authMiddleware.js';
-import asyncHandler from '../middlewares/asyncHandler.js';
 import upload from '../middlewares/upload.js';
+import asyncHandler from '../middlewares/asyncHandler.js';
+import { protect } from '../middlewares/authMiddleware.js';
 
 import { requireFeature } from '../middlewares/featureMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 
 const router = express.Router();
 
 // All chat routes require authentication AND 'CHAT' feature access
 router.use(protect);
+router.use(timezoneMiddleware);
 router.use(requireFeature('CHAT'));
  
 router.get('/sync', asyncHandler(chatController.syncMessages));

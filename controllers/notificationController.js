@@ -1,5 +1,6 @@
 import NotificationService from '../services/notificationService.js';
 import ApiResponse from '../utils/ApiResponse.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 
 class NotificationController {
   /**
@@ -26,7 +27,20 @@ class NotificationController {
 
     const result = await NotificationService.getUserNotifications(userId, options);
 
-    ApiResponse.success(res, 200, 'Notifications fetched successfully', result);
+    // Localize timestamps
+    const localizedNotifications = result.notifications.map(notification => {
+      const n = notification.toObject ? notification.toObject() : notification;
+      return {
+        ...n,
+        createdAtLocal: formatToLocal(notification.createdAt, req.timezone),
+        updatedAtLocal: formatToLocal(notification.updatedAt, req.timezone),
+      };
+    });
+
+    ApiResponse.success(res, 200, 'Notifications fetched successfully', {
+      notifications: localizedNotifications,
+      pagination: result.pagination || { total: result.total, limit: result.limit, skip: result.skip }
+    });
   }
 
   /**

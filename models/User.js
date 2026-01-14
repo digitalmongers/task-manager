@@ -278,6 +278,14 @@ const userSchema = new mongoose.Schema(
     razorpaySubscriptionId: {
       type: String,
     },
+    // ========== LOCALIZATION FIELDS ==========
+    timezone: {
+      type: String,
+      default: "UTC", // Use IANA timezone names like 'Asia/Kolkata'
+    },
+    lastKnownIp: {
+      type: String,
+    },
   },
   {
     timestamps: true,

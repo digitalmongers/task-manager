@@ -1,5 +1,6 @@
 import SuggestionService from '../services/suggestionService.js';
 import ApiResponse from '../utils/ApiResponse.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 import ApiError from '../utils/ApiError.js';
 import { HTTP_STATUS } from '../config/constants.js';
 
@@ -30,11 +31,24 @@ class SuggestionController {
       limit: parseInt(limit) || 10,
     });
 
+    // Localize timestamps
+    const localizedSuggestions = result.suggestions.map(suggestion => {
+      const s = suggestion.toObject ? suggestion.toObject() : suggestion;
+      return {
+        ...s,
+        createdAtLocal: formatToLocal(suggestion.createdAt, req.timezone),
+        updatedAtLocal: formatToLocal(suggestion.updatedAt, req.timezone),
+      };
+    });
+
     return ApiResponse.success(
       res,
       HTTP_STATUS.OK,
       'Suggestions fetched successfully',
-      result
+      {
+        ...result,
+        suggestions: localizedSuggestions,
+      }
     );
   }
 
@@ -46,11 +60,19 @@ class SuggestionController {
     
     const suggestion = await SuggestionService.getSuggestion(id, req.user._id);
 
+    // Localize timestamps
+    const s = suggestion.toObject ? suggestion.toObject() : suggestion;
+    const localizedSuggestion = {
+      ...s,
+      createdAtLocal: formatToLocal(suggestion.createdAt, req.timezone),
+      updatedAtLocal: formatToLocal(suggestion.updatedAt, req.timezone),
+    };
+
     return ApiResponse.success(
       res,
       HTTP_STATUS.OK,
       'Suggestion fetched successfully',
-      { suggestion }
+      { suggestion: localizedSuggestion }
     );
   }
 }

@@ -8,6 +8,7 @@ import User from '../models/User.js';
 import { PLAN_LIMITS } from '../config/aiConfig.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 import AnalyticsService from '../services/analyticsService.js';
 import FacebookCapiService from '../services/facebookCapiService.js';
 
@@ -670,12 +671,19 @@ export const getPaymentHistory = expressAsyncHandler(async (req, res) => {
       billingCycle: user.billingCycle,
       status: user.subscriptionStatus,
       expiryDate: user.currentPeriodEnd,
+      expiryDateLocal: user.currentPeriodEnd ? formatToLocal(user.currentPeriodEnd, req.timezone) : null,
       boosts: {
         total: user.totalBoosts,
         used: user.usedBoosts,
         remaining: Math.max(0, user.totalBoosts - user.usedBoosts)
       }
     },
-    history: payments
+    history: payments.map(p => {
+      const obj = p.toObject ? p.toObject() : p;
+      return {
+        ...obj,
+        createdAtLocal: formatToLocal(p.createdAt, req.timezone),
+      };
+    })
   });
 });

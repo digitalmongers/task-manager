@@ -4,6 +4,7 @@ import { taskStatusValidation } from '../validators/taskStatusValidation.js';
 import validate from '../middlewares/validate.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import {
   cacheByUser,
   invalidateCache,
@@ -40,6 +41,7 @@ const taskStatusLimiter = rateLimit({
 
 // ========== ALL ROUTES REQUIRE AUTHENTICATION ==========
 router.use(protect);
+router.use(timezoneMiddleware);
 
 // ========== TASK STATUS STATISTICS ==========
 router.get(

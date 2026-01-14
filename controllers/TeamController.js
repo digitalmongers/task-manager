@@ -1,5 +1,6 @@
 import TeamService from '../services/TeamService.js';
 import ApiResponse from '../utils/ApiResponse.js';
+import { formatToLocal } from '../utils/dateUtils.js';
 
 class TeamController {
   /**
@@ -32,9 +33,28 @@ class TeamController {
 
     const result = await TeamService.getTeamMembers(userId, status);
 
+    // Localize timestamps for members and pending invitations
+    const localizedMembers = result.members.map(member => {
+      const m = member.toObject ? member.toObject() : member;
+      return {
+        ...m,
+        joinedAtLocal: m.joinedAt ? formatToLocal(m.joinedAt, req.timezone) : null,
+        createdAtLocal: m.createdAt ? formatToLocal(m.createdAt, req.timezone) : null,
+      };
+    });
+
+    const localizedPending = result.pending.map(inv => {
+      const i = inv.toObject ? inv.toObject() : inv;
+      return {
+        ...i,
+        expiresAtLocal: i.expiresAt ? formatToLocal(i.expiresAt, req.timezone) : null,
+        createdAtLocal: i.createdAt ? formatToLocal(i.createdAt, req.timezone) : null,
+      };
+    });
+
     ApiResponse.success(res, 200, 'Team members fetched successfully', {
-      members: result.members,
-      pending: result.pending,
+      members: localizedMembers,
+      pending: localizedPending,
     });
   }
 
@@ -103,8 +123,18 @@ class TeamController {
 
     const result = await TeamService.getMyTeams(userId);
 
+    // Localize timestamps for teams
+    const localizedTeams = result.teams.map(team => {
+      const t = team.toObject ? team.toObject() : team;
+      return {
+        ...t,
+        createdAtLocal: t.createdAt ? formatToLocal(t.createdAt, req.timezone) : null,
+        updatedAtLocal: t.updatedAt ? formatToLocal(t.updatedAt, req.timezone) : null,
+      };
+    });
+
     ApiResponse.success(res, 200, 'Teams fetched successfully', {
-      teams: result.teams,
+      teams: localizedTeams,
     });
   }
 

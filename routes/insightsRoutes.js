@@ -1,5 +1,6 @@
 import express from 'express';
 import { protect } from '../middlewares/authMiddleware.js';
+import { timezoneMiddleware } from '../middlewares/timezoneMiddleware.js';
 import { getInsights } from '../controllers/insightsController.js';
 
 const router = express.Router();
@@ -9,6 +10,6 @@ const router = express.Router();
 // Since it uses OPENAI which is expensive/slow, we should cache it per user.
 // Assuming cacheMiddleware supports user-based caching.
 // For now, no cache or short cache to ensure fresh data.
-router.get('/', protect, getInsights);
+router.get('/', protect, timezoneMiddleware, getInsights);
 
 export default router;

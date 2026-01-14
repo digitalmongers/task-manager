@@ -28,7 +28,7 @@ class AuthController {
   
   async register(req, res) {
     // Add invitationToken to body if present
-    const userData = { ...req.body };
+    const userData = { ...req.body, ip: req.ip };
     const result = await AuthService.register(userData);
 
     // Track StartTrial (Meta CAPI) - Registration starts the FREE plan trial
