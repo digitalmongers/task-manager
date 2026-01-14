@@ -1607,16 +1607,16 @@ class AuthService {
       remaining: userObj.isEnterpriseUser ? 999999 : Math.max(0, userObj.totalBoosts - userObj.usedBoosts),
       subscription: {
         total: userObj.isEnterpriseUser ? 999999 : userObj.subscriptionBoosts,
-        used: userObj.isEnterpriseUser ? 0 : userObj.subscriptionBoostsUsed,
+        used: userObj.subscriptionBoostsUsed || 0,
         remaining: userObj.isEnterpriseUser ? 999999 : Math.max(0, userObj.subscriptionBoosts - userObj.subscriptionBoostsUsed)
       },
       topup: {
         total: userObj.isEnterpriseUser ? 999999 : userObj.topupBoosts,
-        used: userObj.isEnterpriseUser ? 0 : userObj.topupBoostsUsed,
+        used: userObj.topupBoostsUsed || 0,
         remaining: userObj.isEnterpriseUser ? 999999 : Math.max(0, userObj.topupBoosts - userObj.topupBoostsUsed)
       },
       monthlyLimit: userObj.isEnterpriseUser ? 999999 : plan.monthlyBoosts,
-      monthlyUsed: userObj.isEnterpriseUser ? 0 : (userObj.monthlyUsedBoosts || 0),
+      monthlyUsed: userObj.monthlyUsedBoosts || 0,
       monthlyRemaining: userObj.isEnterpriseUser ? 999999 : Math.max(0, plan.monthlyBoosts - (userObj.monthlyUsedBoosts || 0)),
       nextResetDate: nextReset,
       nextResetDateLocal: userObj.nextResetDateLocal,
