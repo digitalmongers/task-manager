@@ -41,7 +41,7 @@ async function verifyEnterpriseUnlimited() {
     const emails = [
       'collab1@test.com',
       'collab2@test.com',
-      'collab3@test.com'
+      'collab3@test.com' 
     ];
 
     console.log(`Attempting to invite ${emails.length} collaborators...`);
