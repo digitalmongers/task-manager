@@ -308,16 +308,22 @@ export const syncPaymentStatus = expressAsyncHandler(async (req, res) => {
 export const handleWebhook = expressAsyncHandler(async (req, res) => {
   const signature = req.headers['x-razorpay-signature'];
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+
+  Logger.info('=============== WEBHOOK START ===============');
+  Logger.info(`Headers: ${JSON.stringify(req.headers)}`);
+  Logger.info(`Has RawBody: ${!!req.rawBody}`);
+  Logger.info(`Has Secret: ${!!secret} (Length: ${secret ? secret.length : 0})`);
   
   if (!req.rawBody) {
-    Logger.error('Webhook Error: req.rawBody is missing! Signature verification will fail.');
+    Logger.error('Webhook Error: req.rawBody is missing! Signature verification will fail. Check server.js middleware.');
     return res.status(400).send('Raw body missing');
   }
 
   Logger.info('WEBHOOK HIT RAW:', { 
     event: req.body.event, 
     subId: req.body.payload?.subscription?.entity?.id,
-    payId: req.body.payload?.payment?.entity?.id 
+    payId: req.body.payload?.payment?.entity?.id,
+    orderId: req.body.payload?.payment?.entity?.order_id
   });
 
   // 1. Verify Signature using raw body for maximum security
@@ -325,7 +331,11 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
   shasum.update(req.rawBody);
   const digest = shasum.digest('hex');
 
-  Logger.info(`Webhook Debug: Secret=${secret?.substring(0,4)}... Received=${signature}, Calculated=${digest}`);
+  Logger.info(`Webhook Signature Debug: 
+    - Received (Header): ${signature}
+    - Calculated (HMAC): ${digest}
+    - Match: ${digest === signature}
+  `);
 
   if (digest !== signature) {
     Logger.error('SECURITY ALERT: Invalid Razorpay Webhook Signature', { received: signature, calculated: digest });
@@ -341,19 +351,25 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
 
   // 1. Subscription Authenticated (Initial setup successful)
   if (event === 'subscription.authenticated') {
+    Logger.info('Handling subscription.authenticated event');
     const data = payload.subscription.entity;
+    Logger.info(`Looking for payment with razorpaySubscriptionId: ${data.id}`);
     const payment = await Payment.findOne({ razorpaySubscriptionId: data.id });
     
     if (payment) {
       payment.status = 'authenticated';
       payment.metadata = { ...payment.metadata, authenticatedAt: new Date() };
       await payment.save();
-      Logger.info('Subscription authenticated', { subscriptionId: data.id });
+      Logger.info('Subscription authenticated and updated in DB', { subscriptionId: data.id });
+    } else {
+      Logger.warn('Payment record NOT FOUND for subscription.authenticated', { subscriptionId: data.id });
     }
   }
 
   // 2. Subscription Charged / Activated / Completed (Successful payment state)
   else if (['subscription.charged', 'payment.captured', 'subscription.activated', 'subscription.completed', 'subscription.updated'].includes(event)) {
+    Logger.info(`Handling Success Event: ${event}`);
+    
     // For 'subscription.updated', we check if it was a plan change or just a detail update
     if (event === 'subscription.updated' && !payload.payment) {
         Logger.info(`[WEBHOOK TRACE] Event is ${event} without payment payload. Skipping logic.`);
@@ -361,7 +377,13 @@ export const handleWebhook = expressAsyncHandler(async (req, res) => {
     }
 
     const data = payload.payment ? payload.payment.entity : payload.subscription.entity;
-    Logger.info(`[WEBHOOK TRACE] Extracted Entity Data`, { entityId: data.id, orderId: data.order_id, subId: data.subscription_id });
+    Logger.info(`[WEBHOOK TRACE] Extracted Entity Data:`, { 
+      entityId: data.id, 
+      orderId: data.order_id, 
+      subId: data.subscription_id,
+      email: data.email,
+      contact: data.contact
+    });
 
     // Correctly extract subscription_id based on event type
     let subscriptionId;
