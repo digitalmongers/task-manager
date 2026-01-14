@@ -37,6 +37,7 @@ export const PLAN_LIMITS = {
 };
 
 export const AI_CONSTANTS = {
+  MODEL: 'gpt-4o',
   BOOST_TOKEN_VALUE: 2000,
   MAX_INPUT_TOKENS: 2000,
   COMPRESS_THRESHOLD_TOKENS: 1200,
