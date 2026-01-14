@@ -24,7 +24,7 @@ class TeamService {
       const CollaborationRepository = (await import('../repositories/collaborationRepository.js')).default;
       const globalCollaborators = await CollaborationRepository.getGlobalCollaboratorEmails(ownerId);
 
-      if (!globalCollaborators.has(email.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
+      if (!owner.isEnterpriseUser && !globalCollaborators.has(email.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
         throw ApiError.badRequest(`Your ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} unique collaborator(s) globally. Please upgrade for more.`);
       }
       // -------------------------
