@@ -55,9 +55,9 @@ class VitalTaskController {
 
     // Localize timestamps
     const localizedTasks = result.vitalTasks.map(task => {
-      const taskObj = task.toObject();
+      // task is already a plain object
       return {
-        ...taskObj,
+        ...task,
         createdAtLocal: formatToLocal(task.createdAt, req.timezone),
         updatedAtLocal: formatToLocal(task.updatedAt, req.timezone),
         dueDateLocal: task.dueDate ? formatToLocal(task.dueDate, req.timezone) : null,
@@ -82,9 +82,9 @@ class VitalTaskController {
     const vitalTask = await VitalTaskService.getVitalTaskById(userId, taskId);
 
     // Localize timestamps
-    const taskObj = vitalTask.toObject();
+    // vitalTask is already a plain object
     const localizedTask = {
-      ...taskObj,
+      ...vitalTask,
       createdAtLocal: formatToLocal(vitalTask.createdAt, req.timezone),
       updatedAtLocal: formatToLocal(vitalTask.updatedAt, req.timezone),
       dueDateLocal: vitalTask.dueDate ? formatToLocal(vitalTask.dueDate, req.timezone) : null,

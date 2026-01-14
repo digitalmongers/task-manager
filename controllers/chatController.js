@@ -18,9 +18,9 @@ export const getHistory = async (req, res) => {
 
   // Localize timestamps for messages in history
   const localizedHistory = history.messages.map(msg => {
-    const msgObj = msg.toObject();
+    // msg is already a plain object
     return {
-      ...msgObj,
+      ...msg,
       createdAtLocal: formatToLocal(msg.createdAt, req.timezone),
     };
   });
@@ -49,9 +49,9 @@ export const sendMessage = async (req, res) => {
   }, isVital === true || req.query.isVital === 'true');
 
   // Localize timestamp for the sent message
-  const messageObj = message.toObject();
+  // message is already a plain object
   const localizedMessage = {
-    ...messageObj,
+    ...message,
     createdAtLocal: formatToLocal(message.createdAt, req.timezone),
   };
 
@@ -88,9 +88,9 @@ export const editMessage = async (req, res) => {
 
   const message = await ChatService.editMessage(taskId, messageId, req.user._id, content, isVital === true || req.query.isVital === 'true');
   // Localize timestamp for the edited message
-  const messageObj = message.toObject();
+  // message is already a plain object
   const localizedMessage = {
-    ...messageObj,
+    ...message,
     updatedAtLocal: formatToLocal(message.updatedAt, req.timezone),
   };
   ApiResponse.success(res, 200, 'Message edited successfully', localizedMessage);
@@ -119,9 +119,9 @@ export const getPinned = async (req, res) => {
   const pinned = await ChatService.getPinnedMessages(taskId, req.user._id, isVital === 'true');
   // Localize timestamps for pinned messages
   const localizedPinned = pinned.map(msg => {
-    const msgObj = msg.toObject();
+    // msg is already a plain object
     return {
-      ...msgObj,
+      ...msg,
       createdAtLocal: formatToLocal(msg.createdAt, req.timezone),
     };
   });
