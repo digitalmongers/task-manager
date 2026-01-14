@@ -284,7 +284,21 @@ class AuthService {
     const { email, password, rememberMe, invitationToken } = credentials;
 
     // Find user with password
-    const user = await AuthRepository.findByEmailWithPassword(email);
+    let user = await AuthRepository.findByEmailWithPassword(email);
+
+    // ========== ENTERPRISE JIT CREATION ==========
+    // If user not found but is in whitelist, create them now
+    if (!user) {
+        const EnterpriseBootstrap = (await import('../services/enterpriseBootstrap.js')).default;
+        user = await EnterpriseBootstrap.ensureEnterpriseUser(email);
+        
+        // Re-fetch with password fields if created
+        if (user) {
+            user = await AuthRepository.findByEmailWithPassword(email);
+            Logger.info(`JIT Success: Logged in whitelisted user ${email}`);
+        }
+    }
+    // =============================================
 
     if (!user) {
       // Record failed login attempt (User not found)
