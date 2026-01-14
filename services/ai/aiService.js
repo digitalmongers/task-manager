@@ -78,18 +78,34 @@ class AIService {
         });
 
         const choice = response.choices[0];
+        const usage = response.usage;
+        const boostsUsed = Math.ceil(usage.total_tokens / AI_CONSTANTS.BOOST_TOKEN_VALUE);
         
-        // Log usage for analytics but don't deduct anything
+        // Log usage for analytics
         await AIUsage.create({
             user: userId,
             plan: user.plan,
             feature,
-            promptTokens: response.usage.prompt_tokens,
-            completionTokens: response.usage.completion_tokens,
-            totalTokens: response.usage.total_tokens,
-            boostsUsed: 0, // No boosts deducted
-            isEnterpriseBypass: true // Custom flag for tracking
+            promptTokens: usage.prompt_tokens,
+            completionTokens: usage.completion_tokens,
+            totalTokens: usage.total_tokens,
+            boostsUsed, // Real boost count for tracking
+            isEnterpriseBypass: true 
         }).catch(err => Logger.error('Failed to log enterprise AI usage', { error: err.message }));
+
+        // Increment actual counters so they show up in UI, but don't enforce limits
+        user.subscriptionBoostsUsed = (user.subscriptionBoostsUsed || 0) + boostsUsed;
+        user.monthlyUsedBoosts = (user.monthlyUsedBoosts || 0) + boostsUsed;
+        await user.save();
+
+        // Invalidate cache and notify via WS
+        await cacheService.deletePattern(`user:${userId}:*`);
+        WebSocketService.sendToUser(userId, 'user:updated', {
+            _id: user._id,
+            subscriptionBoostsUsed: user.subscriptionBoostsUsed,
+            monthlyUsedBoosts: user.monthlyUsedBoosts,
+            isEnterpriseUser: true
+        });
 
         return choice.message.tool_calls ? choice.message : choice.message.content;
     }

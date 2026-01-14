@@ -371,7 +371,6 @@ userSchema.virtual('totalBoosts').get(function() {
 });
 
 userSchema.virtual('usedBoosts').get(function() {
-  if (this.isEnterpriseUser) return 0; // Always 0 used for enterprise
   return (this.subscriptionBoostsUsed || 0) + (this.topupBoostsUsed || 0);
 });
 
