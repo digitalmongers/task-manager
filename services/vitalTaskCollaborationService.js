@@ -41,7 +41,7 @@ class VitalTaskCollaborationService {
       const plan = PLAN_LIMITS[inviter.plan || 'FREE'];
       const globalCollaborators = await CollaborationRepository.getGlobalCollaboratorEmails(inviterUserId);
 
-      if (!globalCollaborators.has(inviteeEmail.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
+      if (!inviter.isEnterpriseUser && !globalCollaborators.has(inviteeEmail.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
         throw ApiError.badRequest(`Your ${inviter.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} unique collaborator(s) globally. Please upgrade for more.`);
       }
       // -------------------------
@@ -149,7 +149,7 @@ class VitalTaskCollaborationService {
           }
       });
 
-      if (globalCollaborators.size + newPeopleCount > plan.maxCollaborators) {
+      if (!owner.isEnterpriseUser && globalCollaborators.size + newPeopleCount > plan.maxCollaborators) {
         throw ApiError.badRequest(`Your ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} unique collaborator(s) globally. Sharing with these members would exceed your limit.`);
       }
       // -------------------------
@@ -753,7 +753,7 @@ class VitalTaskCollaborationService {
       const globalCollaborators = await CollaborationRepository.getGlobalCollaboratorEmails(vitalTask.user);
       
       const acceptor = await User.findById(userId);
-      if (!globalCollaborators.has(acceptor.email.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
+      if (!owner.isEnterpriseUser && !globalCollaborators.has(acceptor.email.toLowerCase()) && globalCollaborators.size >= plan.maxCollaborators) {
           throw ApiError.badRequest(`The vital task owner's ${owner.plan || 'FREE'} plan only allows up to ${plan.maxCollaborators} collaborator(s).`);
       }
       // -------------------------
