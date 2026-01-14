@@ -46,6 +46,8 @@ class SessionService {
       throw new Error('userId is required to create session');
     }
 
+    const uid = String(userId);
+
     if (!sessionData || typeof sessionData !== 'object') {
       throw new Error('sessionData must be a valid object');
     }
@@ -53,11 +55,11 @@ class SessionService {
     try {
       const sessionId = this.generateSessionId();
       const sessionKey = `${SESSION_PREFIX}${sessionId}`;
-      const userSessionsKey = `${USER_SESSIONS_PREFIX}${userId}:sessions`;
+      const userSessionsKey = `${USER_SESSIONS_PREFIX}${uid}:sessions`;
 
       // Prepare session data with metadata
       const fullSessionData = {
-        userId,
+        userId: uid,
         ...sessionData,
         createdAt: new Date().toISOString(),
         lastActive: new Date().toISOString(),
@@ -80,7 +82,7 @@ class SessionService {
       await pipeline.exec();
 
       Logger.debug('Session created', {
-        userId,
+        userId: uid,
         sessionId: sessionId.substring(0, 8) + '...',
         device: sessionData.deviceType,
         browser: sessionData.browser,
@@ -89,7 +91,7 @@ class SessionService {
       return sessionId;
     } catch (error) {
       Logger.error('Failed to create session', {
-        userId,
+        userId: uid,
         error: error.message,
         stack: error.stack,
       });
@@ -109,6 +111,8 @@ class SessionService {
       return false;
     }
 
+    const uid = String(userId);
+
     try {
       const sessionKey = `${SESSION_PREFIX}${sessionId}`;
       const sessionData = await redisClient.get(sessionKey);
@@ -120,9 +124,9 @@ class SessionService {
       const parsed = JSON.parse(sessionData);
 
       // Verify session belongs to the user
-      if (parsed.userId !== userId) {
+      if (parsed.userId !== uid) {
         Logger.warn('Session userId mismatch', {
-          expectedUserId: userId,
+          expectedUserId: uid,
           actualUserId: parsed.userId,
           sessionId: sessionId.substring(0, 8) + '...',
         });
@@ -142,7 +146,7 @@ class SessionService {
       return true;
     } catch (error) {
       Logger.error('Session validation error - FAIL-OPEN triggered', {
-        userId,
+        userId: uid,
         sessionId: sessionId?.substring(0, 8) + '...',
         error: error.message,
       });
@@ -192,8 +196,10 @@ class SessionService {
       return [];
     }
 
+    const uid = String(userId);
+
     try {
-      const userSessionsKey = `${USER_SESSIONS_PREFIX}${userId}:sessions`;
+      const userSessionsKey = `${USER_SESSIONS_PREFIX}${uid}:sessions`;
       const sessionIds = await redisClient.smembers(userSessionsKey);
 
       if (!sessionIds || sessionIds.length === 0) {
@@ -230,7 +236,7 @@ class SessionService {
       return sessions;
     } catch (error) {
       Logger.error('Failed to get user sessions', {
-        userId,
+        userId: uid,
         error: error.message,
       });
       return [];
@@ -249,17 +255,19 @@ class SessionService {
       throw new Error('userId and sessionId are required');
     }
 
+    const uid = String(userId);
+
     try {
       const sessionKey = `${SESSION_PREFIX}${sessionId}`;
-      const userSessionsKey = `${USER_SESSIONS_PREFIX}${userId}:sessions`;
+      const userSessionsKey = `${USER_SESSIONS_PREFIX}${uid}:sessions`;
 
       // Verify session belongs to user before revoking
       const sessionData = await redisClient.get(sessionKey);
       if (sessionData) {
         const parsed = JSON.parse(sessionData);
-        if (parsed.userId !== userId) {
+        if (parsed.userId !== uid) {
           Logger.warn('Attempted to revoke session belonging to different user', {
-            requestingUserId: userId,
+            requestingUserId: uid,
             sessionUserId: parsed.userId,
           });
           throw new Error('Unauthorized session revocation attempt');
@@ -273,14 +281,14 @@ class SessionService {
       await pipeline.exec();
 
       Logger.logSecurity('SESSION_REVOKED', {
-        userId,
+        userId: uid,
         sessionId: sessionId.substring(0, 8) + '...',
       });
 
       return true;
     } catch (error) {
       Logger.error('Failed to revoke session', {
-        userId,
+        userId: uid,
         sessionId: sessionId?.substring(0, 8) + '...',
         error: error.message,
       });
@@ -299,8 +307,10 @@ class SessionService {
       throw new Error('userId is required');
     }
 
+    const uid = String(userId);
+
     try {
-      const userSessionsKey = `${USER_SESSIONS_PREFIX}${userId}:sessions`;
+      const userSessionsKey = `${USER_SESSIONS_PREFIX}${uid}:sessions`;
       const sessionIds = await redisClient.smembers(userSessionsKey);
 
       if (!sessionIds || sessionIds.length === 0) {
@@ -317,14 +327,14 @@ class SessionService {
       await pipeline.exec();
 
       Logger.logSecurity('ALL_SESSIONS_REVOKED', {
-        userId,
+        userId: uid,
         sessionCount: sessionIds.length,
       });
 
       return sessionIds.length;
     } catch (error) {
       Logger.error('Failed to revoke all sessions', {
-        userId,
+        userId: uid,
         error: error.message,
       });
       throw error;
@@ -343,8 +353,10 @@ class SessionService {
       return 0;
     }
 
+    const uid = String(userId);
+
     try {
-      const userSessionsKey = `${USER_SESSIONS_PREFIX}${userId}:sessions`;
+      const userSessionsKey = `${USER_SESSIONS_PREFIX}${uid}:sessions`;
       const sessionIds = await redisClient.smembers(userSessionsKey);
 
       if (!sessionIds || sessionIds.length === 0) {
@@ -369,7 +381,7 @@ class SessionService {
       return removedCount;
     } catch (error) {
       Logger.error('Failed to cleanup expired sessions', {
-        userId,
+        userId: uid,
         error: error.message,
       });
       return 0;
