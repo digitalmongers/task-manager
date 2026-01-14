@@ -36,7 +36,11 @@ const aiUsageSchema = new mongoose.Schema(
     requestMetadata: {
       type: Object,
       default: {},
-    }
+    },
+    isEnterpriseBypass: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

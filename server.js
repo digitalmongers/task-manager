@@ -190,6 +190,10 @@ const startServer = async () => {
     const CronService = (await import('./services/cronService.js')).default;
     CronService.init();
 
+    // Initialize Enterprise Whitelist & Sync
+    const EnterpriseBootstrap = (await import('./services/enterpriseBootstrap.js')).default;
+    await EnterpriseBootstrap.init();
+
     httpServer.listen(PORT, () => {
       Logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
       Logger.info(`Health check: http://localhost:${PORT}/health`);

@@ -279,6 +279,10 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
     // ========== LOCALIZATION FIELDS ==========
+    isEnterpriseUser: {
+      type: Boolean,
+      default: false,
+    },
     timezone: {
       type: String,
       default: "UTC", // Use IANA timezone names like 'Asia/Kolkata'
@@ -362,10 +366,12 @@ userSchema.methods.generatePasswordResetToken = function () {
 
 // Virtual fields for backward compatibility
 userSchema.virtual('totalBoosts').get(function() {
+  if (this.isEnterpriseUser) return 999999; // Represent unlimited in UI
   return (this.subscriptionBoosts || 0) + (this.topupBoosts || 0);
 });
 
 userSchema.virtual('usedBoosts').get(function() {
+  if (this.isEnterpriseUser) return 0; // Always 0 used for enterprise
   return (this.subscriptionBoostsUsed || 0) + (this.topupBoostsUsed || 0);
 });
 

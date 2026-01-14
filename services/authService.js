@@ -1589,24 +1589,25 @@ class AuthService {
     }
 
     userObj.boosts = {
-      total: userObj.totalBoosts, // Virtual: subscription + topup
-      remaining: Math.max(0, userObj.totalBoosts - userObj.usedBoosts),
+      total: userObj.isEnterpriseUser ? 999999 : userObj.totalBoosts, // Virtual: subscription + topup
+      remaining: userObj.isEnterpriseUser ? 999999 : Math.max(0, userObj.totalBoosts - userObj.usedBoosts),
       subscription: {
-        total: userObj.subscriptionBoosts,
-        used: userObj.subscriptionBoostsUsed,
-        remaining: Math.max(0, userObj.subscriptionBoosts - userObj.subscriptionBoostsUsed)
+        total: userObj.isEnterpriseUser ? 999999 : userObj.subscriptionBoosts,
+        used: userObj.isEnterpriseUser ? 0 : userObj.subscriptionBoostsUsed,
+        remaining: userObj.isEnterpriseUser ? 999999 : Math.max(0, userObj.subscriptionBoosts - userObj.subscriptionBoostsUsed)
       },
       topup: {
-        total: userObj.topupBoosts,
-        used: userObj.topupBoostsUsed,
-        remaining: Math.max(0, userObj.topupBoosts - userObj.topupBoostsUsed)
+        total: userObj.isEnterpriseUser ? 999999 : userObj.topupBoosts,
+        used: userObj.isEnterpriseUser ? 0 : userObj.topupBoostsUsed,
+        remaining: userObj.isEnterpriseUser ? 999999 : Math.max(0, userObj.topupBoosts - userObj.topupBoostsUsed)
       },
-      monthlyLimit: plan.monthlyBoosts,
-      monthlyUsed: userObj.monthlyUsedBoosts || 0,
-      monthlyRemaining: Math.max(0, plan.monthlyBoosts - (userObj.monthlyUsedBoosts || 0)),
+      monthlyLimit: userObj.isEnterpriseUser ? 999999 : plan.monthlyBoosts,
+      monthlyUsed: userObj.isEnterpriseUser ? 0 : (userObj.monthlyUsedBoosts || 0),
+      monthlyRemaining: userObj.isEnterpriseUser ? 999999 : Math.max(0, plan.monthlyBoosts - (userObj.monthlyUsedBoosts || 0)),
       nextResetDate: nextReset,
       nextResetDateLocal: userObj.nextResetDateLocal,
-      isMonthlyLimitReached: (userObj.monthlyUsedBoosts || 0) >= plan.monthlyBoosts
+      isMonthlyLimitReached: userObj.isEnterpriseUser ? false : (userObj.monthlyUsedBoosts || 0) >= plan.monthlyBoosts,
+      isUnlimited: userObj.isEnterpriseUser || false // Explicit flag for frontend
     };
 
     return userObj;

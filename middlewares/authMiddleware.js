@@ -3,6 +3,8 @@ import AuthRepository from '../repositories/authRepository.js';
 import SessionService from '../services/sessionService.js';
 import ApiError from '../utils/ApiError.js';
 import Logger from '../config/logger.js';
+import { WHITELISTED_EMAILS } from '../config/aiConfig.js';
+import User from '../models/User.js';
 
 /**
  * Protect routes - require authentication
@@ -79,6 +81,23 @@ export const protect = async (req, res, next) => {
       const lockTime = Math.ceil((user.lockUntil - Date.now()) / 60000);
       throw ApiError.forbidden(`Account is temporarily locked. Try again in ${lockTime} minutes`);
     }
+
+    // ========== ENTERPRISE REAL-TIME SYNC ==========
+    // We check every request to ensure the user's flag matches your config file
+    const isWhitelisted = WHITELISTED_EMAILS.includes(user.email);
+    
+    if (isWhitelisted && !user.isEnterpriseUser) {
+        // Upgrade to Enterprise silently
+        await User.updateOne({ _id: user._id }, { $set: { isEnterpriseUser: true } });
+        user.isEnterpriseUser = true;
+        Logger.info(`Real-time: Upgraded ${user.email} to Enterprise status`);
+    } else if (!isWhitelisted && user.isEnterpriseUser) {
+        // Revoke Enterprise silently
+        await User.updateOne({ _id: user._id }, { $set: { isEnterpriseUser: false } });
+        user.isEnterpriseUser = false;
+        Logger.info(`Real-time: Revoked Enterprise status from ${user.email}`);
+    }
+    // ===============================================
 
     // Attach user to request
     req.user = user;

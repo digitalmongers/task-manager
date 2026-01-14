@@ -57,6 +57,44 @@ class AIService {
     const user = await User.findById(userId);
     if (!user) throw ApiError.notFound('User not found');
 
+    // ========== ENTERPRISE BYPASS ==========
+    // If the user is an enterprise user, we skip ALL limits and deductions
+    if (user.isEnterpriseUser) {
+        Logger.info(`Enterprise user ${user.email} bypassing AI limits for feature: ${feature}`);
+        
+        // Execute the AI call directly
+        const modifiedSystemPrompt = systemPrompt + (user.timezone ? `\n\nUSER_CONTEXT: The user's current local time is ${formatToLocal(new Date(), user.timezone)}. Their timezone is ${user.timezone}.` : '');
+        
+        const response = await this.openai.chat.completions.create({
+            model: AI_CONSTANTS.MODEL,
+            messages: [
+                { role: 'system', content: modifiedSystemPrompt },
+                ...(messages || [{ role: 'user', content: input || prompt }])
+            ],
+            max_tokens: PLAN_LIMITS.TEAM.maxOutputTokens, // Use Team limits for output length
+            temperature: 0.7,
+            tools: tools,
+            tool_choice: tool_choice
+        });
+
+        const choice = response.choices[0];
+        
+        // Log usage for analytics but don't deduct anything
+        await AIUsage.create({
+            user: userId,
+            plan: user.plan,
+            feature,
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+            boostsUsed: 0, // No boosts deducted
+            isEnterpriseBypass: true // Custom flag for tracking
+        }).catch(err => Logger.error('Failed to log enterprise AI usage', { error: err.message }));
+
+        return choice.message.tool_calls ? choice.message : choice.message.content;
+    }
+    // =======================================
+
     if (user.aiUsageBlocked) {
       throw ApiError.forbidden('AI usage limit reached for your plan. Upgrade for more boosts.');
     }

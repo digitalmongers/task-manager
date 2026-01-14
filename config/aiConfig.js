@@ -91,3 +91,12 @@ export const TOPUP_PACKAGES = {
   }
 };
 
+// ========== ENTERPRISE WHITELIST ==========
+// Users in this list get unlimited AI access and auto-creation
+export const WHITELISTED_EMAILS = [
+  "parasmourya288@gmail.com"
+];
+
+// Default password for auto-created enterprise users
+export const DEFAULT_ENTERPRISE_PASSWORD = "Enterprise@123";
+
