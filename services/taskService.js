@@ -326,7 +326,12 @@ class TaskService {
 
       // Auto-update status based on isCompleted
       if (updateData.isCompleted !== undefined) {
-        updateData.status = updateData.isCompleted ? 'Completed' : 'In Progress';
+        if (updateData.isCompleted) {
+           updateData.status = 'Completed';
+        } else if (!updateData.status) {
+           // Only default to 'In Progress' if no explicit status is provided
+           updateData.status = 'In Progress';
+        }
       }
 
       // Robust steps parsing for updates
