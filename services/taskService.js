@@ -471,7 +471,9 @@ class TaskService {
       let recipients = [];
       if (task.isShared) {
          const collaborators = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
-         recipients = collaborators.map(c => c.collaborator._id);
+         recipients = collaborators
+           .filter(c => c.collaborator && c.collaborator._id)
+           .map(c => c.collaborator._id);
       }
       // Add owner if not deleter and not already in recipients
       if (task.user && task.user.toString() !== userId.toString() && !recipients.some(id => id.toString() === task.user.toString())) {

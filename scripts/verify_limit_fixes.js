@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import CollaborationRepository from '../repositories/collaborationRepository.js';
 import User from '../models/User.js';
 import TeamMember from '../models/TeamMember.js';
@@ -9,12 +10,20 @@ import AuthService from '../services/authService.js';
 
 dotenv.config();
 
+const resultsPath = 'scripts/verification_results.txt';
+function log(msg) {
+  console.log(msg);
+  fs.appendFileSync(resultsPath, msg + '\n');
+}
+
 async function runVerification() {
-  console.log('--- Starting Collaborator Limit Verification ---');
+  if (fs.existsSync(resultsPath)) fs.unlinkSync(resultsPath);
+  log('--- Starting Collaborator Limit Verification ---');
   
   // Connect to DB
-  await mongoose.connect(process.env.MONGODB_URI);
-  console.log('Connected to Database');
+  log('Connecting to DB...');
+  await mongoose.connect(process.env.MONGO_URI);
+  log('Connected to Database successfully');
 
   const ownerId = new mongoose.Types.ObjectId();
   const ownerEmail = `owner_${Date.now()}@example.com`;

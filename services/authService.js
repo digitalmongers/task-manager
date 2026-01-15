@@ -1194,9 +1194,9 @@ class AuthService {
       }
       await VitalTask.deleteMany({ user: userId });
 
-      // 4. Delete collaborations (where user is collaborator)
-      await TaskCollaborator.deleteMany({ collaborator: userId });
-      await VitalTaskCollaborator.deleteMany({ collaborator: userId });
+      // 4. Delete collaborations (where user is collaborator OR task owner)
+      await TaskCollaborator.deleteMany({ $or: [{ collaborator: userId }, { taskOwner: userId }] });
+      await VitalTaskCollaborator.deleteMany({ $or: [{ collaborator: userId }, { taskOwner: userId }] });
 
       // 5. Delete invitations
       await TaskInvitation.deleteMany({ $or: [{ inviter: userId }, { inviteeEmail: user.email }] });

@@ -314,17 +314,18 @@ class WebSocketService {
    */
   async handleDisconnection(socket) {
     const userId = socket.userId;
+    const userSocketSet = this.userSockets.get(userId);
     
-    if (this.userSockets.has(userId)) {
-      this.userSockets.get(userId).delete(socket.id);
+    if (userSocketSet) {
+      userSocketSet.delete(socket.id);
       
       // Remove from Redis Socket Set
       await this._removeSocketFromPresence(userId, socket.id);
 
-      if (this.userSockets.get(userId).size === 0) {
+      // Re-verify the set still exists after async operation (Race condition check)
+      const currentUserSockets = this.userSockets.get(userId);
+      if (currentUserSockets && currentUserSockets.size === 0) {
         this.userSockets.delete(userId);
-        // Do not mark offline immediately if user has other connections on other servers
-        // isUserOnline check will handle it.
       }
     }
 

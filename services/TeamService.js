@@ -37,14 +37,24 @@ class TeamService {
       const existing = await TeamMember.findOne({
         owner: ownerId,
         memberEmail: email,
-        status: { $in: ['pending', 'active'] }
       });
 
       if (existing) {
         if (existing.status === 'active') {
           throw ApiError.badRequest('This user is already a team member');
         }
-        throw ApiError.badRequest('Invitation already sent to this email');
+        if (existing.status === 'pending') {
+          throw ApiError.badRequest('Invitation already sent to this email');
+        }
+        
+        // If status is 'removed' or something else, clean it up to avoid unique index violation
+        // We delete it so TeamMember.create can proceed smoothly with its hooks
+        await TeamMember.deleteOne({ _id: existing._id });
+        Logger.info('Cleaned up existing inactive team member record for re-invitation', {
+          ownerId,
+          email,
+          previousStatus: existing.status
+        });
       }
 
       // Check if user exists
