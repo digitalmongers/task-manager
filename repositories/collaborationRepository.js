@@ -694,11 +694,15 @@ class CollaborationRepository {
    */
   async getGlobalCollaboratorEmails(userId) {
     try {
-      // 1. Get Team Members (active & pending)
+      const user = await User.findById(userId).select('email');
+      const ownerEmail = user?.email?.toLowerCase();
+      const now = new Date();
+
+      // 1. Get Team Members (active & pending-unexpired)
       const teamMembers = await TeamMember.find({
         owner: userId,
         status: { $in: ['active', 'pending'] }
-      }).select('memberEmail');
+      }).select('memberEmail status tokenExpiresAt');
 
       // 2. Get Task Collaborators (active)
       const taskCollabs = await TaskCollaborator.find({
@@ -706,10 +710,11 @@ class CollaborationRepository {
         status: 'active'
       }).populate('collaborator', 'email');
 
-      // 3. Get Task Invitations (pending)
+      // 3. Get Task Invitations (pending-unexpired)
       const taskInvites = await TaskInvitation.find({
         inviter: userId,
-        status: 'pending'
+        status: 'pending',
+        expiresAt: { $gt: now }
       }).select('inviteeEmail');
 
       // 4. Get Vital Task Collaborators (active)
@@ -718,41 +723,65 @@ class CollaborationRepository {
         status: 'active'
       }).populate('collaborator', 'email');
 
-      // 5. Get Vital Task Invitations (pending)
+      // 5. Get Vital Task Invitations (pending-unexpired)
       const vitalInvites = await VitalTaskInvitation.find({
         inviter: userId,
-        status: 'pending'
+        status: 'pending',
+        expiresAt: { $gt: now }
       }).select('inviteeEmail');
 
       const uniqueEmails = new Set();
 
       // Collect emails from TeamMembers
       teamMembers.forEach(tm => {
-        if (tm.memberEmail) uniqueEmails.add(tm.memberEmail.toLowerCase());
+        // Only count if active OR pending and not expired
+        const isPendingAndExpired = tm.status === 'pending' && tm.tokenExpiresAt && tm.tokenExpiresAt < now;
+        if (tm.memberEmail && !isPendingAndExpired) {
+          const email = tm.memberEmail.toLowerCase();
+          if (email !== ownerEmail) {
+            uniqueEmails.add(email);
+          }
+        }
       });
 
       // Collect emails from Task Collaborators
       taskCollabs.forEach(tc => {
         if (tc.collaborator && tc.collaborator.email) {
-          uniqueEmails.add(tc.collaborator.email.toLowerCase());
+          const email = tc.collaborator.email.toLowerCase();
+          if (email !== ownerEmail) {
+            uniqueEmails.add(email);
+          }
         }
       });
 
       // Collect emails from Task Invitations
       taskInvites.forEach(ti => {
-        if (ti.inviteeEmail) uniqueEmails.add(ti.inviteeEmail.toLowerCase());
+        if (ti.inviteeEmail) {
+          const email = ti.inviteeEmail.toLowerCase();
+          if (email !== ownerEmail) {
+            uniqueEmails.add(email);
+          }
+        }
       });
 
       // Collect emails from Vital Task Collaborators
       vitalCollabs.forEach(vc => {
         if (vc.collaborator && vc.collaborator.email) {
-          uniqueEmails.add(vc.collaborator.email.toLowerCase());
+          const email = vc.collaborator.email.toLowerCase();
+          if (email !== ownerEmail) {
+            uniqueEmails.add(email);
+          }
         }
       });
 
       // Collect emails from Vital Task Invitations
       vitalInvites.forEach(vi => {
-        if (vi.inviteeEmail) uniqueEmails.add(vi.inviteeEmail.toLowerCase());
+        if (vi.inviteeEmail) {
+          const email = vi.inviteeEmail.toLowerCase();
+          if (email !== ownerEmail) {
+            uniqueEmails.add(email);
+          }
+        }
       });
 
       return uniqueEmails;

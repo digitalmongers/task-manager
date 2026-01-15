@@ -1199,15 +1199,15 @@ class AuthService {
       await VitalTaskCollaborator.deleteMany({ collaborator: userId });
 
       // 5. Delete invitations
-      await TaskInvitation.deleteMany({ $or: [{ sender: userId }, { recipientEmail: user.email }] });
-      await VitalTaskInvitation.deleteMany({ $or: [{ sender: userId }, { recipientEmail: user.email }] });
+      await TaskInvitation.deleteMany({ $or: [{ inviter: userId }, { inviteeEmail: user.email }] });
+      await VitalTaskInvitation.deleteMany({ $or: [{ inviter: userId }, { inviteeEmail: user.email }] });
 
       // 6. Delete other user-owned records
       await Notification.deleteMany({ recipient: userId });
       await PushSubscription.deleteMany({ user: userId });
       await LoginActivity.deleteMany({ userId: userId });
       await TaskMessage.deleteMany({ sender: userId });
-      await TeamMember.deleteMany({ user: userId });
+      await TeamMember.deleteMany({ $or: [{ owner: userId }, { member: userId }, { memberEmail: user.email }] });
 
       Logger.info("Cascade delete completed for user", { userId });
       return true;
