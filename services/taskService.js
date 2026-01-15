@@ -482,7 +482,9 @@ class TaskService {
       }
       // Add owner if not deleter and not already in recipients
       if (task.user && task.user.toString() !== userId.toString() && !recipients.some(id => id.toString() === task.user.toString())) {
-         recipients.push(task.user);
+         // Extract _id if task.user is populated
+         const ownerId = task.user._id || task.user;
+         recipients.push(ownerId);
       }
       
       const deleter = await (await import('../models/User.js')).default.findById(userId);
@@ -1038,7 +1040,9 @@ class TaskService {
       
       // Add Owner
       if (task.user && !recipients.some(id => id.toString() === task.user.toString())) {
-         recipients.push(task.user);
+         // Extract _id if task.user is populated
+         const ownerId = task.user._id || task.user;
+         recipients.push(ownerId);
       }
       
       // Filter out requester

@@ -399,7 +399,9 @@ class VitalTaskService {
          recipients = collaborators.map(c => c.collaborator._id);
       }
       if (vitalTask.user && vitalTask.user.toString() !== userId.toString() && !recipients.some(id => id.toString() === vitalTask.user.toString())) {
-         recipients.push(vitalTask.user);
+         // Extract _id if vitalTask.user is populated
+         const ownerId = vitalTask.user._id || vitalTask.user;
+         recipients.push(ownerId);
       }
       
       const deleter = await (await import('../models/User.js')).default.findById(userId);
@@ -493,7 +495,9 @@ class VitalTaskService {
         
         // Add owner if needed
         if (vitalTask.user && !recipientIds.some(id => id.toString() === vitalTask.user.toString())) {
-             recipientIds.push(vitalTask.user);
+             // Extract _id if vitalTask.user is populated
+             const ownerId = vitalTask.user._id || vitalTask.user;
+             recipientIds.push(ownerId);
         }
         
         // Filter out the person who completed it
@@ -898,7 +902,9 @@ class VitalTaskService {
       
       // Add Owner
       if (vitalTask.user && !recipients.some(id => id.toString() === vitalTask.user.toString())) {
-         recipients.push(vitalTask.user);
+         // Extract _id if vitalTask.user is populated
+         const ownerId = vitalTask.user._id || vitalTask.user;
+         recipients.push(ownerId);
       }
       
       // Filter out requester
