@@ -122,26 +122,46 @@ vitalTaskInvitationSchema.virtual('isExpired').get(function() {
 
 // Instance methods
 vitalTaskInvitationSchema.methods.accept = async function(userId) {
-  const isPending = this.status === 'pending';
-  
-  if (this.status !== 'pending' && this.status !== 'accepted') {
-    throw new Error('Invitation is not pending');
+  // Check if already accepted (allow re-binding if user logs in later)
+  if (this.status === 'accepted') {
+    // Allow updating user binding if userId provided and not set
+    if (userId && !this.inviteeUser) {
+      this.inviteeUser = userId;
+      return this.save();
+    }
+    // Already fully processed
+    return this;
   }
   
-  if (isPending && this.isExpired) {
-    this.status = 'expired';
-    await this.save();
-    throw new Error('Invitation has expired');
+  // Check if invitation is expired (either by status or by time)
+  if (this.status === 'expired' || (this.status === 'pending' && this.isExpired)) {
+    if (this.status === 'pending') {
+      this.status = 'expired';
+      await this.save();
+    }
+    throw new Error('Invitation has expired. Please request a new invitation from the task owner.');
   }
   
+  // Check if invitation was declined or cancelled
+  if (this.status === 'declined') {
+    throw new Error('This invitation was declined and cannot be accepted.');
+  }
+  
+  if (this.status === 'cancelled') {
+    throw new Error('This invitation was cancelled by the task owner.');
+  }
+  
+  // Only pending invitations can be accepted at this point
+  if (this.status !== 'pending') {
+    throw new Error('This invitation cannot be accepted.');
+  }
+  
+  // Accept the invitation
   this.status = 'accepted';
-  // Only set acceptedAt if first time
-  if (!this.acceptedAt) {
-      this.acceptedAt = new Date();
-  }
+  this.acceptedAt = new Date();
   
   if (userId) {
-      this.inviteeUser = userId;
+    this.inviteeUser = userId;
   }
   
   return this.save();
