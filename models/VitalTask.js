@@ -164,6 +164,17 @@ const vitalTaskSchema = new mongoose.Schema(
       index: true, // Useful for sorting pending reviews
     },
 
+    // Task Start Tracking
+    startedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+    },
+    startedAt: {
+        type: Date,
+        default: null,
+    },
+
     // Vital Task steps/activities
     steps: [
       {

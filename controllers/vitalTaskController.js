@@ -242,6 +242,21 @@ class VitalTaskController {
       vitalTask: result.vitalTask,
     });
   }
+
+  /**
+   * Start vital task
+   * POST /api/vital-tasks/:id/start
+   */
+  async startVitalTask(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await VitalTaskService.startVitalTask(userId, taskId);
+
+    ApiResponse.success(res, 200, result.message, {
+      vitalTask: result.vitalTask,
+    });
+  }
 }
 
 export default new VitalTaskController();

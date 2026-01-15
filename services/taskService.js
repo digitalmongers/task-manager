@@ -604,6 +604,82 @@ class TaskService {
   }
 
 
+
+  /**
+   * Start task (change status to In Progress)
+   * Accessible by Owner, Editor, Assignee, and Viewer
+   */
+  async startTask(userId, taskId) {
+    try {
+      // Check access permission
+      let task;
+      let isOwner = false;
+      
+      const ownedTask = await TaskRepository.findByIdAndUser(taskId, userId);
+      
+      if (ownedTask) {
+        task = ownedTask;
+        isOwner = true;
+      } else {
+        // Check collaborator access
+        const access = await CollaborationRepository.canUserAccessTask(taskId, userId);
+        if (!access.canAccess) {
+          throw ApiError.forbidden('You do not have permission to access this task');
+        }
+        
+        // Explicitly allow ALL roles (Viewer, Editor, Assignee) to start the task per user requirement
+        task = await Task.findById(taskId);
+      }
+
+      if (!task) {
+        throw ApiError.notFound('Task not found');
+      }
+
+      // Update task status and start details
+      task.status = 'In Progress';
+      task.startedBy = userId;
+      task.startedAt = new Date();
+      
+      // If task was completed, mark incomplete? User didn't specify, but Status='In Progress' implies strict not-completed.
+      // Let's ensure isCompleted is false to avoid inconsistent state.
+      if (task.isCompleted) {
+          task.isCompleted = false;
+          task.completedAt = null;
+      }
+
+      await task.save();
+      
+      // Populate for response
+      await task.populate([
+        { path: 'category', select: 'title color' },
+        { path: 'status', select: 'name color' },
+        { path: 'priority', select: 'name color' },
+        { path: 'startedBy', select: 'firstName lastName email avatar role' }
+      ]);
+
+      Logger.logAuth('TASK_STARTED', userId, {
+        taskId: task._id,
+        startedAt: task.startedAt
+      });
+      
+      // Notify team members?
+      // For now, we just return the updated task.
+      
+      return {
+        task,
+        message: 'Task started successfully',
+      };
+    } catch (error) {
+       Logger.error('Error in startTask service', {
+        error: error.message,
+        userId,
+        taskId,
+      });
+      throw error;
+    }
+  }
+
+
   /**
    * Helper to handle image upload
    */

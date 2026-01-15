@@ -264,6 +264,21 @@ class TaskController {
       task: result.task,
     });
   }
+
+  /**
+   * Start task
+   * POST /api/tasks/:id/start
+   */
+  async startTask(req, res) {
+    const userId = req.user._id;
+    const taskId = req.params.id;
+
+    const result = await TaskService.startTask(userId, taskId);
+
+    ApiResponse.success(res, 200, result.message, {
+      task: result.task,
+    });
+  }
 }
 
 export default new TaskController();

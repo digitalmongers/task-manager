@@ -504,6 +504,74 @@ class VitalTaskService {
     }
   }
 
+
+  /**
+   * Start vital task (change status to In Progress)
+   * Accessible by Owner, Editor, Assignee, and Viewer
+   */
+  async startVitalTask(userId, taskId) {
+    try {
+      // Check access permission
+      let vitalTask;
+      
+      const ownedTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
+      
+      if (ownedTask) {
+        vitalTask = ownedTask;
+      } else {
+        // Check collaborator access
+        const access = await CollaborationRepository.canUserAccessVitalTask(taskId, userId);
+        if (!access.canAccess) {
+          throw ApiError.forbidden('You do not have permission to access this vital task');
+        }
+        
+        // Explicitly allow ALL roles to start
+        vitalTask = await VitalTask.findById(taskId);
+      }
+
+      if (!vitalTask) {
+        throw ApiError.notFound('Vital task not found');
+      }
+
+      // Update status and start details
+      vitalTask.status = 'In Progress';
+      vitalTask.startedBy = userId;
+      vitalTask.startedAt = new Date();
+      
+      if (vitalTask.isCompleted) {
+          vitalTask.isCompleted = false;
+          vitalTask.completedAt = null;
+      }
+
+      await vitalTask.save();
+      
+      // Populate for response
+      await vitalTask.populate([
+        { path: 'category', select: 'title color' },
+        { path: 'status', select: 'name color' },
+        { path: 'priority', select: 'name color' },
+        { path: 'startedBy', select: 'firstName lastName email avatar role' }
+      ]);
+
+      Logger.logAuth('VITAL_TASK_STARTED', userId, {
+        vitalTaskId: vitalTask._id,
+        startedAt: vitalTask.startedAt
+      });
+
+      return {
+        vitalTask,
+        message: 'Vital task started successfully',
+      };
+    } catch (error) {
+       Logger.error('Error in startVitalTask service', {
+        error: error.message,
+        userId,
+        taskId,
+      });
+      throw error;
+    }
+  }
+
   /**
    * Helper to handle image upload
    */

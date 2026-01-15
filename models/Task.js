@@ -163,6 +163,17 @@ const taskSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Task Start Tracking
+    startedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+    },
+    startedAt: {
+        type: Date,
+        default: null,
+    },
+
     // Task steps/activities
     steps: [
       {

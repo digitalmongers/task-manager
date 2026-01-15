@@ -189,4 +189,13 @@ router.post(
   asyncHandler(TaskController.requestReview.bind(TaskController))
 );
 
+// ========== START TASK ==========
+router.post(
+  '/:id/start',
+  taskLimiter,
+  canAccessTask,
+  invalidateCache((req) => `user:${req.user._id}:tasks:*`),
+  asyncHandler(TaskController.startTask.bind(TaskController))
+);
+
 export default router;

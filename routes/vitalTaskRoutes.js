@@ -219,4 +219,18 @@ router.post(
   asyncHandler(VitalTaskController.requestReview)
 );
 
+/**
+ * @route   POST /api/vital-tasks/:id/start
+ * @desc    Start vital task
+ * @access  Private
+ */
+router.post(
+  '/:id/start',
+  vitalTaskLimiter,
+  canAccessVitalTask,
+  // Invalidate all caches for this user
+  invalidateCache((req) => `user:${req.user._id}:vital-tasks:*`),
+  asyncHandler(VitalTaskController.startVitalTask)
+);
+
 export default router;
