@@ -42,3 +42,4 @@ const newsletterSubscriberSchema = new mongoose.Schema(
 const NewsletterSubscriber = mongoose.model('NewsletterSubscriber', newsletterSubscriberSchema);
 
 export default NewsletterSubscriber;
+ 

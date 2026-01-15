@@ -8,7 +8,7 @@ class ContactService {
     try {
       const { name, email, subject, message } = contactData;
 
-      // Log the contact attempt
+      // Log the contact attempt 
       Logger.info('Contact form submission received', {
         name,
         email: email.toLowerCase(),

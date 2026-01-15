@@ -5,7 +5,7 @@ This guide explains how to display the new AI Boost system, specifically handlin
 ## 1. User Profile Data Structure
 
 Every time you fetch the user profile (e.g., via `GET /auth/me` or during Login), the `user` object now contains a specialized `boosts` object.
-
+ 
 ### The `boosts` Object
 This object provides all the pre-calculated logic you need for the UI.
 
