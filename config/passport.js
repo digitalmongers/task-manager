@@ -65,6 +65,16 @@ passport.use(
             });
           }
 
+          // FIX: If user has default "Enterprise User" name, update it from Google Profile
+          if (user.firstName === 'Enterprise' && user.lastName === 'User') {
+            if (firstName || lastName) {
+                user.firstName = firstName || user.firstName;
+                user.lastName = lastName || user.lastName;
+                await user.save();
+                Logger.info('Updated default Enterprise User name from Google Profile', { userId: user._id });
+            }
+          }
+
           // Update last login
           await AuthRepository.updateLastLogin(user._id);
 

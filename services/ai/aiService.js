@@ -431,7 +431,18 @@ class AIService {
       // Cache key based on user and input content
       const cacheKey = `ai_suggestions:task:${userId}:${Buffer.from(sanitizedTitle + sanitizedDescription).toString('base64').substring(0, 32)}`;
 
-      return await cacheService.remember(cacheKey, 3600, async () => {
+      // 0. RECURSION CHECK: Prevent AI from suggesting on top of its own suggestions
+      // If the current user input matches a recently generated suggestion, we assume they selected it and stop.
+      const recentKey = `user:${userId}:recent_ai_suggestions`;
+      const recentSuggestions = await cacheService.get(recentKey) || [];
+
+      // Flexible matching (lowercase, trimmed)
+      if (recentSuggestions.some(s => s.toLowerCase().trim() === sanitizedTitle.toLowerCase().trim())) {
+        Logger.info('Blocking recursive AI suggestion', { userId, title: sanitizedTitle });
+        return { suggestions: [], count: 0 };
+      }
+
+      const result = await cacheService.remember(cacheKey, 3600, async () => {
         // Get user context
         const userContext = await this.getUserContext(userId);
 
@@ -479,6 +490,17 @@ class AIService {
           count: validSuggestions.length
         };
       });
+
+      // 1. CACHE NEW SUGGESTIONS (Post-generation)
+      // We store these new suggestions so we can block them if the user selects one next
+      if (result.suggestions && result.suggestions.length > 0) {
+          const newTitles = result.suggestions.map(s => s.title);
+          // Keep last 20 suggestions, expire in 60 seconds (short loop window)
+          const updatedRecent = [...newTitles, ...recentSuggestions].slice(0, 20);
+          await cacheService.set(recentKey, updatedRecent, 60);
+      }
+
+      return result;
     } catch (error) {
       return handleAIError(error, 'generateTaskSuggestions');
     }
