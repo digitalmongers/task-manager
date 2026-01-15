@@ -1156,24 +1156,24 @@ class AuthService {
     const cloudinary = (await import("../config/cloudinary.js")).default;
 
     try {
-      // Get all models dynamically to avoid circular dependencies
-      const Task = mongoose.model('Task');
-      const VitalTask = mongoose.model('VitalTask');
-      const TaskCollaborator = mongoose.model('TaskCollaborator');
-      const VitalTaskCollaborator = mongoose.model('VitalTaskCollaborator');
-      const TaskInvitation = mongoose.model('TaskInvitation');
-      const VitalTaskInvitation = mongoose.model('VitalTaskInvitation');
-      const Notification = mongoose.model('Notification');
-      const PushSubscription = mongoose.model('PushSubscription');
-      const LoginActivity = mongoose.model('LoginActivity');
-      const TaskMessage = mongoose.model('TaskMessage');
-      const TeamMember = mongoose.model('TeamMember');
-      const Category = mongoose.model('Category');
-      const TaskPriority = mongoose.model('TaskPriority');
-      const TaskStatus = mongoose.model('TaskStatus');
-      const Suggestion = mongoose.model('Suggestion');
-      const AIUsage = mongoose.model('AIUsage');
-      const AIPlan = mongoose.model('AIPlan');
+      // Get all models dynamically to avoid circular dependencies and ensure registration
+      const Task = (await import('../models/Task.js')).default;
+      const VitalTask = (await import('../models/VitalTask.js')).default;
+      const TaskCollaborator = (await import('../models/TaskCollaborator.js')).default;
+      const VitalTaskCollaborator = (await import('../models/VitalTaskCollaborator.js')).default;
+      const TaskInvitation = (await import('../models/TaskInvitation.js')).default;
+      const VitalTaskInvitation = (await import('../models/VitalTaskInvitation.js')).default;
+      const Notification = (await import('../models/Notification.js')).default;
+      const PushSubscription = (await import('../models/PushSubscription.js')).default;
+      const LoginActivity = (await import('../models/LoginActivity.js')).default;
+      const TaskMessage = (await import('../models/TaskMessage.js')).default;
+      const TeamMember = (await import('../models/TeamMember.js')).default;
+      const Category = (await import('../models/Category.js')).default;
+      const TaskPriority = (await import('../models/TaskPriority.js')).default;
+      const TaskStatus = (await import('../models/TaskStatus.js')).default;
+      const Suggestion = (await import('../models/Suggestion.js')).default;
+      const AIUsage = (await import('../models/AIUsage.js')).default;
+      const AIPlan = (await import('../models/AIPlan.js')).default;
 
       Logger.info("Starting cascade delete for user", { userId, email: user.email });
 
