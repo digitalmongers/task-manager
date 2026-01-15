@@ -5097,7 +5097,13 @@ async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
  * Send plan purchase notification to admin
  */
 async sendAdminPlanPurchaseNotification(user, planKey, billingCycle, amount) {
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM;
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_FROM || process.env.SENDGRID_FROM_EMAIL || process.env.SUPPORT_EMAIL;
+
+  if (!adminEmail) {
+    Logger.warn('Admin email not configured. Skipping plan purchase notification.');
+    return { success: false, message: 'Admin email ignored' };
+  }
+
   const localizedTime = formatToLocal(new Date(), user.timezone);
   
   const html = `
@@ -5748,7 +5754,13 @@ async sendAdminTopupNotification(user, topupPackage, amount) {
   const { TOPUP_PACKAGES } = await import('../config/aiConfig.js');
   const packageInfo = TOPUP_PACKAGES[topupPackage];
   
-  const adminEmail = process.env.ADMIN_EMAIL || process.env.SENDGRID_FROM_EMAIL;
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || process.env.SUPPORT_EMAIL;
+
+  if (!adminEmail) {
+    Logger.warn('Admin email not configured. Skipping top-up notification.');
+    return { success: false, message: 'Admin email ignored' };
+  }
+
   const localizedTime = formatToLocal(new Date(), user.timezone);
   
   const html = `
