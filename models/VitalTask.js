@@ -310,6 +310,7 @@ vitalTaskSchema.statics.findByUser = function(userId, filters = {}) {
     .populate('status', 'name color')
     .populate('priority', 'name color')
     .populate('reviewRequestedBy', 'firstName lastName email avatar')
+    .populate('startedBy', 'firstName lastName email avatar role')
     .populate({
       path: 'collaborators',
       select: 'collaborator role',
@@ -363,6 +364,7 @@ vitalTaskSchema.statics.getSharedTasks = async function(userId) {
       { path: 'priority', select: 'name color' },
       { path: 'user', select: 'firstName lastName email avatar' },
       { path: 'reviewRequestedBy', select: 'firstName lastName email avatar' },
+      { path: 'startedBy', select: 'firstName lastName email avatar role' },
       { 
         path: 'collaborators', 
         select: 'collaborator role',
