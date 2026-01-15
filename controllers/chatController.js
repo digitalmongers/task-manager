@@ -17,7 +17,9 @@ export const getHistory = async (req, res) => {
   }, isVital === 'true');
 
   // Localize timestamps for messages in history
-  const localizedHistory = history.messages.map(msg => {
+  // Localize timestamps for messages in history
+  const messages = history?.messages || [];
+  const localizedHistory = messages.map(msg => {
     // msg is already a plain object
     return {
       ...msg,
