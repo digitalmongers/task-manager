@@ -1194,7 +1194,26 @@ class AuthService {
       }
       await VitalTask.deleteMany({ user: userId });
 
-      // 4. Delete collaborations (where user is collaborator OR task owner)
+      // 4. Update collaborator counts for others' tasks and then delete records
+      // Regular Tasks
+      const userCollaborations = await TaskCollaborator.find({ collaborator: userId, status: 'active' });
+      for (const collab of userCollaborations) {
+        const t = await Task.findById(collab.task);
+        if (t && typeof t.removeCollaborator === 'function') {
+          await t.removeCollaborator();
+        }
+      }
+
+      // Vital Tasks
+      const userVitalCollaborations = await VitalTaskCollaborator.find({ collaborator: userId, status: 'active' });
+      for (const collab of userVitalCollaborations) {
+        const vt = await VitalTask.findById(collab.vitalTask);
+        if (vt && typeof vt.removeCollaborator === 'function') {
+          await vt.removeCollaborator();
+        }
+      }
+
+      // Finally delete all collaboration records where user is involved
       await TaskCollaborator.deleteMany({ $or: [{ collaborator: userId }, { taskOwner: userId }] });
       await VitalTaskCollaborator.deleteMany({ $or: [{ collaborator: userId }, { taskOwner: userId }] });
 

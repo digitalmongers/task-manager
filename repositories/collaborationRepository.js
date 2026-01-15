@@ -101,6 +101,9 @@ class CollaborationRepository {
    */
   async addCollaborator(data) {
     try {
+      // Clean up any existing record (e.g. status='removed') to avoid unique index conflict
+      await TaskCollaborator.deleteOne({ task: data.task, collaborator: data.collaborator });
+      
       const collaborator = await TaskCollaborator.create(data);
       await collaborator.populate([
         { path: 'task' },
@@ -415,6 +418,9 @@ class CollaborationRepository {
    */
   async addVitalTaskCollaborator(data) {
     try {
+      // Clean up any existing record (e.g. status='removed') to avoid unique index conflict
+      await VitalTaskCollaborator.deleteOne({ vitalTask: data.vitalTask, collaborator: data.collaborator });
+
       const collaborator = await VitalTaskCollaborator.create(data);
       await collaborator.populate([
         { path: 'vitalTask' },
