@@ -1168,6 +1168,12 @@ class AuthService {
       const LoginActivity = mongoose.model('LoginActivity');
       const TaskMessage = mongoose.model('TaskMessage');
       const TeamMember = mongoose.model('TeamMember');
+      const Category = mongoose.model('Category');
+      const TaskPriority = mongoose.model('TaskPriority');
+      const TaskStatus = mongoose.model('TaskStatus');
+      const Suggestion = mongoose.model('Suggestion');
+      const AIUsage = mongoose.model('AIUsage');
+      const AIPlan = mongoose.model('AIPlan');
 
       Logger.info("Starting cascade delete for user", { userId, email: user.email });
 
@@ -1225,8 +1231,30 @@ class AuthService {
       await Notification.deleteMany({ recipient: userId });
       await PushSubscription.deleteMany({ user: userId });
       await LoginActivity.deleteMany({ userId: userId });
-      await TaskMessage.deleteMany({ sender: userId });
+      
+      // Delete all messages sent by this user OR on tasks/vital tasks owned by this user
+      const userTaskIds = tasks.map(t => t._id);
+      const userVitalTaskIds = vitalTasks.map(vt => vt._id);
+      Logger.info(`Purging messages for user ${userId}. Task IDs: ${userTaskIds.length}, Vital Task IDs: ${userVitalTaskIds.length}`);
+      
+      const messageDelResult = await TaskMessage.deleteMany({ 
+        $or: [
+          { sender: userId }, 
+          { task: { $in: userTaskIds } },
+          { vitalTask: { $in: userVitalTaskIds } }
+        ] 
+      });
+      Logger.info(`Deleted ${messageDelResult.deletedCount} task messages`);
+
       await TeamMember.deleteMany({ $or: [{ owner: userId }, { member: userId }, { memberEmail: user.email }] });
+
+      // 7. Delete custom configurations and AI data
+      await Category.deleteMany({ user: userId });
+      await TaskPriority.deleteMany({ user: userId });
+      await TaskStatus.deleteMany({ user: userId });
+      await Suggestion.deleteMany({ user: userId });
+      await AIUsage.deleteMany({ user: userId });
+      await AIPlan.deleteMany({ user: userId });
 
       Logger.info("Cascade delete completed for user", { userId });
       return true;
