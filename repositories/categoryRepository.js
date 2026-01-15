@@ -101,6 +101,21 @@ class CategoryRepository {
   }
 
   /**
+   * Find one category by query
+   */
+  async findOne(query) {
+    try {
+      return await Category.findOne(query);
+    } catch (error) {
+      Logger.error('Error in CategoryRepository.findOne', {
+        error: error.message,
+        query,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Update category
    */
   async updateCategory(categoryId, userId, updateData) {

@@ -101,6 +101,21 @@ class TaskPriorityRepository {
   }
 
   /**
+   * Find one task priority by query
+   */
+  async findOne(query) {
+    try {
+      return await TaskPriority.findOne(query);
+    } catch (error) {
+      Logger.error('Error in TaskPriorityRepository.findOne', {
+        error: error.message,
+        query,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Update task priority
    */
   async updateTaskPriority(priorityId, userId, updateData) {

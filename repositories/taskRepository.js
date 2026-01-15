@@ -68,7 +68,9 @@ class TaskRepository {
       const tasks = await Task.find(query)
         .populate('category', 'title color')
         .populate('priority', 'name color')
+        .populate('user', 'firstName lastName email avatar')
         .populate('reviewRequestedBy', 'firstName lastName email avatar')
+        .populate('startedBy', 'firstName lastName email avatar role')
         .populate({
           path: 'collaborators',
           select: 'collaborator role',
@@ -116,7 +118,9 @@ class TaskRepository {
       })
         .populate('category', 'title color')
         .populate('priority', 'name color')
+        .populate('user', 'firstName lastName email avatar')
         .populate('reviewRequestedBy', 'firstName lastName email avatar')
+        .populate('startedBy', 'firstName lastName email avatar role')
         .populate({
           path: 'collaborators',
           select: 'collaborator role',
