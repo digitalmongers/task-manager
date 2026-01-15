@@ -167,7 +167,8 @@ class ChatService {
         taskId,
         sender: userId
     });
-    WebSocketService.sendToChatRoom(taskId, 'chat:message', populatedMessage);
+    // Send to room but EXCLUDE sender to prevent phantom duplicates (Optimistic UI handling)
+    WebSocketService.sendToChatRoom(taskId, 'chat:message', populatedMessage, userId);
 
     // 6. Background Tasks (Non-blocking)
     this._processBackgroundTasks(taskId, userId, populatedMessage, content, isVital);
@@ -274,7 +275,7 @@ class ChatService {
 
 
     // 3. Decrypt messages
-    return messages.map(msg => {
+    const decryptedMessages = messages.map(msg => {
       const plainMsg = msg.toObject();
       if (plainMsg.isEncrypted && plainMsg.content) {
         try {
@@ -296,6 +297,22 @@ class ChatService {
 
       return plainMsg;
     });
+
+    // 4. Calculate Pagination Metadata
+    const field = isVital ? 'vitalTask' : 'task';
+    const totalMessages = await TaskMessage.countDocuments({ [field]: taskId });
+    const limit = options.limit ? parseInt(options.limit) : 50;
+    const page = options.page ? parseInt(options.page) : 1;
+
+    return {
+        messages: decryptedMessages,
+        pagination: {
+            currentPage: page,
+            limit: limit,
+            totalMessages: totalMessages,
+            totalPages: Math.ceil(totalMessages / limit)
+        }
+    };
   }
 
   /**

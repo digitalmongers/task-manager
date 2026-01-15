@@ -438,9 +438,21 @@ class WebSocketService {
   /**
    * Send event to a specific task chat room
    */
-  sendToChatRoom(taskId, event, data) {
+  sendToChatRoom(taskId, event, data, excludeUserId = null) {
     if (!this.io) return false;
-    this.io.to(`chat:${taskId}`).emit(event, data);
+    
+    if (excludeUserId) {
+        const userSocketSet = this.userSockets.get(excludeUserId.toString());
+        if (userSocketSet && userSocketSet.size > 0) {
+            const socketIds = Array.from(userSocketSet);
+            // Broadcast to room EXCEPT sender's sockets
+            this.io.to(`chat:${taskId}`).except(socketIds).emit(event, data);
+        } else {
+            this.io.to(`chat:${taskId}`).emit(event, data);
+        }
+    } else {
+        this.io.to(`chat:${taskId}`).emit(event, data);
+    }
     
     // DEBUG LOG
     if (event === 'chat:message') {
