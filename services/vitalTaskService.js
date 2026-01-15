@@ -17,21 +17,36 @@ class VitalTaskService {
     try {
       const { title, description, dueDate, priority, status, category, isCompleted, steps } = taskData;
 
-      // Verify category belongs to user (if provided)
-      if (category) {
-        const categoryExists = await CategoryRepository.findByIdAndUser(category, userId);
-        if (!categoryExists) {
-          throw ApiError.badRequest('Invalid category or category does not belong to you');
-        }
+      let resolvedCategory = null;
+      if (category && typeof category === 'string') {
+          if (category.match(/^[0-9a-fA-F]{24}$/)) {
+               // It's an ID
+               const categoryExists = await CategoryRepository.findByIdAndUser(category, userId);
+               if (!categoryExists) throw ApiError.badRequest('Invalid category or category does not belong to you');
+               resolvedCategory = category;
+          } else if (category.trim().length > 0) {
+              // It's a Name - Lookup
+               const categoryDoc = await CategoryRepository.findOne({ title: new RegExp(`^${category}$`, 'i'), user: userId });
+               if (categoryDoc) resolvedCategory = categoryDoc._id;
+               // If not found by name, we treat as null (no category)
+          }
       }
 
-
-      // Verify priority belongs to user (if provided)
-      if (priority) {
-        const priorityExists = await TaskPriorityRepository.findByIdAndUser(priority, userId);
-        if (!priorityExists) {
-          throw ApiError.badRequest('Invalid priority or priority does not belong to you');
-        }
+      let resolvedPriority = null;
+      if (priority && typeof priority === 'string') {
+          if (priority.match(/^[0-9a-fA-F]{24}$/)) {
+               // It's an ID
+               const priorityExists = await TaskPriorityRepository.findByIdAndUser(priority, userId);
+               if (!priorityExists) throw ApiError.badRequest('Invalid priority or priority does not belong to you');
+               resolvedPriority = priority;
+          } else {
+              // It's a Name - Lookup
+               const priorityDoc = await TaskPriorityRepository.findOne({ name: new RegExp(`^${priority}$`, 'i'), user: userId });
+               if (priorityDoc) resolvedPriority = priorityDoc._id;
+               // If not found by name, we treat as null or default? Frontend sent "High", better to find it.
+               // If "High" not found in user's priorities, maybe look in default global priorities if you have them?
+               // For now, if name lookup fails, it becomes null.
+          }
       }
 
       // Parse steps using robust logic (handles stringified JSON, real arrays, or mixed)
@@ -44,9 +59,9 @@ class VitalTaskService {
           title,
           description: description || null,
           dueDate: dueDate || null,
-          priority: priority || null,
+          priority: resolvedPriority || null,
           status: status || 'Not Started',
-          category: category || null,
+          category: resolvedCategory || null,
           isCompleted: isCompleted || false,
           steps: parsedSteps,
         },

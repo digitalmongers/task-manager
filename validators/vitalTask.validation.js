@@ -25,12 +25,12 @@ export const vitalTaskValidation = {
         'date.format': 'Due date must be in ISO format',
       }),
 
-      priority: Joi.string()
-        .pattern(/^[0-9a-fA-F]{24}$/)
-        .allow(null)
-        .messages({
-          'string.pattern.base': 'Invalid priority ID format',
-        }),
+      priority: Joi.alternatives().try(
+        Joi.string().pattern(/^[0-9a-fA-F]{24}$/), // ObjectId
+        Joi.string().min(1) // Name lookup
+      ).allow(null, '').messages({
+        'alternatives.match': 'Priority must be a valid ID or name',
+      }),
 
       status: Joi.string()
         .valid('Not Started', 'In Progress', 'Completed')
@@ -39,12 +39,12 @@ export const vitalTaskValidation = {
           'any.only': 'Status must be one of: Not Started, In Progress, Completed',
         }),
 
-      category: Joi.string()
-        .pattern(/^[0-9a-fA-F]{24}$/)
-        .allow(null)
-        .messages({
-          'string.pattern.base': 'Invalid category ID format',
-        }),
+      category: Joi.alternatives().try(
+        Joi.string().pattern(/^[0-9a-fA-F]{24}$/), // ObjectId
+        Joi.string() // Name lookup or empty
+      ).allow(null, '').messages({
+        'alternatives.match': 'Category must be a valid ID or name',
+      }),
 
       isCompleted: Joi.boolean().messages({
         'boolean.base': 'isCompleted must be a boolean',
@@ -78,12 +78,12 @@ export const vitalTaskValidation = {
         'date.format': 'Due date must be in ISO format',
       }),
 
-      priority: Joi.string()
-        .pattern(/^[0-9a-fA-F]{24}$/)
-        .allow(null)
-        .messages({
-          'string.pattern.base': 'Invalid priority ID format',
-        }),
+      priority: Joi.alternatives().try(
+        Joi.string().pattern(/^[0-9a-fA-F]{24}$/),
+        Joi.string().min(1)
+      ).allow(null, '').messages({
+        'alternatives.match': 'Priority must be a valid ID or name',
+      }),
 
       status: Joi.string()
         .valid('Not Started', 'In Progress', 'Completed')
@@ -92,12 +92,12 @@ export const vitalTaskValidation = {
           'any.only': 'Status must be one of: Not Started, In Progress, Completed',
         }),
 
-      category: Joi.string()
-        .pattern(/^[0-9a-fA-F]{24}$/)
-        .allow(null)
-        .messages({
-          'string.pattern.base': 'Invalid category ID format',
-        }),
+      category: Joi.alternatives().try(
+        Joi.string().pattern(/^[0-9a-fA-F]{24}$/),
+        Joi.string()
+      ).allow(null, '').messages({
+        'alternatives.match': 'Category must be a valid ID or name',
+      }),
 
       isCompleted: Joi.boolean().messages({
         'boolean.base': 'isCompleted must be a boolean',
