@@ -60,7 +60,9 @@ class VitalTaskRepository {
       VitalTask.find(findQuery)
         .populate('category', 'title color')
         .populate('priority', 'name color')
+        .populate('user', 'firstName lastName email avatar')
         .populate('reviewRequestedBy', 'firstName lastName email avatar')
+        .populate('startedBy', 'firstName lastName email avatar role')
         .populate({
           path: 'collaborators',
           select: 'collaborator role',
@@ -90,7 +92,9 @@ class VitalTaskRepository {
     return VitalTask.findOne({ _id: taskId, user: userId, isDeleted: false })
       .populate('category', 'title color')
       .populate('priority', 'name color')
+      .populate('user', 'firstName lastName email avatar')
       .populate('reviewRequestedBy', 'firstName lastName email avatar')
+      .populate('startedBy', 'firstName lastName email avatar role')
       .populate({
         path: 'collaborators',
         select: 'collaborator role',
@@ -105,7 +109,9 @@ class VitalTaskRepository {
     return VitalTask.findOne({ _id: taskId, isDeleted: false })
       .populate('category', 'title color')
       .populate('priority', 'name color')
+      .populate('user', 'firstName lastName email avatar')
       .populate('reviewRequestedBy', 'firstName lastName email avatar')
+      .populate('startedBy', 'firstName lastName email avatar role')
       .populate({
         path: 'collaborators',
         select: 'collaborator role',
