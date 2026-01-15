@@ -160,6 +160,13 @@ class ChatService {
     const populatedMessage = await this._populatedAndDecrypted(message._id);
     
     // Fast Emit to the chat room
+    // DEBUG LOG for Duplication Issue
+    Logger.info('[DEBUG] Broadcasting Message via WS:', { 
+        messageId: populatedMessage._id, 
+        clientSideId: populatedMessage.clientSideId,
+        taskId,
+        sender: userId
+    });
     WebSocketService.sendToChatRoom(taskId, 'chat:message', populatedMessage);
 
     // 6. Background Tasks (Non-blocking)
@@ -242,17 +249,29 @@ class ChatService {
    * Get chat history (Normal or Vital)
    */
   async getChatHistory(taskId, userId, options = {}, isVital = false) {
+    // DEBUG LOG
+    Logger.info('[DEBUG] ChatService.getChatHistory:', { taskId, userId, options, isVital });
+
     // 1. Verify access
     const access = isVital 
       ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
       : await TaskCollaborator.canUserAccessTask(taskId, userId);
       
     if (!access.canAccess) {
+      Logger.warn('[DEBUG] Access Denied for Chat History:', { taskId, userId });
       throw ApiError.forbidden(`You do not have access to this ${isVital ? 'vital ' : ''}task chat`);
     }
 
     // 2. Fetch messages
     const messages = await taskMessageRepository.getTaskMessages(taskId, options, isVital);
+    
+    // DEBUG LOG
+    Logger.info('[DEBUG] ChatService Fetched Messages:', { 
+        count: messages ? messages.length : 0,
+        taskId
+    });
+    
+
 
     // 3. Decrypt messages
     return messages.map(msg => {
@@ -341,6 +360,9 @@ class ChatService {
    * Get all members of a task chat (Normal or Vital)
    */
   async getChatMembers(taskId, userId, isVital = false) {
+    // DEBUG LOG
+    Logger.info('[DEBUG] ChatService.getChatMembers:', { taskId, userId, isVital });
+
     const access = isVital 
       ? await VitalTaskCollaborator.canUserAccessVitalTask(taskId, userId)
       : await TaskCollaborator.canUserAccessTask(taskId, userId);
@@ -391,6 +413,9 @@ class ChatService {
         });
       }
     }
+    
+    // DEBUG LOG
+    Logger.info('[DEBUG] ChatService Members Found:', { count: members.length, taskId });
 
     return members;
   }
