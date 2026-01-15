@@ -168,6 +168,9 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/topups", topupRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 
+// Handle favicon.ico to prevent 404 errors
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // 404 handler (must be after all routes)
 app.use(notFound);
 
