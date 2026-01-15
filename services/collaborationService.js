@@ -243,9 +243,11 @@ class CollaborationService {
       // Get all active team members
       const teamMembers = await TeamMember.getActiveMembers(ownerId);
 
-      // Get current task collaborators
+      // Get current task collaborators and filter out any potential "ghost" records
       const collaborators = await CollaborationRepository.getTaskCollaborators(taskId, 'active');
-      const collaboratorIds = collaborators.map(c => c.collaborator._id.toString());
+      const collaboratorIds = collaborators
+        .filter(c => c.collaborator)
+        .map(c => c.collaborator._id.toString());
 
       // Filter out members who are already collaborators
       const availableMembers = teamMembers.filter(tm => 
