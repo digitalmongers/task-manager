@@ -10,6 +10,12 @@ export const getHistory = async (req, res) => {
   const { taskId } = req.params;
   const { page, limit, beforeSequence, isVital } = req.query;
 
+  // DEBUG LOG
+  try {
+      const Logger = (await import('../config/logger.js')).default;
+      Logger.info('[DEBUG] getHistory Request:', { taskId, userId: req.user._id, isVital, page, limit });
+  } catch (e) {}
+
   const history = await ChatService.getChatHistory(taskId, req.user._id, {
     page: parseInt(page),
     limit: parseInt(limit),
@@ -17,8 +23,18 @@ export const getHistory = async (req, res) => {
   }, isVital === 'true');
 
   // Localize timestamps for messages in history
-  // Localize timestamps for messages in history
   const messages = history?.messages || [];
+  
+  // DEBUG LOG
+  try {
+      const Logger = (await import('../config/logger.js')).default;
+      Logger.info('[DEBUG] getHistory Response:', { 
+          taskId, 
+          messageCount: messages.length, 
+          pagination: history?.pagination 
+      });
+  } catch (e) {}
+
   const localizedHistory = messages.map(msg => {
     // msg is already a plain object
     return {
@@ -63,7 +79,25 @@ export const sendMessage = async (req, res) => {
 export const getMembers = async (req, res) => {
   const { taskId } = req.params;
   const { isVital } = req.query;
+
+    // DEBUG LOG
+  try {
+      const Logger = (await import('../config/logger.js')).default;
+      Logger.info('[DEBUG] getMembers Request:', { taskId, userId: req.user._id, isVital });
+  } catch (e) {}
+
   const members = await ChatService.getChatMembers(taskId, req.user._id, isVital === 'true');
+  
+    // DEBUG LOG
+  try {
+      const Logger = (await import('../config/logger.js')).default;
+      Logger.info('[DEBUG] getMembers Response:', { 
+          taskId, 
+          memberCount: members.length,
+          members: members.map(m => ({ id: m.user._id, name: m.user.fullName || m.user.firstName, role: m.role }))
+      });
+  } catch (e) {}
+  
   ApiResponse.success(res, 200, 'Chat members fetched successfully', members);
 };
 

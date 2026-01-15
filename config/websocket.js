@@ -442,6 +442,17 @@ class WebSocketService {
     if (!this.io) return false;
     this.io.to(`chat:${taskId}`).emit(event, data);
     
+    // DEBUG LOG
+    if (event === 'chat:message') {
+        Logger.info('[DEBUG] WS sendToChatRoom emitted:', { 
+            taskId, 
+            event, 
+            messageId: data._id, 
+            clientSideId: data.clientSideId 
+        });
+    }
+
+    
     redisClient.publish('relay:global_chat', JSON.stringify({
       event, data, taskId, serverId: this.serverId
     }));
