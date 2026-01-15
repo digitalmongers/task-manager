@@ -43,10 +43,7 @@ export const getHistory = async (req, res) => {
     };
   });
 
-  ApiResponse.success(res, 200, 'Chat history fetched successfully', {
-    messages: localizedHistory,
-    pagination: history.pagination,
-  });
+  ApiResponse.paginated(res, 200, 'Chat history fetched successfully', localizedHistory, history.pagination);
 };
 
 export const sendMessage = async (req, res) => {
