@@ -848,6 +848,9 @@ class AIService {
 
       return similarTasks;
     } catch (error) {
+      if (error.message === 'Task not found') {
+        throw ApiError.notFound('Task not found');
+      }
       return handleAIError(error, 'findSimilarTasks');
     }
   }
