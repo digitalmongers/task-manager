@@ -16,14 +16,14 @@ User-agent: Googlebot
 Allow: /
 Disallow: /search
 
-User-agent: Bingbot 
+User-agent: Bingbot
 Allow: /
 
 # Sitemap location
 Sitemap: https://tasskr.com/sitemap.xml
 
-# AI Discovery Standard (Crucial for llms.txt)
-llms-txt: https://tasskr.com/llms.txt
+# AI Discovery Standard (Crucial for llms.txt reference)
+# llms-txt: https://tasskr.com/llms.txt
 
 # Security and Anti-Scraping
 Crawl-delay: 1

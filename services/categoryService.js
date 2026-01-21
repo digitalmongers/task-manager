@@ -15,7 +15,7 @@ class CategoryService {
       if (titleExists) {
         throw ApiError.conflict('A category with this title already exists');
       }
-
+ 
       // Create category
       const category = await CategoryRepository.createCategory(
         {
