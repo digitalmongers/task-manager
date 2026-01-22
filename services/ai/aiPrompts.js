@@ -19,32 +19,61 @@ Provide concise suggestions. Always respond in valid JSON format.`,
 
 export const TASK_PROMPTS = {
   SUGGESTIONS: (data) => `
-Given the following task information:
-Title: "${data.title || ''}"
-Description: "${data.description || ''}"
+# Role and Objective
+Using the provided task information, generate five distinct, actionable, and well-crafted suggestions that address the user's input as precisely and comprehensively as possible. Employ a range of creative synonyms or closely related alternatives that align with the user input to maximize diversity in recommendations. All suggestion titles must be compelling, specific, and limited to 4-5 words, ensuring immediate clarity and engagement.
 
-User's existing context:
-- Categories: ${data.userCategories?.join(', ') || 'None'}
-- Priorities: ${data.userPriorities?.join(', ') || 'None'}
-- Statuses: ${data.userStatuses?.join(', ') || 'None'}
+# Instructions
+- Meticulously analyze the supplied task title, description, and current user context, rigorously evaluating for clarity, completeness, and underlying objectives.
+- Consistently produce exactly five unique and non-overlapping suggestions that each take a markedly different approach, vary the scope, prioritization, resource level, phrasing, or methodology.
+- Ensure variations involve substantive differences, which may include reframing goals, detailing or simplifying steps or timelines, shifting focus (e.g., individual vs. collaborative effort), reordering priorities/statuses, or explicitly emphasizing factors such as speed, quality, learning, efficiency, or teamwork.
+- If key logical values such as category, priority, or status are missing from the user's lists, thoughtfully propose a well-justified new option based on careful contextual inference.
+- Every suggestion must include:
+  - A punchy, revised or improved title (4-5 words), guaranteeing clarity, actionability, and distinctiveness from other suggestions
+  - A succinct, practical, and highly actionable description (always provided, irrespective of the original input)
+  - A suggested category (from existing options or newly inferred)
+  - A suggested priority (existing or newly inferred)
+  - A suggested status (existing or newly inferred)
+  - A practical, realistic due date (format: YYYY-MM-DD; must never be in the past; align with the nature and scale of the task)
+  - An accurate estimated completion time (e.g., "30 minutes", "2 hours" or "1-2 days") that logically matches the complexity of the task
+  - 2-4 concise, context-relevant tags to aid future categorization
+- No field may be left blank. If information is missing, methodically infer from context or assign a defensible default, documenting the rationale for any assumption made.
+- If the title or description is absent, treat as empty and leverage all available context to generate strong, informative content.
+- Output only a JSON array of precisely five objects, conforming exactly to the structure and schema detailed below.
+- Do not provide explanations, code blocks, meta-commentary, or internal reasoning—output solely the composed JSON array.
+- All suggestions must be distinct, contextually relevant, and expertly tailored to the immediate task and user context.
 
-Provide 5 DISTINCT smart suggestions for this task. Each should offer a different perspective or approach.
-Respond with a JSON array of exactly 5 suggestion objects:
-[
-  {
-    "title": "improved or completed title (variation 1)",
-    "description": "helpful description if not provided",
-    "suggestedCategory": "best matching category from user's list or suggest new",
-    "suggestedPriority": "appropriate priority level",
-    "suggestedStatus": "appropriate status",
-    "suggestedDueDate": "YYYY-MM-DD format, realistic deadline",
-    "estimatedTime": "estimated time to complete (e.g., '2 hours', '1 day')",
-    "tags": ["relevant", "tags"]
-  },
-  ... (4 more distinct variations)
-]
+# Context
+- Provided values:
+  - Task Title: "${data.title || ''}"
+  - Task Description: "${data.description || ''}"
+  - User's Context:
+    - Categories: ${data.userCategories?.join(', ') || 'None'}
+    - Priorities: ${data.userPriorities?.join(', ') || 'None'}
+    - Statuses: ${data.userStatuses?.join(', ') || 'None'}
+  - Treat missing fields as empty strings and infer or assign content as required.
+  - Customize every part of each output specifically for the provided task using keen insight.
 
-IMPORTANT: Make each suggestion meaningfully different. Vary the title phrasing, priority, or approach.
+# Output Format
+Produce a JSON array of exactly five objects, each containing:
+- "title" (string, 4-5 words)
+- "description" (string)
+- "suggestedCategory" (string)
+- "suggestedPriority" (string)
+- "suggestedStatus" (string)
+- "suggestedDueDate" (string, format: YYYY-MM-DD)
+- "estimatedTime" (string)
+- "tags" (array of 2-4 strings)
+- Output only the JSON array—no code blocks, commentary, or additional formatting.
+
+# Verbosity
+- Keep content highly concise, practical, and actionable.
+- Validate that estimated times and due dates are realistic and directly matched to the complexity and scale of the specific task.
+
+# Stop Conditions
+- Only handoff when all five suggestions are truly distinct, complete, and strictly adhere to every field and content specification.
+
+# Additional Notes
+- Use a diverse range of creative synonyms or similar alternatives based on user input to boost the uniqueness and applicability of each suggestion. Suggestion titles should be compelling and no longer than 4-5 words. Rigorously analyze context prior to drafting suggestions, but output only the required JSON array. Enforce strict adherence to all formatting, quality, and completeness criteria.
 `,
 
   NLP_PARSE: (input) => `
@@ -61,7 +90,7 @@ Extract and return in JSON format:
   "category": "suggested category based on task type",
   "tags": ["extracted", "keywords"]
 }
-`,
+`,  
 };
 
 export const CATEGORY_PROMPTS = {
