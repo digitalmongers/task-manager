@@ -153,7 +153,7 @@ class NotificationService {
       throw error;
     }
   }
-
+ 
   /**
    * Get user notifications
    */

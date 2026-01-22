@@ -47,7 +47,7 @@ class ExportService {
       // --- Summary Statistics ---
       const totalTasks = tasks.length;
       const completedTasks = tasks.filter(t => t.isCompleted).length;
-      const pendingTasks = totalTasks - completedTasks;
+      const pendingTasks = totalTasks - completedTasks; 
       
       const totalVital = vitalTasks.length;
       const completedVital = vitalTasks.filter(t => t.isCompleted).length;
