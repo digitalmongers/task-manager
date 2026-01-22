@@ -20,11 +20,11 @@ Provide concise suggestions. Always respond in valid JSON format.`,
 export const TASK_PROMPTS = {
   SUGGESTIONS: (data) => `
 # Role and Objective
-Using the provided task information, generate five distinct, actionable, and well-crafted suggestions that address the user's input as precisely and comprehensively as possible. Employ a range of creative synonyms or closely related alternatives that align with the user input to maximize diversity in recommendations. All suggestion titles must be compelling, specific, and limited to 4-5 words, ensuring immediate clarity and engagement.
+Using the provided task information, generate two distinct, actionable, and well-crafted suggestions that address the user's input as precisely and comprehensively as possible. Employ a range of creative synonyms or closely related alternatives that align with the user input to maximize diversity in recommendations. All suggestion titles must be compelling, specific, and limited to 4-5 words, ensuring immediate clarity and engagement.
 
 # Instructions
 - Meticulously analyze the supplied task title, description, and current user context, rigorously evaluating for clarity, completeness, and underlying objectives.
-- Consistently produce exactly five unique and non-overlapping suggestions that each take a markedly different approach, vary the scope, prioritization, resource level, phrasing, or methodology.
+- Consistently produce exactly two unique and non-overlapping suggestions that each take a markedly different approach, vary the scope, prioritization, resource level, phrasing, or methodology.
 - Ensure variations involve substantive differences, which may include reframing goals, detailing or simplifying steps or timelines, shifting focus (e.g., individual vs. collaborative effort), reordering priorities/statuses, or explicitly emphasizing factors such as speed, quality, learning, efficiency, or teamwork.
 - If key logical values such as category, priority, or status are missing from the user's lists, thoughtfully propose a well-justified new option based on careful contextual inference.
 - Every suggestion must include:
@@ -38,7 +38,7 @@ Using the provided task information, generate five distinct, actionable, and wel
   - 2-4 concise, context-relevant tags to aid future categorization
 - No field may be left blank. If information is missing, methodically infer from context or assign a defensible default, documenting the rationale for any assumption made.
 - If the title or description is absent, treat as empty and leverage all available context to generate strong, informative content.
-- Output only a JSON array of precisely five objects, conforming exactly to the structure and schema detailed below.
+- Output only a JSON array of precisely two objects, conforming exactly to the structure and schema detailed below.
 - Do not provide explanations, code blocks, meta-commentary, or internal reasoning—output solely the composed JSON array.
 - All suggestions must be distinct, contextually relevant, and expertly tailored to the immediate task and user context.
 
@@ -54,7 +54,7 @@ Using the provided task information, generate five distinct, actionable, and wel
   - Customize every part of each output specifically for the provided task using keen insight.
 
 # Output Format
-Produce a JSON array of exactly five objects, each containing:
+Produce a JSON array of exactly two objects, each containing:
 - "title" (string, 4-5 words)
 - "description" (string)
 - "suggestedCategory" (string)
@@ -70,25 +70,41 @@ Produce a JSON array of exactly five objects, each containing:
 - Validate that estimated times and due dates are realistic and directly matched to the complexity and scale of the specific task.
 
 # Stop Conditions
-- Only handoff when all five suggestions are truly distinct, complete, and strictly adhere to every field and content specification.
+- Only handoff when both suggestions are truly distinct, complete, and strictly adhere to every field and content specification.
 
 # Additional Notes
 - Use a diverse range of creative synonyms or similar alternatives based on user input to boost the uniqueness and applicability of each suggestion. Suggestion titles should be compelling and no longer than 4-5 words. Rigorously analyze context prior to drafting suggestions, but output only the required JSON array. Enforce strict adherence to all formatting, quality, and completeness criteria.
 `,
 
   NLP_PARSE: (input) => `
-Parse this natural language task input into structured data:
+Parse the following natural language task into structured data:
 "${input}"
 
-Extract and return in JSON format:
+Extract details in JSON format, in this order:
 {
-  "title": "concise task title",
-  "description": "detailed description",
-  "dueDate": "YYYY-MM-DD if mentioned, null otherwise",
-  "dueTime": "HH:MM if mentioned, null otherwise",
-  "priority": "low/medium/high/urgent based on context",
-  "category": "suggested category based on task type",
-  "tags": ["extracted", "keywords"]
+  "title": "Concise task title.",
+  "description": "Detailed description of the task.",
+  "dueDate": "YYYY-MM-DD if provided; null if absent.",
+  "dueTime": "HH:MM (24-hour) if specified; null if not.",
+  "priority": "One of: low, medium, high, urgent. Determine based on user intent and wording; infer from expressions like 'ASAP', 'immediately', 'urgent' → 'urgent'; 'whenever', 'low priority' → 'low'; use 'medium' if routine and unspecified; use 'high' if important but not urgent.",
+  "category": "Choose the category that best matches the user intent: 'Work', 'Personal', 'Errand', 'Appointment', 'Reminder', or 'Other'.",
+  "tags": "Up to 5 unique, non-stopword keywords (verbs, nouns) for searching/filtering; use [] if none."
+}
+
+- Only 'title' and 'description' are required and must not be null; other fields should be null (or [] for 'tags') if undetermined.
+
+## Output Format
+Return a JSON object, fields in this exact order: title, description, dueDate, dueTime, priority, category, tags.
+
+Example:
+{
+  "title": "Schedule annual checkup",
+  "description": "Call doctor's office to schedule an annual health checkup appointment.",
+  "dueDate": "2024-07-15",
+  "dueTime": null,
+  "priority": "medium",
+  "category": "Appointment",
+  "tags": ["checkup", "doctor", "appointment"]
 }
 `,  
 };
