@@ -485,10 +485,11 @@ INPUT VALIDATION (FAIL FAST):
   - dueToday
   - overdue
 - vitalTasks and normalTasks must be arrays.
-- If ANY validation fails, respond ONLY with:
-{
-  "error": "Insufficient or invalid data to generate alternative strategies."
-}
+- If the task pool is empty but stats show pending tasks, use general productivity strategies based on the workload snapshot.
+- Only return the error object if there are absolutely no tasks and no pending workload.
+
+VALIDATION FAIL FALLBACK:
+If there are no tasks provided in the pool but stats.totalPending > 0, generate broad execution strategies (Sprinter/Marathoner/Orchestrator) focusing on general workload management.
 
 WORKLOAD SNAPSHOT:
 - Total Pending Tasks: ${stats?.totalPending}
@@ -501,14 +502,14 @@ TASK POOL (THE ONLY ALLOWED TASK REFERENCES):
 
 GLOBAL CONSTRAINTS:
 1. Do NOT invent tasks, metrics, timelines, or assumptions.
-2. EVERY step must explicitly reference at least one task title from the task pool.
+2. Each step should ideally reference a task title or the nature of work (e.g., "Start with Vital tasks like...", "Batch your standard tasks...").
 3. NO step text may be reused across strategies.
 4. Each strategy MUST prioritize tasks differently:
-   - Sprinter → Vital tasks first, ignore standard unless time permits.
-   - Marathoner → Mix of vital + standard, balanced pacing.
-   - Orchestrator → Reorder, batch, or defer tasks BUT must still execute at least one task.
-5. Steps must be executable actions, not advice or commentary.
-6. No emotional, motivational, or coaching language.
+   - Sprinter → High intensity, vital/urgent tasks first.
+   - Marathoner → Sustainable pace, mix of categories.
+   - Orchestrator → Strategic reordering or batching.
+5. Steps must be executable actions.
+6. No emotional or coaching language.
 
 RISK LEVEL RULES:
 - Sprinter → riskLevel MUST be "High"

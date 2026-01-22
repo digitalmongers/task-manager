@@ -1038,8 +1038,14 @@ class AIService {
       });
 
       const alternativesData = parseJSONResponse(response);
+      
+      // Handle explicit AI error response
+      if (alternativesData && alternativesData.error) {
+        return { error: alternativesData.error };
+      }
+
       if (!alternativesData || !Array.isArray(alternativesData.strategies)) {
-        throw new Error('AI failed to generate alternative strategies');
+        throw new Error('AI failed to generate alternative strategies: Invalid format');
       }
 
       Logger.info('Alternative strategies generated', { userId });
