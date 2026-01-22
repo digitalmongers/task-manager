@@ -246,7 +246,6 @@ Always focus on execution clarity—avoid unnecessary conversation.`;
       }));
 
       const messages = [
-        { role: 'system', content: systemPrompt },
         ...historyContext,
         { role: 'user', content: message }
       ];
@@ -256,6 +255,7 @@ Always focus on execution clarity—avoid unnecessary conversation.`;
         userId,
         feature: 'AI_CHATBOT',
         messages: messages,
+        systemPrompt: systemPrompt,
         tools: CHAT_TOOLS,
         tool_choice: 'auto'
       });
