@@ -308,10 +308,32 @@ class AIController {
       conversationId
     );
 
-    // Localize timestamps for chatbot history
-    const localizedHistory = history.map(msg => ({
-      ...msg,
-      timestampLocal: formatToLocal(msg.timestamp || msg.createdAt, req.timezone),
+    // If it's a single conversation (history is not an array if conversationId was provided)
+    if (!Array.isArray(history)) {
+      const localizedHistory = {
+        _id: history._id,
+        title: history.title,
+        messages: history.messages,
+        createdAt: history.createdAt,
+        updatedAt: history.updatedAt,
+        timestampLocal: formatToLocal(history.updatedAt || history.createdAt, req.timezone),
+      };
+      
+      return ApiResponse.success(
+        res,
+        HTTP_STATUS.OK,
+        'Chat history retrieved',
+        { history: localizedHistory }
+      );
+    }
+
+    // Localize timestamps and pick specific fields for chatbot history list
+    const localizedHistory = history.map(convo => ({
+      _id: convo._id,
+      title: convo.title,
+      createdAt: convo.createdAt,
+      updatedAt: convo.updatedAt,
+      timestampLocal: formatToLocal(convo.updatedAt || convo.createdAt, req.timezone),
     }));
 
     return ApiResponse.success(

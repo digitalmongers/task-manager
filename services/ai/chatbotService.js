@@ -384,14 +384,15 @@ Always focus on execution clarity—avoid unnecessary conversation.`;
   async getChatHistory(userId, conversationId = null) {
     try {
       if (conversationId) {
-         return await ChatConversation.findOne({ _id: conversationId, user: userId });
+         return await ChatConversation.findOne({ _id: conversationId, user: userId }).lean();
       }
       
       // List all conversations (summaries)
       return await ChatConversation.find({ user: userId })
         .select('title updatedAt createdAt')
         .sort({ updatedAt: -1 })
-        .limit(20);
+        .limit(20)
+        .lean();
     } catch (error) {
       Logger.error('Failed to get chat history', { error: error.message });
       throw error;
