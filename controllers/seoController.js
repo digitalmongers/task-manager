@@ -1,5 +1,6 @@
 import cacheService, { TTL } from "../services/cacheService.js";
 import Logger from "../config/logger.js";
+import SitemapPage from "../models/SitemapPage.js";
 
 /**
  * Enterprise SEO Controller
@@ -62,7 +63,7 @@ class SEOController {
     try {
       const cacheKey = '/seo/sitemap';
       
-      const sitemap = await cacheService.remember(cacheKey, TTL.VERY_LONG, async () => {
+      const sitemap = await cacheService.remember(cacheKey, TTL.SHORT, async () => {
         const frontendUrl = (process.env.FRONTEND_URL || 'https://tasskr.com').replace(/\/$/, '');
         const today = new Date().toISOString().split('T')[0];
 
@@ -82,6 +83,24 @@ class SEOController {
           { url: '/data-deletion', priority: '0.3', changefreq: 'daily' },
         ];
 
+        // Fetch dynamic pages from database
+        try {
+          const dynamicPages = await SitemapPage.find({}).lean();
+          dynamicPages.forEach(page => {
+            // Avoid duplicates
+            if (!pages.find(p => p.url === page.url)) {
+              pages.push({
+                url: page.url,
+                priority: page.priority || '0.7',
+                changefreq: page.changefreq || 'weekly',
+                lastmod: page.lastmod ? new Date(page.lastmod).toISOString().split('T')[0] : today
+              });
+            }
+          });
+        } catch (dbError) {
+          Logger.error('Failed to fetch dynamic sitemap pages:', { error: dbError.message });
+        }
+
         let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
         xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" \n';
         xml += '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" \n';
@@ -90,7 +109,7 @@ class SEOController {
         pages.forEach(page => {
           xml += '  <url>\n';
           xml += `    <loc>${frontendUrl}${page.url}</loc>\n`;
-          xml += `    <lastmod>${today}</lastmod>\n`;
+          xml += `    <lastmod>${page.lastmod || today}</lastmod>\n`;
           xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
           xml += `    <priority>${page.priority}</priority>\n`;
           xml += '  </url>\n';
@@ -132,9 +151,9 @@ class SEOController {
    */
   async getLLMsTxt(req, res) {
     Logger.info('LLMs.txt request received', { ip: req.ip });
-    const frontendUrl = process.env.FRONTEND_URL || 'https://tasskr.com';
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://tasskr.com').replace(/\/$/, '');
     
-    const content = [
+    let content = [
       '# Tasskr - Enterprise AI Task Management',
       '> Tasskr is a high-performance, AI-powered task management platform designed for teams to collaborate efficiently, track progress, and boost productivity with intelligent insights.',
       '',
@@ -149,6 +168,27 @@ class SEOController {
       `- [AI Synergy](${frontendUrl}/product): Learn about our collaborative synergy AI for team optimization.`,
       `- [Boost Top-ups](${frontendUrl}/boost-topup): System for adding additional AI tokens to your account.`,
       '',
+      '## Dynamic Resources',
+    ];
+
+    // Fetch dynamic pages from database for LLMs
+    try {
+      const dynamicPages = await SitemapPage.find({}).lean();
+      if (dynamicPages.length > 0) {
+        dynamicPages.forEach(page => {
+          // Use URL as label or a generic "Dynamic Link"
+          const label = page.url.split('/').pop().replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Resource';
+          content.push(`- [${label}](${frontendUrl}${page.url}): Dynamic content resource.`);
+        });
+      } else {
+        content.push('_No dynamic resources available at the moment._');
+      }
+    } catch (dbError) {
+      Logger.error('Failed to fetch dynamic pages for LLMs.txt:', { error: dbError.message });
+    }
+
+    content.push(
+      '',
       '## Legal & Compliance',
       `- [Terms of Service](${frontendUrl}/terms-conditions): Legal terms for using the Tasskr platform.`,
       `- [Privacy Policy](${frontendUrl}/privacy-policy): How we protect and manage your data.`,
@@ -159,11 +199,11 @@ class SEOController {
       `- [Security](${frontendUrl}/security.txt): Vulnerability disclosure and security contacts.`,
       '',
       '---',
-      '© 2026 Tasskr Enterprise. All rights reserved.'
-    ].join('\n');
+      `© ${new Date().getFullYear()} Tasskr Enterprise. All rights reserved.`
+    );
 
     res.type('text/plain');
-    return res.send(content);
+    return res.send(content.join('\n'));
   }
 }
 
