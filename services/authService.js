@@ -1673,6 +1673,37 @@ class AuthService {
 
     return userObj;
   }
+
+  /**
+   * Update user cookie consent preferences
+   */
+  async updateCookieConsent(userId, consentData) {
+    const { analytics, marketing, advertising } = consentData;
+
+    const user = await AuthRepository.findById(userId);
+    if (!user) {
+      throw ApiError.notFound("User not found");
+    }
+
+    user.cookieConsent = {
+      analytics: analytics ?? user.cookieConsent?.analytics,
+      marketing: marketing ?? user.cookieConsent?.marketing,
+      advertising: advertising ?? user.cookieConsent?.advertising,
+      updatedAt: new Date(),
+    };
+
+    await AuthRepository.saveUser(user);
+
+    Logger.info("User cookie consent updated", {
+      userId,
+      consent: user.cookieConsent,
+    });
+
+    return {
+      message: "Cookie consent preferences updated successfully",
+      cookieConsent: user.cookieConsent,
+    };
+  }
 }
 
 export default new AuthService();

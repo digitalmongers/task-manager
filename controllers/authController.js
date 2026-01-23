@@ -488,6 +488,18 @@ class AuthController {
       user: result.user,
     });
   }
+
+  /**
+   * Update user cookie consent
+   * PATCH /api/auth/cookie-consent
+   */
+  async updateCookieConsent(req, res) {
+    const result = await AuthService.updateCookieConsent(req.user._id, req.body);
+
+    return ApiResponse.success(res, HTTP_STATUS.OK, result.message, {
+      cookieConsent: result.cookieConsent,
+    });
+  }
 }
 
 export default new AuthController();
