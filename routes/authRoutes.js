@@ -145,6 +145,15 @@ router.delete(
   asyncHandler(AuthController.deleteAvatar.bind(AuthController))
 );
 
+// Update user cookie consent
+router.patch(
+  "/cookie-consent",
+  protect,
+  timezoneMiddleware,
+  invalidateCache((req) => `user:${req.user._id}:*`),
+  asyncHandler(AuthController.updateCookieConsent.bind(AuthController))
+);
+
 // Export user data
 router.get(
   "/export-data",

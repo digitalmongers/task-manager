@@ -290,6 +290,13 @@ const userSchema = new mongoose.Schema(
     lastKnownIp: {
       type: String,
     },
+    // ========== COOKIE CONSENT FIELDS ==========
+    cookieConsent: {
+      analytics: { type: Boolean, default: false },
+      marketing: { type: Boolean, default: false },
+      advertising: { type: Boolean, default: false },
+      updatedAt: { type: Date, default: Date.now },
+    },
   },
   {
     timestamps: true,
