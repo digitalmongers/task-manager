@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Read logo file for embedding
-const logoPath = path.join(__dirname, '../public/task.ico');
+const logoPath = path.join(__dirname, '../public/logo.png');
 let logoAttachment = null;
 
 try {
@@ -17,8 +17,8 @@ try {
     const logoContent = fs.readFileSync(logoPath).toString('base64');
     logoAttachment = {
       content: logoContent,
-      filename: 'task.ico',
-      type: 'image/x-icon',
+      filename: 'logo.png',
+      type: 'image/png',
       disposition: 'inline',
       content_id: 'tasskr_logo'
     };
@@ -290,7 +290,7 @@ class EmailService {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Advanced Collaborative Task Management</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -312,7 +312,7 @@ class EmailService {
       
       Best regards,
       The Tasskr Team
-      Advanced Collaborative Task Management
+      Tasskr — AI Task Management Software
     `;
 
     return await this.sendEmail({
@@ -433,7 +433,7 @@ class EmailService {
                   color: #FF6B6B;
                   font-size: 18px;
                   flex-shrink: 0;
-                  margin-right: 16px;
+                  margin-right: 20px;
               }
 
               .feature-content h3 {
@@ -542,7 +542,7 @@ class EmailService {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Your Advanced Task Management Partner</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -822,7 +822,7 @@ class EmailService {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Advanced Collaborative Task Management</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -1103,7 +1103,7 @@ async sendPasswordChangedConfirmation(user, ip, userAgent) {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Your Security is Our Priority</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -2048,7 +2048,7 @@ async sendContactConfirmation(contactData) {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Your Advanced Task Management Partner</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -2607,7 +2607,7 @@ async sendSuggestionConfirmation(suggestionData) {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Building the Future of Productivity together.</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -2989,7 +2989,7 @@ async sendTaskInvitation(invitation, task, inviter) {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Advanced Collaboration for Modern Teams</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -3295,7 +3295,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
             </div>
 
             <div class="footer">
-                <p><strong>Tasskr</strong> — Advanced Collaborative Task Management</p>
+                <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                 <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
                 <p style="margin-top: 8px;">Sent to ${teamMember.memberEmail}. If you weren't expecting this invitation, you can safely ignore this email.</p>
             </div>
@@ -3318,7 +3318,7 @@ async sendTeamMemberInvitation(teamMember, owner) {
     Decline invitation: ${declineUrl}
     
     ---
-    Tasskr — Advanced Collaborative Task Management
+    <strong>Tasskr</strong> — Tasskr — AI Task Management Software
     © ${new Date().getFullYear()} Tasskr Inc.
   `;
 
@@ -3516,7 +3516,7 @@ async sendInvitationReminder(invitation, task, inviter) {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -3725,7 +3725,7 @@ async sendInvitationAcceptedNotification(invitation, task, acceptedBy) {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Powering Team Productivity</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -3906,7 +3906,7 @@ async sendCollaboratorRemovedNotification(task, removedUser, removedBy) {
               </div>
 
               <div class="footer">
-                  <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                  <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                   <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
               </div>
           </div>
@@ -4024,7 +4024,7 @@ async sendTaskSharedNotification(task, teamMember, owner) {
                     <!-- Footer -->
                     <tr>
                         <td style="padding: 30px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
-                            <p style="margin: 0; font-size: 12px; font-weight: 700; color: #475569;">Tasskr — Advanced Collaborative Productivity</p>
+                            <p style="margin: 0; font-size: 12px; font-weight: 700; color: #475569;"><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                             <p style="margin: 8px 0 0; font-size: 11px; color: #94a3b8; line-height: 1.5;">© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
                         </td>
                     </tr>
@@ -4397,7 +4397,7 @@ async sendVitalTaskInvitation(invitation, vitalTask, inviter) {
             </div>
 
             <div class="footer">
-                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                 <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
         </div>
@@ -4632,7 +4632,7 @@ async sendVitalTaskSharedNotification(vitalTask, collaborator, owner) {
             </div>
 
             <div class="footer">
-                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                 <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
         </div>
@@ -4830,7 +4830,7 @@ async sendVitalTaskCollaboratorRemovedNotification(vitalTask, removedUser, remov
             </div>
 
             <div class="footer">
-                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                 <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
         </div>
@@ -5063,7 +5063,7 @@ async sendPlanPurchaseEmail(user, planKey, billingCycle, amount, invoiceUrl) {
             </div>
 
             <div class="footer">
-                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                 <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
         </div>
@@ -5314,7 +5314,7 @@ async sendBoostExhaustionEmail(user) {
             </div>
 
             <div class="footer">
-                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                 <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
         </div>
@@ -5520,7 +5520,7 @@ async sendSubscriptionExpiryReminder(user, daysRemaining) {
             </div>
 
             <div class="footer">
-                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                 <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
         </div>
@@ -5731,7 +5731,7 @@ async sendTopupPurchaseEmail(user, topupPackage, boostsAdded, amount, invoiceUrl
             </div>
 
             <div class="footer">
-                <p><strong>Tasskr</strong> — Advanced Productivity Suite</p>
+                <p><strong>Tasskr</strong> — Tasskr — AI Task Management Software</p>
                 <p>© ${new Date().getFullYear()} Tasskr Inc. All rights reserved.</p>
             </div>
         </div>
