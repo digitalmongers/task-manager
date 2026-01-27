@@ -551,7 +551,12 @@ class AIService {
         systemPrompt: SYSTEM_PROMPTS.CATEGORY_ASSISTANT
       });
 
-      const suggestions = parseJSONResponse(response);
+      let suggestions = parseJSONResponse(response);
+
+      // If AI returned an array, take the first one (for priority/category we usually expect one)
+      if (Array.isArray(suggestions) && suggestions.length > 0) {
+        suggestions = suggestions[0];
+      }
 
       if (!validateSuggestions(suggestions, 'category')) {
         throw new Error('Invalid suggestions format');
@@ -594,7 +599,12 @@ class AIService {
         systemPrompt: SYSTEM_PROMPTS.PRIORITY_ASSISTANT
       });
 
-      const suggestions = parseJSONResponse(response);
+      let suggestions = parseJSONResponse(response);
+
+      // If AI returned an array, take the first one
+      if (Array.isArray(suggestions) && suggestions.length > 0) {
+        suggestions = suggestions[0];
+      }
 
       if (!validateSuggestions(suggestions, 'priority')) {
         throw new Error('Invalid suggestions format');
@@ -637,7 +647,12 @@ class AIService {
         systemPrompt: SYSTEM_PROMPTS.STATUS_ASSISTANT
       });
 
-      const suggestions = parseJSONResponse(response);
+      let suggestions = parseJSONResponse(response);
+
+      // If AI returned an array, take the first one
+      if (Array.isArray(suggestions) && suggestions.length > 0) {
+        suggestions = suggestions[0];
+      }
 
       if (!validateSuggestions(suggestions, 'status')) {
         throw new Error('Invalid suggestions format');

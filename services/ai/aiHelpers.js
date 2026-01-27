@@ -59,29 +59,67 @@ export const formatUserContext = (categories, priorities, statuses) => {
 
 /**
  * Validate AI suggestions
+ * @param {Object|Array} suggestions - The suggestions to validate
+ * @param {string} type - The type of suggestion (task, category, priority, status)
+ * @returns {boolean} - Whether the suggestions are valid
  */
 export const validateSuggestions = (suggestions, type) => {
-  if (!suggestions || typeof suggestions !== 'object') {
+  if (!suggestions) {
+    Logger.error('Validation failed: Suggestions object is empty');
     return false;
   }
-  
+
+  // Handle array of suggestions (e.g. for tasks)
+  if (Array.isArray(suggestions)) {
+    if (suggestions.length === 0) {
+      Logger.error('Validation failed: Suggestions array is empty');
+      return false;
+    }
+    return suggestions.every((s, index) => {
+      const isValid = validateSingleSuggestion(s, type);
+      if (!isValid) {
+        Logger.error(`Validation failed for suggestion at index ${index}`, { suggestion: s, type });
+      }
+      return isValid;
+    });
+  }
+
+  // Handle single suggestion object
+  const isValid = validateSingleSuggestion(suggestions, type);
+  if (!isValid) {
+    Logger.error('Validation failed for single suggestion', { suggestion: suggestions, type });
+  }
+  return isValid;
+};
+
+/**
+ * Internal helper to validate a single suggestion object
+ */
+const validateSingleSuggestion = (s, type) => {
+  if (!s || typeof s !== 'object') return false;
+
   switch (type) {
     case 'task':
-      return suggestions.title && typeof suggestions.title === 'string';
+      return typeof s.title === 'string' && s.title.length > 0;
     
     case 'category':
-      return suggestions.title && suggestions.color;
+      // The prompt says "title" can be null if invalid, but for a valid suggestion we expect it.
+      // However, the prompts define the schema as "string or null".
+      // Let's be flexible: if it has the key, it's structurally valid.
+      return 'title' in s && 'color' in s;
     
     case 'priority':
-      return suggestions.name && suggestions.color;
+      // Structurally check if fields exist as per PRIORITY_PROMPTS
+      return 'name' in s && 'color' in s;
     
     case 'status':
-      return suggestions.name && suggestions.color;
+      return 'name' in s && 'color' in s;
     
     default:
       return true;
   }
 };
+
 
 /**
  * Handle AI errors gracefully
