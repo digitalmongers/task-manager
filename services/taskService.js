@@ -15,6 +15,10 @@ class TaskService {
    */
   async createTask(userId, taskData, file) {
     try {
+      // Normalize empty strings to null for relation fields to prevent BSON cast errors
+      if (taskData.priority === '') taskData.priority = null;
+      if (taskData.category === '') taskData.category = null;
+
       const { title, description, dueDate, priority, status, category, isCompleted, steps } = taskData;
 
       // Verify category belongs to user (if provided)
@@ -273,6 +277,10 @@ class TaskService {
    */
   async updateTask(userId, taskId, updateData, file) {
     try {
+      // Normalize empty strings to null for relation fields to prevent BSON cast errors
+      if (updateData.priority === '') updateData.priority = null;
+      if (updateData.category === '') updateData.category = null;
+
       // Check access permission
       let task;
       const ownedTask = await TaskRepository.findByIdAndUser(taskId, userId);

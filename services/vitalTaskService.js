@@ -251,6 +251,10 @@ class VitalTaskService {
    */
   async updateVitalTask(userId, taskId, updateData, file) {
     try {
+      // Normalize empty strings to null for relation fields to prevent BSON cast errors
+      if (updateData.priority === '') updateData.priority = null;
+      if (updateData.category === '') updateData.category = null;
+
       // Check access permission
       let vitalTask;
       const ownedTask = await VitalTaskRepository.findByIdAndUser(taskId, userId);
