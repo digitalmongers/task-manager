@@ -14,7 +14,7 @@ export const categoryValidation = {
           'string.min': 'Category title must be at least 2 characters',
           'string.max': 'Category title cannot exceed 50 characters',
         }),
-      
+       
       description: Joi.string()
         .max(500)
         .trim()

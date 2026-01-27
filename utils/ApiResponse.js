@@ -15,7 +15,7 @@ class ApiResponse {
       statusCode,
       message,
     };
-
+  
     if (data !== null) {
       response.data = data;
     }
