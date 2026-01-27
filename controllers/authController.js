@@ -226,6 +226,14 @@ class AuthController {
     async refreshToken(req, res) {
     let refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
 
+    // DEBUG: Log refresh token sources
+    Logger.debug('Auth: [REFRESH] check', {
+      body: !!req.body?.refreshToken,
+      cookies: !!req.cookies?.refreshToken,
+      headers: !!req.headers.authorization,
+      requestId: req.requestId
+    });
+
     // Fallback: Check Authorization header if not found in body/cookies.
     // This is crucial for users with strict third-party cookie blocking (e.g., Chrome 143+).
     if (!refreshToken && req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {

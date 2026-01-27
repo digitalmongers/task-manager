@@ -13,6 +13,14 @@ export const protect = async (req, res, next) => {
   try {
     let token;
 
+    // DEBUG: Log incoming auth indicators
+    Logger.debug('Auth: [PROTECT] check', {
+      headers: !!req.headers.authorization,
+      cookies: !!req.cookies?.token,
+      origin: req.get('origin'),
+      requestId: req.requestId
+    });
+
     // Get token from Authorization header or cookies
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
@@ -141,6 +149,13 @@ export const authorize = (...roles) => {
 export const optionalAuth = async (req, res, next) => {
   try {
     let token;
+
+    // DEBUG: Log incoming auth indicators (optional)
+    Logger.debug('Auth: [OPTIONAL] check', {
+      headers: !!req.headers.authorization,
+      cookies: !!req.cookies?.token,
+      requestId: req.requestId
+    });
 
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
