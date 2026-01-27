@@ -77,10 +77,27 @@ class AuthController {
   
   async verifyEmail(req, res) {
     const { token } = req.params;
-    const result = await AuthService.verifyEmail(token);
+    const result = await AuthService.verifyEmail(token, req);
+
+    if (result.token) {
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      };
+
+      res.cookie("token", result.token, cookieOptions);
+      res.cookie("refreshToken", result.refreshToken, {
+        ...cookieOptions,
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      });
+    }
 
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message, {
       user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken,
     });
   }
 
@@ -226,8 +243,8 @@ class AuthController {
     async refreshToken(req, res) {
     let refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
 
-    // DEBUG: Log refresh token sources
-    Logger.debug('Auth: [REFRESH] check', {
+    // INFO: Log refresh token sources for production debugging
+    Logger.info('Auth: [REFRESH] check', {
       body: !!req.body?.refreshToken,
       cookies: !!req.cookies?.refreshToken,
       headers: !!req.headers.authorization,

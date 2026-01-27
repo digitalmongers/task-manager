@@ -13,11 +13,10 @@ export const protect = async (req, res, next) => {
   try {
     let token;
 
-    // DEBUG: Log incoming auth indicators
-    Logger.debug('Auth: [PROTECT] check', {
-      headers: !!req.headers.authorization,
-      cookies: !!req.cookies?.token,
-      origin: req.get('origin'),
+    // INFO: Log incoming auth indicators for production debugging
+    Logger.info('Auth: [PROTECT] check', {
+      hasHeader: !!req.headers.authorization,
+      hasCookie: !!req.cookies?.token,
       requestId: req.requestId
     });
 
@@ -150,10 +149,10 @@ export const optionalAuth = async (req, res, next) => {
   try {
     let token;
 
-    // DEBUG: Log incoming auth indicators (optional)
-    Logger.debug('Auth: [OPTIONAL] check', {
-      headers: !!req.headers.authorization,
-      cookies: !!req.cookies?.token,
+    // INFO: Log token availability for production debugging
+    Logger.info('Auth: [OPTIONAL] check', {
+      hasHeader: !!req.headers.authorization,
+      hasCookie: !!req.cookies?.token,
       requestId: req.requestId
     });
 

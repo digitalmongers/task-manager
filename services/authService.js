@@ -122,6 +122,11 @@ class AuthService {
     const userResponse = this._enrichUserWithBoosts(user);
     delete userResponse.password;
 
+    // Optional: We could generate tokens here for auto-login after register,
+    // but typically we wait for email verification. 
+    // However, to fix the 401s if they redirect to /dashboard immediately, 
+    // we should provide tokens if the user wants auto-login on register.
+
     return {
       user: userResponse,
       message:
@@ -519,7 +524,7 @@ class AuthService {
   /**
    * Verify email
    */
-  async verifyEmail(token) {
+  async verifyEmail(token, req = null) {
     // Find user by verification token
     const user = await AuthRepository.findByVerificationToken(token);
 
@@ -547,10 +552,44 @@ class AuthService {
       email: user.email,
     });
 
+    // Generate session and tokens for auto-login
+    let tokenData = {};
+    if (req) {
+      const requestInfo = RequestInfoService.extractRequestInfo(req);
+      const sessionId = await SessionService.createSession(user._id.toString(), {
+        deviceType: requestInfo.deviceType,
+        browser: requestInfo.browser,
+        os: requestInfo.os,
+        ipAddress: requestInfo.ipAddress,
+        country: requestInfo.country,
+        city: requestInfo.city,
+      });
+
+      const authToken = this.generateToken(user._id, sessionId, false);
+      const refreshToken = this.generateRefreshToken(user._id, sessionId);
+
+      tokenData = {
+        token: authToken,
+        refreshToken,
+        expiresIn: "7d",
+      };
+
+      // Record login activity
+      SecurityService.recordLoginAttempt({
+        userId: user._id,
+        sessionId,
+        authMethod: 'email_verification',
+        twoFactorUsed: false,
+        status: 'success',
+        req,
+      }).catch(() => {});
+    }
+
     return {
       message:
-        "Email verified successfully. You can now login to your account.",
+        "Email verified successfully. You've been automatically logged in.",
       user: verifiedUser,
+      ...tokenData
     };
   }
 
