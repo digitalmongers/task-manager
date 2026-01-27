@@ -169,7 +169,7 @@ class ChatService {
     });
     // Send to room but EXCLUDE sender to prevent phantom duplicates (Optimistic UI handling)
     WebSocketService.sendToChatRoom(taskId, 'chat:message', populatedMessage, userId);
-
+ 
     // 6. Background Tasks (Non-blocking)
     this._processBackgroundTasks(taskId, userId, populatedMessage, content, isVital);
 
