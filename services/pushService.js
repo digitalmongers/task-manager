@@ -124,10 +124,10 @@ class PushService {
 
       // Prepare notification payload
       const notificationPayload = JSON.stringify({
-        title: payload.title || 'Task Manager',
+        title: payload.title || 'Tasskr',
         body: payload.body || 'You have a new notification',
-        icon: payload.icon || '/icon-192x192.png',
-        badge: payload.badge || '/badge-72x72.png',
+        icon: payload.icon || '/public/logo.png',
+        badge: payload.badge || '/public/logo.png',
         url: payload.url || '/',
         data: payload.data || {},
       });
