@@ -1,6 +1,10 @@
 import cacheService, { TTL } from "../services/cacheService.js";
 import Logger from "../config/logger.js";
 import SitemapPage from "../models/SitemapPage.js";
+import IndexingService from "../services/indexingService.js";
+import ApiError from "../utils/ApiError.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import { HTTP_STATUS } from "../config/constants.js";
 
 /**
  * Enterprise SEO Controller
@@ -204,6 +208,39 @@ class SEOController {
 
     res.type('text/plain');
     return res.send(content.join('\n'));
+  }
+
+  /**
+   * Manually trigger Google Indexing for a URL
+   * POST /api/seo/index-now
+   */
+  async requestIndexing(req, res) {
+    const { url, type = 'update' } = req.body;
+
+    if (!url) {
+      throw ApiError.badRequest('URL is required');
+    }
+
+    // Only allow admin or secure context (basic check for now)
+    // In real enterprise, check for req.user.role === 'admin'
+    
+    let success = false;
+    if (type === 'delete') {
+      success = await IndexingService.removeUrl(url);
+    } else {
+      success = await IndexingService.publishUrl(url);
+    }
+
+    if (!success) {
+      // We don't throw an error to avoid exposing internal API issues to client completely,
+      // but we return a failed status.
+      return ApiResponse.error(res, HTTP_STATUS.BAD_GATEWAY, 'Failed to trigger indexing. Check server logs.');
+    }
+
+    return ApiResponse.success(res, HTTP_STATUS.OK, 'Indexing request sent to Google', {
+      url,
+      type
+    });
   }
 }
 

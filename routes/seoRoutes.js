@@ -28,4 +28,10 @@ router.get(["/.well-known/security.txt", "/security.txt"], seoController.getSecu
  */
 router.get("/llms.txt", seoController.getLLMsTxt);
 
+/**
+ * @route POST /index-now
+ * @desc Manually trigger Google Indexing for a URL (Admin only recommended)
+ */
+router.post("/index-now", seoController.requestIndexing);
+
 export default router;
