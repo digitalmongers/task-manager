@@ -50,7 +50,7 @@ class NotificationService {
         title: data.title,
         body: data.message,
         url: data.actionUrl || CLIENT_URL,
-        icon: '/icon-192x192.png',
+        icon: '/public/logo.png',
         data: {
           notificationId: notification._id,
           type: data.type,
@@ -131,7 +131,7 @@ class NotificationService {
             title: originalNotification?.title || notification.title || 'Task Manager',
             body: originalNotification?.message || notification.message || 'You have a new notification',
             url: originalNotification?.actionUrl || notification.actionUrl || CLIENT_URL,
-            icon: '/icon-192x192.png',
+            icon: '/public/logo.png',
             data: {
               notificationId: notification._id,
               type: notification.type,
