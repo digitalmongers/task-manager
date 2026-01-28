@@ -55,13 +55,30 @@ class AuthController {
     // we must fall back to non-secure cookies or the browser will reject them.
     const useSecure = process.env.NODE_ENV === "production" ? isSecure : false;
     
-    return {
+    const options = {
       httpOnly: true,
       secure: useSecure,
       // 'none' requires Secure=true. If not secure, use 'lax'
       sameSite: useSecure ? "none" : "lax",
-      maxAge: maxAgeMs
+      maxAge: maxAgeMs,
+      path: '/' // Ensure cookie is valid for all paths
     };
+
+    // In production, set domain to allow subdomains (api.tasskr.com & www.tasskr.com)
+    if (process.env.NODE_ENV === "production" && process.env.FRONTEND_URL) {
+      try {
+        const url = new URL(process.env.FRONTEND_URL);
+        const domain = url.hostname.replace(/^www\./, '');
+        // Only set domain if it's a valid domain (not IP or localhost)
+        if (domain.includes('.') && !domain.match(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/)) {
+          options.domain = '.' + domain; 
+        }
+      } catch (error) {
+        Logger.warn('Failed to parse cookie domain', { error: error.message });
+      }
+    }
+
+    return options;
   }
 
   async login(req, res) {
