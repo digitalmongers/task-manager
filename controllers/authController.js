@@ -38,6 +38,32 @@ class AuthController {
   }
 
  
+  /**
+   * Helper to get secure cookie options
+   * Adapts to environment and request security
+   */
+  _getCookieOptions(req, maxAgeMs) {
+    // Check if connection is secure (HTTPS)
+    // Trust proxy is enabled in server.js, so req.secure handles load balancers
+    const isSecure = req.secure || (req.headers['x-forwarded-proto'] === 'https');
+    
+    // In strict production (e.g. Render), we usually want Secure=true.
+    // However, if accessing via local IP (10.x), it might be HTTP.
+    // So we rely on the actual request security status OR forceful override if needed.
+    
+    // If we are in production but the request is NOT secure (e.g. internal network), 
+    // we must fall back to non-secure cookies or the browser will reject them.
+    const useSecure = process.env.NODE_ENV === "production" ? isSecure : false;
+    
+    return {
+      httpOnly: true,
+      secure: useSecure,
+      // 'none' requires Secure=true. If not secure, use 'lax'
+      sameSite: useSecure ? "none" : "lax",
+      maxAge: maxAgeMs
+    };
+  }
+
   async login(req, res) {
     // Pass invitationToken if present
     const result = await AuthService.login(req.body, req);
@@ -51,20 +77,15 @@ class AuthController {
       });
     }
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // HTTPS only in production
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // 'none' allows cross-origin cookies
-      maxAge: req.body.rememberMe
-        ? 30 * 24 * 60 * 60 * 1000
-        : 7 * 24 * 60 * 60 * 1000, // 30 days or 7 days
-    };
+    const maxAge = req.body.rememberMe
+        ? 30 * 24 * 60 * 60 * 1000 // 30 days
+        : 7 * 24 * 60 * 60 * 1000; // 7 days
+
+    const cookieOptions = this._getCookieOptions(req, maxAge);
+    const refreshCookieOptions = this._getCookieOptions(req, 30 * 24 * 60 * 60 * 1000); // 30 days
 
     res.cookie("token", result.token, cookieOptions);
-    res.cookie("refreshToken", result.refreshToken, {
-      ...cookieOptions,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    });
+    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
     return ApiResponse.success(res, HTTP_STATUS.OK, "Login successful", {
       user: result.user,
@@ -80,18 +101,11 @@ class AuthController {
     const result = await AuthService.verifyEmail(token, req);
 
     if (result.token) {
-      const cookieOptions = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      };
+      const cookieOptions = this._getCookieOptions(req, 7 * 24 * 60 * 60 * 1000);
+      const refreshCookieOptions = this._getCookieOptions(req, 30 * 24 * 60 * 60 * 1000);
 
       res.cookie("token", result.token, cookieOptions);
-      res.cookie("refreshToken", result.refreshToken, {
-        ...cookieOptions,
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      });
+      res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
     }
 
     return ApiResponse.success(res, HTTP_STATUS.OK, result.message, {
@@ -210,12 +224,9 @@ class AuthController {
 
     const result = await AuthService.deleteAccount(req.user._id, password, req);
 
-    // Clear cookies with full security options
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    };
+    // Clear cookies with matching options
+    // maxAge doesn't matter for clearing, but we pass something to satisfy the helper
+    const cookieOptions = this._getCookieOptions(req, 0);
 
     res.clearCookie("token", cookieOptions);
     res.clearCookie("refreshToken", cookieOptions);
@@ -227,12 +238,8 @@ class AuthController {
   async logout(req, res) {
     const result = await AuthService.logout(req.user._id, req.sessionId, req);
 
-    // Clear cookies with full security options
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    };
+    // Clear cookies with matching options
+    const cookieOptions = this._getCookieOptions(req, 0);
 
     res.clearCookie("token", cookieOptions);
     res.clearCookie("refreshToken", cookieOptions);
@@ -263,22 +270,11 @@ class AuthController {
 
     const result = await AuthService.refreshToken(refreshToken);
 
-    // Update cookies with cross-origin support
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    };
+    const cookieOptions = this._getCookieOptions(req, 7 * 24 * 60 * 60 * 1000);
+    const refreshCookieOptions = this._getCookieOptions(req, 30 * 24 * 60 * 60 * 1000);
 
-    res.cookie("token", result.token, {
-      ...cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
-    res.cookie("refreshToken", result.refreshToken, {
-      ...cookieOptions,
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    });
+    res.cookie("token", result.token, cookieOptions);
+    res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
     return ApiResponse.success(
       res,
@@ -335,13 +331,8 @@ class AuthController {
              return res.redirect(twoFactorUrl);
           }
 
-          const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-          };
-
+          const cookieOptions = this._getCookieOptions(req, 30 * 24 * 60 * 60 * 1000);
+          
           res.cookie("token", result.token, cookieOptions);
           res.cookie("refreshToken", result.refreshToken, cookieOptions);
 
@@ -441,12 +432,7 @@ class AuthController {
              return res.redirect(twoFactorUrl);
           }
 
-          const cookieOptions = {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-          };
+          const cookieOptions = this._getCookieOptions(req, 30 * 24 * 60 * 60 * 1000);
 
           res.cookie("token", result.token, cookieOptions);
           res.cookie("refreshToken", result.refreshToken, cookieOptions);
