@@ -15,9 +15,13 @@ export const protect = async (req, res, next) => {
 
     // INFO: Log incoming auth indicators for production debugging
     Logger.info('Auth: [PROTECT] check', {
+      url: req.originalUrl,
+      method: req.method,
       hasHeader: !!req.headers.authorization,
       hasCookie: !!req.cookies?.token,
-      requestId: req.requestId
+      cookieKeys: req.cookies ? Object.keys(req.cookies) : [],
+      requestId: req.requestId,
+      ip: req.ip
     });
 
     // Get token from Authorization header or cookies
@@ -28,6 +32,10 @@ export const protect = async (req, res, next) => {
     }
 
     if (!token) {
+      Logger.warn('Auth: [PROTECT] No token found', {
+        headers: req.headers,
+        cookies: req.cookies
+      });
       throw ApiError.unauthorized('Please login to access this resource');
     }
 

@@ -84,6 +84,18 @@ class AuthController {
     const cookieOptions = this._getCookieOptions(req, maxAge);
     const refreshCookieOptions = this._getCookieOptions(req, 30 * 24 * 60 * 60 * 1000); // 30 days
 
+    Logger.info('Auth: [LOGIN_SUCCESS] Setting cookies', {
+      email: result.user.email,
+      cookieOptions,
+      isSecure: req.secure,
+      protocol: req.protocol,
+      headers: {
+        origin: req.headers.origin,
+        'x-forwarded-proto': req.headers['x-forwarded-proto']
+      },
+      userAgent: req.headers['user-agent']
+    });
+
     res.cookie("token", result.token, cookieOptions);
     res.cookie("refreshToken", result.refreshToken, refreshCookieOptions);
 
