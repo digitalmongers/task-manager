@@ -13,7 +13,7 @@ class ContactController {
         req.body,
         req.ip
       );
-  
+   
       // Send email to support team
       EmailService.sendContactSupportEmail(contactData).catch((error) => {
         Logger.error('Failed to send support email', {
@@ -21,7 +21,7 @@ class ContactController {
           contactData,
         });
       });
-
+ 
       // Send confirmation email to user
       EmailService.sendContactConfirmation(contactData).catch((error) => {
         Logger.error('Failed to send confirmation email', {

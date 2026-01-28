@@ -4,7 +4,7 @@ import mailchimpService from '../services/mailchimpService.js';
 import NewsletterSubscriber from '../models/NewsletterSubscriber.js';
 import logger from '../config/logger.js';
 import ApiError from '../utils/ApiError.js';
-
+ 
 /**
  * @desc    Subscribe to newsletter
  * @route   POST /api/newsletter/subscribe
@@ -16,7 +16,7 @@ export const subscribe = asyncHandler(async (req, res) => {
       'string.email': 'Please provide a valid email address',
       'any.required': 'Email is required',
     }),
-  });
+  }); 
 
   const { error, value } = schema.validate(req.body);
 
